@@ -151,6 +151,73 @@ textarea.bk{width:100%;min-height:140px;font-family:ui-monospace,Menlo,monospace
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spinner{animation-duration:3s}}
 .replist{border-top:1px solid var(--line);padding:8px 0;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+/* profiles + sync */
+.topnav .navr{display:flex;gap:6px;align-items:center;order:2}
+.topnav .navi{display:flex;flex-wrap:wrap;gap:2px;order:3;width:100%}
+@media(min-width:1000px){.topnav .navi{width:auto;order:1;margin-right:auto}.topnav .brand{margin-right:12px}}
+.topnav .navr button{min-height:36px}
+.avatar{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;color:#fff;font-weight:800;font-size:24px;flex:none;line-height:1}
+.avatar.sm{width:28px;height:28px;font-size:14px}
+.avatar.add{background:#eef1f6;color:var(--blue);border:2px dashed #9fb2d8}
+.topnav .pchip{display:inline-flex;gap:6px;align-items:center;border:1.5px solid var(--line);border-radius:999px;padding:3px 10px 3px 3px;background:#fff;color:var(--ink);max-width:180px}
+.pchip span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.syncpill{display:inline-flex;align-items:center;gap:6px;border:1.5px solid var(--line)!important;border-radius:999px!important;background:#fff!important;padding:3px 10px!important;font-size:13px!important;font-weight:600;color:var(--muted)!important;min-height:30px!important;white-space:nowrap}
+.syncpill i{width:9px;height:9px;border-radius:50%;background:#9ca3af;display:inline-block}
+.syncpill.s-ok i{background:var(--ok)}.syncpill.s-ok{color:var(--ok)!important}
+.syncpill.s-syncing i{background:var(--blue);animation:pulse 1s ease-in-out infinite}
+.syncpill.s-pending i,.syncpill.s-offline i{background:#d97706}.syncpill.s-offline{color:var(--amber)!important}
+.syncpill.s-error i{background:var(--bad)}.syncpill.s-error{color:var(--bad)!important}
+@keyframes pulse{50%{opacity:.3}}
+.rhead .syncpill span{display:none}.rhead .syncpill{padding:3px 8px!important}
+@media(min-width:700px){.rhead .syncpill span{display:inline}}
+.pwrap{max-width:760px}
+.ptitle{font-size:28px;color:var(--blue-d);margin:6px 0 16px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;text-align:center}
+@media(max-width:420px){.pgrid{grid-template-columns:1fr 1fr;gap:10px}}
+.pcell{display:flex;flex-direction:column;gap:4px}
+.pcard{display:flex;flex-direction:column;align-items:center;gap:6px;border:1.5px solid var(--line);background:#fff;border-radius:16px;padding:16px 8px 12px;width:100%;min-height:140px}
+.pcard:hover,.pcard:focus-visible{border-color:var(--blue);background:#f7f9ff}
+.pcard.remote{border-style:dashed}
+.pname{font-size:17px;word-break:break-word}
+.pedit{border:0;background:none;color:var(--blue);font-size:13px;font-weight:600;min-height:32px}
+.pnote{background:#eef4ff;border-color:#bcd0f7}
+.psync{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center}
+.pinbox{display:block;width:180px;margin:6px auto 0;font-size:30px;letter-spacing:.5em;text-align:center;padding:8px 0 8px .5em;border:2px solid var(--line);border-radius:12px}
+.pinbox:focus{outline:none;border-color:var(--blue)}
+.fld input.pinsm{width:120px;letter-spacing:.3em;text-align:center}
+.swatches{display:flex;flex-wrap:wrap;gap:10px}
+.sw{width:36px;height:36px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1.5px var(--line)}
+.sw.on{box-shadow:0 0 0 3px var(--ink)}
+/* dashboard */
+.dhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.dhead .filters{margin:0}
+.mgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px}
+@media(max-width:480px){.mgrid{grid-template-columns:1fr 1fr}}
+.mcard{background:var(--blue-l);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.mcard.wide{grid-column:1/-1;background:#fff4f4}
+.mcard .ml{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;color:var(--muted)}
+.mcard .mv{font-size:26px;color:var(--blue-d);line-height:1.15}
+.mcard .ms{font-size:13px;color:var(--muted)}
+.mcard .wk{display:block;text-align:left;border:0;background:none;padding:4px 0;font-weight:700;color:var(--bad);font-size:15px}
+.dchart{display:block;max-width:100%;height:auto;font-family:var(--sans)}
+.dlegend{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--muted);margin-top:6px}
+.dlegend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.dsel{font:inherit;font-size:15px;padding:6px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fff;max-width:100%}
+table.heat{border-collapse:separate;border-spacing:2px;font-size:13px;min-width:100%}
+table.heat th{font-size:11px;color:var(--muted);font-weight:700;white-space:nowrap;padding:2px 4px}
+table.heat td{text-align:center;border-radius:4px;min-width:34px;height:28px;font-weight:700;font-size:12px}
+table.heat td.hc{text-align:left;white-space:nowrap;font-weight:600;color:var(--ink);background:#fff;padding-right:8px;position:sticky;left:0;font-size:13px}
+.ddot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+@media(max-width:600px){
+ .topnav{position:static}
+ .topnav .in{padding:4px 8px;gap:2px}
+ .topnav .brand{font-size:15px;padding:4px 2px}
+ .topnav .navi button{padding:6px 8px;font-size:15px;min-height:36px}
+ .topnav .pchip{max-width:130px}
+ .topnav .syncpill span{display:none}.topnav .syncpill{padding:3px 8px!important}
+ table.heat td.hc{white-space:normal;min-width:118px;max-width:118px;font-size:12px;line-height:1.2}
+ .card{padding:14px 14px}
+}
 @media print{.topnav,.btn{display:none}}
 </style>
 </head>
@@ -162,6 +229,116 @@ textarea.bk{width:100%;min-height:140px;font-family:ui-monospace,Menlo,monospace
 <script>
 (function(){
 'use strict';
+/* Profile-data merge for cross-device sync. Shared by the app (inlined at build time; the
+ * `export` line is stripped) and by the relay tests. Plain ES5 so it runs in any browser.
+ *
+ * Rules (never lose data on a conflict):
+ *  - sessions (tests / practice sets) are append-only and unioned by id. Deleting one writes a
+ *    tombstone (deleted[id] = time); it only wins over copies that weren't changed after it.
+ *  - inside one session, each question's answer / unsure / mark is last-write-wins using its own
+ *    timestamp (qa[qid].t / .ut / .mt), so answers made on two devices are combined; seconds spent
+ *    take the max. An in-progress session resumes from the newest copy (position, module, stage);
+ *    a finished copy always beats an unfinished one; the timer keeps the smaller time left.
+ *  - AI bank: union by id. Reports: per-question last-write-wins (reported vs unreported times).
+ *  - settings (archived skills): last-write-wins on settingsAt. Counters: max.
+ *  - device-only fields (ui = current page) are never synced and always kept from the local copy.
+ */
+var LOCAL_ONLY_FIELDS = ['ui', 'lastExport'];
+function mObj(o) { return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; }
+function mNum(v) { v = +v; return isFinite(v) ? v : 0; }
+function mKeys() { var seen = {}, out = []; for (var i = 0; i < arguments.length; i++) { var o = mObj(arguments[i]); for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k) && !seen[k]) { seen[k] = 1; out.push(k); } } return out.sort(); }
+function mCopy(o) { return o == null ? o : JSON.parse(JSON.stringify(o)); }
+function sessionTime(s) { return Math.max(mNum(s.updatedAt), mNum(s.finishedAt), mNum(s.createdAt)); }
+
+function mergeSession(x, y) {
+  if (!x) return mCopy(y); if (!y) return mCopy(x);
+  var tx = sessionTime(x), ty = sessionTime(y);
+  var newer = tx > ty ? x : ty > tx ? y : (answeredCount(x) >= answeredCount(y) ? x : y), older = newer === x ? y : x;
+  var m = mCopy(newer);
+  // position: furthest module wins (you can't go back to module 1); same module -> newest copy
+  if (mNum(older.mod) > mNum(newer.mod)) { m.mod = older.mod; m.idx = older.idx; m.stage = older.stage; }
+  // finished beats unfinished
+  if (!m.finishedAt && older.finishedAt) { m.finishedAt = older.finishedAt; m.stage = 'done'; }
+  if (m.finishedAt) m.stage = 'done';
+  if (Array.isArray(x.timeLeft) && Array.isArray(y.timeLeft) && x.timeLeft.length === y.timeLeft.length)
+    m.timeLeft = x.timeLeft.map(function (v, i) { return Math.min(mNum(v), mNum(y.timeLeft[i])); });
+  var qx = mObj(x.qa), qy = mObj(y.qa), qa = {};
+  var ids = mKeys(x.answers, y.answers, x.unsure, y.unsure, x.marked, y.marked, qx, qy);
+  m.answers = {}; m.unsure = {}; m.marked = {};
+  ids.forEach(function (id) {
+    var a = mObj(qx[id]), b = mObj(qy[id]), r = {};
+    [['answers', 't'], ['unsure', 'ut'], ['marked', 'mt']].forEach(function (f) {
+      var map = f[0], ts = f[1], ta = mNum(a[ts]), tb = mNum(b[ts]);
+      var vx = mObj(x[map])[id], vy = mObj(y[map])[id], v;
+      if (ta > tb) v = vx; else if (tb > ta) v = vy;
+      else v = (newer === x ? (vx !== undefined ? vx : vy) : (vy !== undefined ? vy : vx)); // no timestamps (old data): union, newest copy first
+      if (v !== undefined && v !== null && v !== false) m[map][id] = v;
+      if (ta || tb) r[ts] = Math.max(ta, tb);
+    });
+    var sec = Math.max(mNum(a.sec), mNum(b.sec)); if (sec) r.sec = Math.round(sec * 10) / 10;
+    var fa = mNum(a.a), fb = mNum(b.a), first = fa && fb ? Math.min(fa, fb) : (fa || fb); if (first) r.a = first;
+    if (Object.keys(r).length) qa[id] = r;
+  });
+  m.qa = qa;
+  m.updatedAt = Math.max(mNum(x.updatedAt), mNum(y.updatedAt));
+  return m;
+}
+function answeredCount(s) { return Object.keys(mObj(s.answers)).length; }
+
+function mergeProfileData(local, remote) {
+  var a = mObj(local), b = mObj(remote);
+  var out = { app: 'dsat-rw-simulator', version: 1 };
+  // tombstones
+  var deleted = {};
+  mKeys(a.deleted, b.deleted).forEach(function (id) { deleted[id] = Math.max(mNum(mObj(a.deleted)[id]), mNum(mObj(b.deleted)[id])); });
+  out.deleted = deleted;
+  // sessions
+  out.sessions = {};
+  mKeys(a.sessions, b.sessions).forEach(function (id) {
+    var x = mObj(a.sessions)[id], y = mObj(b.sessions)[id];
+    if ((x && typeof x !== 'object') || (y && typeof y !== 'object')) return;
+    var s = mergeSession(x, y);
+    if (!s || !Array.isArray(s.modules)) return;
+    if (deleted[id] && deleted[id] >= sessionTime(s)) return; // deleted, and not changed since
+    out.sessions[id] = s;
+  });
+  var ids = Object.keys(out.sessions);
+  out.openIds = ids.filter(function (id) { return !out.sessions[id].finishedAt; }).sort(function (p, q) { return mNum(out.sessions[p].createdAt) - mNum(out.sessions[q].createdAt); });
+  out.archiveIds = ids.filter(function (id) { return out.sessions[id].finishedAt; }).sort(function (p, q) { return mNum(out.sessions[p].finishedAt) - mNum(out.sessions[q].finishedAt); });
+  // AI bank: union
+  out.aiBank = {};
+  mKeys(a.aiBank, b.aiBank).forEach(function (id) { var q = mObj(a.aiBank)[id] || mObj(b.aiBank)[id]; if (q && typeof q === 'object') out.aiBank[id] = mCopy(q); });
+  // reports: last write wins per question
+  out.reported = {}; out.unreported = {};
+  mKeys(a.reported, b.reported, a.unreported, b.unreported).forEach(function (id) {
+    var ra = mObj(a.reported)[id], rb = mObj(b.reported)[id];
+    var rep = ra && rb ? (mNum(ra.at) >= mNum(rb.at) ? ra : rb) : (ra || rb);
+    var un = Math.max(mNum(mObj(a.unreported)[id]), mNum(mObj(b.unreported)[id]));
+    if (rep && mNum(rep.at) > un) out.reported[id] = mCopy(rep); else if (un) out.unreported[id] = un;
+  });
+  // settings: last write wins
+  var sa = mNum(a.settingsAt), sb = mNum(b.settingsAt);
+  out.conceptArchived = mCopy(mObj(sb > sa ? b.conceptArchived : a.conceptArchived));
+  out.settingsAt = Math.max(sa, sb);
+  var ca = mObj(a.counters), cb = mObj(b.counters);
+  out.counters = { test: Math.max(mNum(ca.test), mNum(cb.test)), practice: Math.max(mNum(ca.practice), mNum(cb.practice)) };
+  out.updatedAt = Math.max(mNum(a.updatedAt), mNum(b.updatedAt));
+  // device-only fields come from the local copy
+  LOCAL_ONLY_FIELDS.forEach(function (k) { if (a[k] !== undefined) out[k] = mCopy(a[k]); });
+  return out;
+}
+/* Profile card info (name, color, PIN hash): last write wins on updatedAt. */
+function mergeProfileMeta(a, b) {
+  if (!a) return mCopy(b); if (!b) return mCopy(a);
+  return mCopy(mNum(b.updatedAt) > mNum(a.updatedAt) ? b : a);
+}
+/* What gets uploaded: everything except device-only fields. */
+function syncView(state) {
+  var o = {}, s = mObj(state);
+  for (var k in s) if (Object.prototype.hasOwnProperty.call(s, k) && LOCAL_ONLY_FIELDS.indexOf(k) < 0) o[k] = s[k];
+  return o;
+}
+
 var DATA = JSON.parse(document.getElementById('sat-data').textContent);
 var CONCEPTS = DATA.concepts, CMAP = {};
 CONCEPTS.forEach(function(c){ CMAP[c.id] = c; });
@@ -178,7 +355,13 @@ var BLUEPRINT = [
  [['wic',5],['structure',2],['crosstext',1],['central',1],['detail',1],['coe-text',2],['coe-quant',1],['inference',2],['boundaries',1],['sva',1],['pronoun',1],['tense',1],['possessive',1],['colon',1],['modifier',1],['transition',2],['synthesis',3]],
  [['wic',5],['structure',1],['crosstext',2],['central',1],['detail',1],['coe-text',2],['coe-quant',2],['inference',1],['supplement',1],['boundaries',1],['sva',1],['verbform',1],['colon',1],['pronoun',1],['modifier',1],['transition',2],['synthesis',3]]
 ];
-var KEY = 'dsat-rw-simulator-v1';
+var KEY = 'dsat-rw-simulator-v1';            // pre-profiles single-user progress (migrated into "Profile 1"; left in place as a backup)
+var PROFILES_KEY = 'dsat-rw-profiles-v1';     // device registry: profile cards + which one is active
+var PDATA_PREFIX = 'dsat-rw-profile-v1:';     // + profile id -> that profile's progress
+var SYNC_PREFIX = 'dsat-rw-sync-v1:';         // + profile id -> last synced version/hash
+var ACTIVE_SESSION_KEY = 'dsat-rw-active-profile'; // sessionStorage: profile chosen in this tab (reloads skip the picker)
+var PROFILE_COLORS = ['#1d4ed8','#0f766e','#b45309','#be185d','#6d28d9','#15803d','#b91c1c','#334155'];
+var REG = null, ACTIVE = null;
 /* ---------- AI relay config ---------- */
 var DEFAULT_RELAY_URL = 'https://sat-relay.lhsiao2.workers.dev'; // replaced with the deployed relay URL at publish time
 if (/^__/.test(DEFAULT_RELAY_URL)) DEFAULT_RELAY_URL = '';
@@ -188,7 +371,7 @@ var PROVIDER_NAMES = {openai:'OpenAI', anthropic:'Claude', xai:'Grok'};
 
 /* ---------- storage ---------- */
 var S, storageOK = true;
-function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, openIds:[], archiveIds:[], conceptArchived:{}, counters:{test:0, practice:0}, lastExport:null, ui:{page:'home'}, aiBank:{}, reported:{}}; }
+function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, openIds:[], archiveIds:[], conceptArchived:{}, counters:{test:0, practice:0}, lastExport:null, ui:{page:'home'}, aiBank:{}, reported:{}, unreported:{}, deleted:{}, settingsAt:0, updatedAt:0}; }
 function normalize(){
   var b = blankState();
   for (var k in b) if (S[k] === undefined) S[k] = b[k];
@@ -196,6 +379,7 @@ function normalize(){
   S.archiveIds = S.archiveIds.filter(function(id){ return S.sessions[id] && S.sessions[id].finishedAt; });
   if (!S.aiBank || typeof S.aiBank !== 'object') S.aiBank = {};
   if (!S.reported || typeof S.reported !== 'object') S.reported = {};
+  ['unreported','deleted','conceptArchived','counters'].forEach(function(k){ if (!S[k] || typeof S[k] !== 'object') S[k] = blankState()[k]; });
   registerAIBank();
 }
 /* AI questions live in S.aiBank (so they are saved, archived with sessions, and included in backups). */
@@ -208,15 +392,17 @@ function registerAIBank(){
 }
 function aiList(){ return Object.keys(S.aiBank).map(function(id){ return S.aiBank[id]; }); }
 function load(){
-  try { var raw = window.localStorage.getItem(KEY); S = raw ? JSON.parse(raw) : blankState(); }
-  catch(e){ storageOK = false; S = blankState(); }
+  Object.keys(Q).forEach(function(id){ if (Q[id] && Q[id].ai) delete Q[id]; }); // previous profile's AI questions
+  S = ACTIVE ? readProfileData(ACTIVE) : null;
   if (!S || typeof S !== 'object' || !S.sessions) S = blankState();
   normalize();
 }
 function save(){
-  try { window.localStorage.setItem(KEY, JSON.stringify(S)); storageOK = true; }
-  catch(e){ storageOK = false; }
+  if (!ACTIVE || !S) return;
+  var cs = view && view.page === 'run' && S.sessions[view.sid]; if (cs && !cs.finishedAt) cs.updatedAt = now();
+  storageOK = writeProfileData(ACTIVE, S);
 }
+function qaRec(s, id){ var qa = s.qa || (s.qa = {}); return qa[id] || (qa[id] = {}); }
 
 /* ---------- helpers ---------- */
 function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
@@ -230,6 +416,25 @@ function uid(){ return 's' + Date.now().toString(36) + Math.random().toString(36
 function pct(a,b){ return b ? Math.round(100*a/b) : 0; }
 function flat(sess){ return sess.modules.reduce(function(a,m){ return a.concat(m); }, []); }
 function LET(i){ return 'ABCD'[i]; }
+/* Small synchronous SHA-256 (hex) for PIN hashes; works without crypto.subtle. */
+function sha256hex(str){
+  str = unescape(encodeURIComponent(String(str)));
+  var rr = function(v, n){ return (v >>> n) | (v << (32 - n)); };
+  var K = [], H = [], pc = 0, comp = {}, i, j;
+  for (var c = 2; pc < 64; c++) { if (!comp[c]) { for (i = 0; i < 313; i += c) comp[i] = c; H[pc] = (Math.pow(c, .5) * 0x100000000) | 0; K[pc++] = (Math.pow(c, 1 / 3) * 0x100000000) | 0; } }
+  H = H.slice(0, 8);
+  var words = [], bitLen = str.length * 8; str += '\x80'; while (str.length % 64 - 56) str += '\x00';
+  for (i = 0; i < str.length; i++) { j = str.charCodeAt(i); words[i >> 2] |= j << ((3 - i) % 4) * 8; }
+  words[words.length] = (bitLen / 0x100000000) | 0; words[words.length] = bitLen;
+  for (j = 0; j < words.length;) { var w = words.slice(j, j += 16), old = H; H = H.slice(0, 8);
+    for (i = 0; i < 64; i++) { var w15 = w[i - 15], w2 = w[i - 2], a = H[0], e = H[4];
+      var t1 = H[7] + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25)) + ((e & H[5]) ^ (~e & H[6])) + K[i] + (w[i] = (i < 16) ? w[i] : (w[i - 16] + (rr(w15, 7) ^ rr(w15, 18) ^ (w15 >>> 3)) + w[i - 7] + (rr(w2, 17) ^ rr(w2, 19) ^ (w2 >>> 10))) | 0);
+      var t2 = (rr(a, 2) ^ rr(a, 13) ^ rr(a, 22)) + ((a & H[1]) ^ (a & H[2]) ^ (H[1] & H[2]));
+      H = [(t1 + t2) | 0].concat(H); H[4] = (H[4] + t1) | 0; }
+    for (i = 0; i < 8; i++) H[i] = (H[i] + old[i]) | 0; }
+  var out = ''; for (i = 0; i < 8; i++) for (j = 3; j + 1; j--) { var b = (H[i] >> (j * 8)) & 255; out += (b < 16 ? '0' : '') + b.toString(16); }
+  return out;
+}
 
 /* ---------- sanitizing AI-written content (defense in depth; the relay already escapes it) ---------- */
 var SAFE_TAGS = {P:1,SPAN:1,UL:1,LI:1,U:1,EM:1,I:1,B:1,STRONG:1,TABLE:1,THEAD:1,TBODY:1,TR:1,TH:1,TD:1,BR:1};
@@ -376,7 +581,7 @@ function newSession(kind, title, modules, extra){
            timed: kind === 'test', timeLeft: modules.map(function(){ return MODULE_SECONDS; }), timerHidden:false,
            mod:0, idx:0, stage:'q', answers:{}, marked:{}, unsure:{}};
   if (extra) for (var k in extra) s[k] = extra[k];
-  S.sessions[s.id] = s; S.openIds.push(s.id); save();
+  S.sessions[s.id] = s; S.openIds.push(s.id); save(); syncSoon(4000);
   return s;
 }
 function startOriginal(){
@@ -421,8 +626,9 @@ function finishSession(s){
   s.finishedAt = now(); s.stage = 'done';
   S.openIds = S.openIds.filter(function(id){ return id !== s.id; });
   if (S.archiveIds.indexOf(s.id) < 0) S.archiveIds.push(s.id);
-  save();
+  s.updatedAt = now(); save();
   go('results', s.id);
+  syncNow('finish');
 }
 
 /* ---------- navigation ---------- */
@@ -441,18 +647,26 @@ function modal(title, bodyHtml, buttons){
   modalHandlers = buttons || [{label:'OK', primary:true}];
   modalRoot.innerHTML = '<div class="mback" role="dialog" aria-modal="true"><div class="mbox"><h3>' + esc(title) + '</h3><div>' + bodyHtml +
     '</div><div class="mbtns">' + modalHandlers.map(function(b, i){
-      return '<button class="btn ' + (b.primary?'primary ':'') + (b.danger?'danger':'') + '" data-mbtn="' + i + '">' + esc(b.label) + '</button>'; }).join('') + '</div></div></div>';
+      return '<button type="button" class="btn ' + (b.primary?'primary ':'') + (b.danger?'danger':'') + '" data-mbtn="' + i + '">' + esc(b.label) + '</button>'; }).join('') + '</div></div></div>';
 }
 function closeModal(){ modalRoot.innerHTML = ''; modalHandlers = []; }
 function modalOpen(){ return !!modalRoot.firstChild; }
 modalRoot.addEventListener('click', function(e){
   var b = e.target.closest('[data-mbtn]');
-  if (b) { var h = modalHandlers[+b.getAttribute('data-mbtn')]; closeModal(); if (h && h.onClick) h.onClick(); return; }
+  if (b) { var h = modalHandlers[+b.getAttribute('data-mbtn')], v; if (h && h.validate) { v = h.validate(); if (v === false) return; } closeModal(); if (h && h.onClick) h.onClick(v); return; }
+  var ma = e.target.closest('[data-mact]'); if (ma) { e.preventDefault(); var mf = MACTIONS[ma.getAttribute('data-mact')]; if (mf) mf(ma); return; }
   var g = e.target.closest('[data-goto]');
   if (g) { var s = S.sessions[view.sid]; closeModal(); s.idx = +g.getAttribute('data-goto'); s.stage = 'q'; save(); render(); return; }
   var cr = e.target.closest('[data-act="tocheck"]');
   if (cr) { var s2 = S.sessions[view.sid]; closeModal(); s2.stage = 'check'; save(); render(); }
 });
+var MACTIONS = {
+  'forgot-pin': function(){ forgotPin(); },
+  'pf-color': function(el){ var c = el.getAttribute('data-c'), all = modalRoot.querySelectorAll('.sw'); for (var i = 0; i < all.length; i++) all[i].className = 'sw' + (all[i] === el ? ' on' : ''); var hcol = document.getElementById('pf-color'); if (hcol) hcol.value = c; }
+};
+function clickPrimary(){ var pb = modalRoot.querySelector('.mbtns .btn.primary'); if (pb) pb.click(); }
+modalRoot.addEventListener('input', function(e){ var t = e.target; if (t && t.id === 'pin-in') { t.value = t.value.replace(/\D/g, '').slice(0, 4); if (t.value.length === 4) setTimeout(clickPrimary, 60); } });
+modalRoot.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') { e.preventDefault(); clickPrimary(); } });
 function confirmBox(title, html, okLabel, fn, danger){
   modal(title, html, [{label:'Cancel'}, {label:okLabel, primary:!danger, danger:!!danger, onClick:fn}]);
 }
@@ -490,9 +704,11 @@ function passageHTML(q){ return (q.chart ? '<div class="chart">'+chartSVG(q.char
 
 /* ---------- top nav ---------- */
 function nav(){
-  var items = [['home','Home'],['tracker','Concept Tracker'],['archive','Past Tests'],['backup','Backup'],['settings','Settings']];
-  return '<div class="topnav"><div class="in"><span class="brand">SAT Reading &amp; Writing</span>' + items.map(function(it){
-    return '<button data-act="nav" data-page="'+it[0]+'" class="'+(view.page===it[0]?'on':'')+'">'+it[1]+'</button>'; }).join('') + '</div></div>';
+  var items = [['home','Home'],['dashboard','Progress'],['tracker','Concept Tracker'],['archive','Past Tests'],['backup','Backup'],['settings','Settings']];
+  var m = REG && REG.profiles[ACTIVE];
+  return '<div class="topnav"><div class="in"><span class="brand">SAT Reading &amp; Writing</span><span class="navr">' + syncPill() +
+    (m ? '<button class="pchip" data-act="switch-profile" aria-label="Switch profile (now ' + esc(m.name) + ')">' + avatarHTML(m, 'sm') + '<span>' + esc(m.name) + '</span></button>' : '') + '</span><span class="navi">' + items.map(function(it){
+    return '<button data-act="nav" data-page="'+it[0]+'" class="'+(view.page===it[0]?'on':'')+'">'+it[1]+'</button>'; }).join('') + '</span></div></div>';
 }
 function storageWarning(){
   return storageOK ? '' : '<div class="warn"><b>Progress can\'t be saved in this viewer.</b> Your answers will be lost if you close it. Use the Backup page to save a copy, or open the file in Safari, Chrome, or Edge.</div>';
@@ -558,7 +774,7 @@ function renderRun(){
     head += (s.timerHidden && !low) ? '<span class="clock" id="clock" style="visibility:hidden">'+fmtClock(left)+'</span><button data-act="timer">Show</button>'
          : '<span class="clock'+(low?' low':'')+'" id="clock">'+fmtClock(left)+'</span><button data-act="timer">Hide</button>';
   } else head += '<span class="small muted">Untimed</span>';
-  head += '</div><div class="right"><button class="btn small ghost" data-act="exit">Save &amp; exit</button></div></div>';
+  head += '</div><div class="right">' + syncPill() + '<button class="btn small ghost" data-act="exit">Save &amp; exit</button></div></div>';
   var body, foot;
   if (s.stage === 'check'){
     var answered = mod.filter(function(id){ return s.answers[id]; }).length;
@@ -601,7 +817,7 @@ function renderBreak(s){
 }
 function submitModule(){
   var s = curSession(), mod = s.modules[s.mod];
-  if (s.mod < s.modules.length - 1){ s.stage = 'break'; save(); render(); }
+  if (s.mod < s.modules.length - 1){ s.stage = 'break'; save(); render(); syncNow('module'); }
   else finishSession(s);
 }
 
@@ -724,10 +940,10 @@ function renderArchive(){
 }
 
 /* ---------- backup ---------- */
-function exportText(){ return JSON.stringify({app:'dsat-rw-simulator', kind:'backup', exportedAt:new Date().toISOString(), state:S}); }
+function exportText(){ var m = REG.profiles[ACTIVE] || {}; return JSON.stringify({app:'dsat-rw-simulator', kind:'backup', profile:{name:m.name || '', color:m.color || '', letter:m.letter || ''}, exportedAt:new Date().toISOString(), state:S}); }
 function renderBackup(){
-  var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card"><h2>Back up your progress</h2>' +
-    '<p>Your tests, practice sets, and concept history live in this browser\'s storage on this device. If that storage gets cleared (or you switch devices), restore everything from a backup file.</p>' +
+  var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card"><h2>Back up ' + esc(profileName(ACTIVE)) + '\u2019s progress</h2>' +
+    '<p>This profile\'s tests, practice sets, and concept history live in this browser\'s storage' + (canSync() ? ' and are synced through your relay' : ' on this device') + '. A backup file is an extra safety copy you can restore from any time.</p>' +
     '<p class="small muted">Last backup: '+(S.lastExport?fmtDate(S.lastExport):'never')+' · '+S.archiveIds.length+' finished, '+S.openIds.length+' in progress · '+Object.keys(S.aiBank).length+' saved AI questions. (Your AI passcode is never included.)</p>' +
     '<div class="row"><button class="btn primary" data-act="export">⬇️ Download backup file</button><button class="btn" data-act="export-text">Show backup as text (copy/paste)</button></div>' +
     '<p class="small muted">On iPad, the file goes to your Downloads folder in the Files app. Keep it somewhere safe, like iCloud Drive or Google Drive.</p></div>' +
@@ -735,7 +951,7 @@ function renderBackup(){
     '<p><input type="file" id="impfile" accept=".json,application/json,text/plain"></p>' +
     '<p class="small muted">…or paste backup text:</p><textarea class="bk" id="imptext" placeholder="Paste backup text here"></textarea>' +
     '<div class="row" style="margin-top:10px"><button class="btn primary" data-act="import" data-mode="merge">Merge backup</button><button class="btn danger" data-act="import" data-mode="replace">Replace with backup</button></div></div>' +
-    '<div class="card"><h2>Start completely over</h2><p class="small muted">Erases every test, practice set, and all concept history on this device. Download a backup first if you might want it later.</p><button class="btn danger" data-act="wipe">Erase all progress</button></div></div>';
+    '<div class="card"><h2>Start completely over</h2><p class="small muted">Erases every test, practice set, and all concept history for <b>' + esc(profileName(ACTIVE)) + '</b>' + (canSync() ? ' on every synced device' : ' on this device') + '. Other profiles aren\'t touched. Saved AI questions are kept. Download a backup first if you might want it later.</p><button class="btn danger" data-act="wipe">Erase this profile\'s progress</button></div></div>';
   app.innerHTML = h;
 }
 function doExport(){
@@ -744,7 +960,8 @@ function doExport(){
     var blob = new Blob([txt], {type:'application/json'});
     var url = URL.createObjectURL(blob), a = document.createElement('a');
     var d = new Date(), stamp = d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
-    a.href = url; a.download = 'sat-rw-progress-' + stamp + '.json';
+    var slug = String((REG.profiles[ACTIVE] || {}).name || 'profile').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'profile';
+    a.href = url; a.download = 'sat-rw-progress-' + slug + '-' + stamp + '.json';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
     S.lastExport = now(); save();
@@ -762,11 +979,7 @@ function parseBackup(txt){
   if (!st || typeof st !== 'object' || !st.sessions || !Array.isArray(st.archiveIds)) throw new Error('This does not look like a simulator backup file.');
   Object.keys(st.sessions).forEach(function(id){ var s = st.sessions[id];
     if (!s || !Array.isArray(s.modules) || typeof s.answers !== 'object') throw new Error('Backup file is damaged (session ' + id + ').'); });
-  var bank = {}; Object.keys(st.aiBank && typeof st.aiBank === 'object' ? st.aiBank : {}).forEach(function(id){ var q = cleanAIQuestion(st.aiBank[id]); if (q && q.id === id) bank[id] = q; });
-  st.aiBank = bank;
-  var rp = {}; Object.keys(st.reported && typeof st.reported === 'object' ? st.reported : {}).forEach(function(id){ var x = st.reported[id]; if (x) rp[id] = {at:+x.at || now(), reason:String(x.reason || '').slice(0, 80)}; });
-  st.reported = rp;
-  return st;
+  return sanitizeState(st);
 }
 function doImport(mode){
   var f = document.getElementById('impfile'), t = document.getElementById('imptext');
@@ -774,19 +987,21 @@ function doImport(mode){
     var st;
     try { st = parseBackup(txt); } catch(e){ modal('Could not restore', '<p>'+esc(e.message || 'Unreadable file.')+'</p>'); return; }
     var go2 = function(){
-      if (mode === 'replace'){ S = st; normalize(); }
-      else {
-        var added = 0;
-        Object.keys(st.sessions).forEach(function(id){ if (!S.sessions[id]) { S.sessions[id] = st.sessions[id]; added++;
-          if (st.sessions[id].finishedAt) S.archiveIds.push(id); else S.openIds.push(id); } });
-        Object.keys(st.conceptArchived || {}).forEach(function(c){ if (st.conceptArchived[c]) S.conceptArchived[c] = true; });
-        Object.keys(st.aiBank).forEach(function(id){ if (!S.aiBank[id]) S.aiBank[id] = st.aiBank[id]; });
-        Object.keys(st.reported).forEach(function(id){ if (!S.reported[id]) S.reported[id] = st.reported[id]; });
-        S.counters.test = Math.max(S.counters.test||0, (st.counters||{}).test||0);
-        S.counters.practice = Math.max(S.counters.practice||0, (st.counters||{}).practice||0);
-        normalize();
+      var t = now();
+      if (mode === 'replace'){
+        // Tombstones make the replacement stick on synced devices too.
+        var base = {ui:S.ui, deleted:{}, unreported:{}, settingsAt:0, aiBank:S.aiBank, counters:S.counters};
+        Object.keys(S.sessions).forEach(function(id){ if (!st.sessions[id]) base.deleted[id] = t; });
+        Object.keys(S.reported).forEach(function(id){ if (!st.reported[id]) base.unreported[id] = t; });
+        st.settingsAt = t + 1;
+        S = mergeProfileData(base, st);
+      } else {
+        var cm = S.conceptArchived; Object.keys(st.conceptArchived || {}).forEach(function(c){ if (st.conceptArchived[c]) cm[c] = true; });
+        st.conceptArchived = cm; st.settingsAt = Math.max(+st.settingsAt || 0, +S.settingsAt || 0) + 1;
+        S = mergeProfileData(S, st);
       }
-      save();
+      S.updatedAt = t; normalize();
+      save(); syncSoon(500);
       modal('Restored', '<p>Your progress was '+(mode==='replace'?'replaced with':'merged from')+' the backup. You now have '+S.archiveIds.length+' finished tests/sets.</p>', [{label:'OK', primary:true, onClick:function(){ go('home'); }}]);
     };
     if (mode === 'replace') confirmBox('Replace everything?', '<p>This erases the progress currently on this device and uses only the backup.</p>', 'Replace', go2, true); else go2();
@@ -861,7 +1076,7 @@ function aiConnect(){
   AIS.relayUrl = url === DEFAULT_RELAY_URL ? '' : url; AIS.passcode = pass; saveAISettings();
   if (!relayUrl() || !pass) { AIS.status = {ok:false, msg:'Enter both the relay address and the passcode.'}; saveAISettings(); render(); return; }
   AIS.status = {ok:null, msg:'Connecting…'}; render();
-  refreshProviders().then(render, render);
+  refreshProviders().then(function(){ render(); syncNow('list').then(function(){ if (view.page === 'settings') render(); }); }, render);
 }
 function aiAvoidTopics(cid){
   return aiList().filter(function(q){ return q.concept === cid && q.topic; }).sort(function(a, b){ return b.addedAt - a.addedAt; }).slice(0, 12).map(function(q){ return q.topic; });
@@ -883,7 +1098,7 @@ function requestAI(t, job){
       while (Q[q.id]) q.id = q.id + 'x';
       q.addedAt = now(); S.aiBank[q.id] = q; Q[q.id] = q; out.push(q);
     });
-    pruneAIBank(); save();
+    pruneAIBank(); save(); syncSoon(5000);
     if (!out.length) throw aiErr('The AI\'s questions didn\'t pass the answer-key double-check this time. Please try again.');
     return out;
   });
@@ -988,23 +1203,30 @@ function generateAITest(){
 var REPORT_REASONS = ['The answer key is wrong', 'More than one answer works', 'Confusing, or has a typo'];
 function reportQuestion(id){
   if (!id || !Q[id]) return;
-  if (isReported(id)) { delete S.reported[id]; save(); render(); return; }
+  if (isReported(id)) { delete S.reported[id]; S.unreported[id] = now(); save(); render(); syncSoon(); return; }
   modal('Report this question?', '<p>Reported questions are removed from scoring and are never used again in practice or new tests. ' + (Q[id].ai ? 'This one was written by AI.' : '') + ' What\'s wrong?</p>',
-    REPORT_REASONS.map(function(r){ return {label:r, onClick:function(){ S.reported[id] = {at:now(), reason:r}; save(); render(); }}; }).concat([{label:'Cancel', primary:true}]));
+    REPORT_REASONS.map(function(r){ return {label:r, onClick:function(){ S.reported[id] = {at:now(), reason:r}; delete S.unreported[id]; save(); render(); syncSoon(); }}; }).concat([{label:'Cancel', primary:true}]));
 }
 
 /* ---------- settings page ---------- */
 function renderSettings(){
   var st = AIS.status, url = AIS.relayUrl || DEFAULT_RELAY_URL || '';
-  var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card"><h2>✨ AI practice questions</h2>' +
-    '<p class="small muted">Connect to your private AI relay to get unlimited new questions on the skills you miss. Without it, everything still works with the built-in question bank, even offline.</p>' +
+  var pm = REG.profiles[ACTIVE] || {name:'Profile'};
+  var h = nav() + '<div class="wrap">' + storageWarning();
+  h += '<div class="card"><h2>Profile</h2><div class="row">' + avatarHTML(pm) + '<div style="flex:1;min-width:160px"><b>' + esc(pm.name) + '</b><div class="small muted">' + (pm.pinHash ? '🔒 Protected with a PIN' : 'No PIN') + ' · tests, history, AI questions and skill settings are kept separately for each profile</div></div>' +
+    '<button class="btn small" data-act="edit-profile" data-id="' + esc(ACTIVE) + '">Edit profile</button><button class="btn small" data-act="switch-profile">Switch profile</button></div></div>';
+  h += '<div class="card"><h2>Sync across devices</h2><p>' + syncPill() + ' <span class="small muted">' + (canSync() ? (SY.at ? 'Last synced ' + fmtDate(SY.at) : 'Not synced yet on this visit') : 'Enter the family passcode below to turn on sync.') + '</span></p>' +
+    '<p class="small muted">Profiles and progress are saved on this device first, then synced through your private relay a few seconds after each answer, at the end of each test, and whenever you leave the app. It works offline and catches up later. If two devices change the same profile, both sets of answers are kept.</p>' +
+    (canSync() ? '<button class="btn small" data-act="sync-now">Sync now</button>' : '') + '</div>';
+  h += '<div class="card"><h2>✨ Family passcode &amp; AI questions</h2>' +
+    '<p class="small muted">The passcode connects this device to your private relay. It turns on sync and unlimited AI-written questions on the skills you miss. Without it, everything still works with the built-in question bank, even offline.</p>' +
     '<label class="fld"><span>Relay address</span><input id="ai-url" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://sat-relay.your-name.workers.dev" value="' + esc(url) + '"></label>' +
     '<label class="fld"><span>Passcode</span><input id="ai-pass" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ask your parent for the passcode" value="' + esc(AIS.passcode || '') + '"></label>' +
     '<div class="row"><button class="btn primary" data-act="ai-connect">Save &amp; connect</button><button class="btn small ghost" data-act="ai-showpass">Show</button>' + (AIS.passcode ? '<button class="btn small danger" data-act="ai-forget">Forget passcode</button>' : '') + '</div>' +
     '<p class="small" id="ai-status" style="margin-bottom:0">' + (!st ? '<span class="muted">Not connected yet.</span>' : st.ok === null ? '<span class="muted">' + esc(st.msg) + '</span>' : st.ok ?
       '<span class="okmsg">✅ Connected' + (st.mock ? ' (test mode)' : '') + '</span> · ' + AIS.providers.length + ' AI' + (AIS.providers.length === 1 ? '' : 's') + ' available' + (typeof st.remaining === 'number' ? ' · ' + st.remaining + ' of ' + st.limit + ' AI questions left today (resets at midnight Pacific)' : '') :
       '<span class="errmsg">⚠️ ' + esc(st.msg) + '</span>') + '</p>' +
-    '<p class="small muted">The passcode is saved only in this browser on this device. It is never put in backup files.</p></div>';
+    '<p class="small muted">The passcode is shared by every profile on this device. It is saved only in this browser and is never put in backup files or synced.</p></div>';
   h += '<div class="card"><h2>Which AI writes your questions?</h2>';
   if (!AIS.providers.length) h += '<p class="muted">Connect first. Only the AIs your relay has a key for will show up here.</p>';
   else h += AIS.providers.map(function(p){ var on = p.id === AIS.provider;
@@ -1027,10 +1249,590 @@ function renderSettings(){
   app.innerHTML = h + '</div></div>';
 }
 
+/* ====================================================================================
+ * Profiles: each person gets their own tests, history, AI bank, reports and skill settings.
+ * The family passcode, relay address and AI choice are device-wide (see AIS above).
+ * ==================================================================================== */
+function blankReg(){ return {v:1, activeId:null, profiles:{}, order:[], migrated:null, renamePending:null, pendingDeletes:{}, remote:{}, lastUsed:{}}; }
+function loadReg(){
+  try { REG = JSON.parse(window.localStorage.getItem(PROFILES_KEY) || 'null'); } catch(e){ REG = null; storageOK = false; }
+  if (!REG || typeof REG !== 'object' || !REG.profiles || typeof REG.profiles !== 'object') REG = blankReg();
+  var b = blankReg(); for (var k in b) if (REG[k] === undefined || REG[k] === null && b[k] !== null) REG[k] = b[k];
+  REG.order = (Array.isArray(REG.order) ? REG.order : []).filter(function(id, i, a){ return REG.profiles[id] && a.indexOf(id) === i; });
+  Object.keys(REG.profiles).forEach(function(id){ if (REG.order.indexOf(id) < 0) REG.order.push(id); });
+}
+function saveReg(){ try { window.localStorage.setItem(PROFILES_KEY, JSON.stringify(REG)); } catch(e){ storageOK = false; } }
+function newProfileId(){ return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
+function initialOf(n){ var a = Array.from ? Array.from(String(n || '').trim()) : String(n || '').trim().split(''); return (a[0] || '?').toUpperCase(); }
+function makeMeta(name, color, letter){ var t = now(); return {id:newProfileId(), name:name, color:color || PROFILE_COLORS[0], letter:letter || initialOf(name), createdAt:t, updatedAt:t}; }
+function pdKey(id){ return PDATA_PREFIX + id; }
+function readProfileData(id){ try { var raw = window.localStorage.getItem(pdKey(id)); return raw ? JSON.parse(raw) : null; } catch(e){ return null; } }
+function writeProfileData(id, st){
+  var txt = JSON.stringify(st);
+  try { window.localStorage.setItem(pdKey(id), txt); return true; }
+  catch(e){
+    // Storage full: the untouched pre-profiles copy is the first thing we can safely give up (it was migrated and verified).
+    try { if (REG && REG.migrated && window.localStorage.getItem(KEY) != null) { window.localStorage.removeItem(KEY); REG.migrated.backupRemoved = now(); saveReg(); window.localStorage.setItem(pdKey(id), txt); return true; } } catch(e2){}
+    return false;
+  }
+}
+/* One-time move of the old single-user progress into "Profile 1". The old copy is left in place as a backup. */
+function migrateLegacy(){
+  if (REG.order.length || REG.migrated) return;
+  var raw = null; try { raw = window.localStorage.getItem(KEY); } catch(e){ return; }
+  if (!raw) return;
+  var old; try { old = JSON.parse(raw); } catch(e){ return; }
+  if (!old || typeof old !== 'object' || !old.sessions) return;
+  var m = makeMeta('Profile 1', PROFILE_COLORS[0]);
+  if (!writeProfileData(m.id, old)) { storageOK = false; return; }
+  var back = readProfileData(m.id);
+  if (!back || JSON.stringify(back) !== JSON.stringify(old)) { try { window.localStorage.removeItem(pdKey(m.id)); } catch(e){} return; }
+  REG.profiles[m.id] = m; REG.order.push(m.id);
+  REG.migrated = {at:now(), id:m.id, from:KEY, sessions:Object.keys(old.sessions).length};
+  REG.renamePending = m.id; REG.activeId = m.id;
+  saveReg();
+}
+function profileName(id){ var m = REG.profiles[id] || (REG.remote[id] && REG.remote[id].meta); return m ? m.name : 'Profile'; }
+function avatarHTML(m, cls){ return '<span class="avatar' + (cls ? ' ' + cls : '') + '" style="background:' + esc(m.color || PROFILE_COLORS[0]) + '" aria-hidden="true">' + esc(m.letter || initialOf(m.name)) + '</span>'; }
+function restoreView(){
+  if (S.ui && S.ui.page === 'run' && S.sessions[S.ui.sid] && !S.sessions[S.ui.sid].finishedAt) return {page:'run', sid:S.ui.sid, filter:'all'};
+  if (S.ui && S.ui.page === 'results' && S.sessions[S.ui.sid]) return {page:'results', sid:S.ui.sid, filter:'all'};
+  if (S.ui && ['tracker','archive','backup','settings','dashboard'].indexOf(S.ui.page) >= 0) return {page:S.ui.page, sid:null, filter:'all'};
+  return {page:'home', sid:null, filter:'all'};
+}
+function openProfile(id, opts){
+  opts = opts || {};
+  var meta = REG.profiles[id] || (REG.remote[id] && REG.remote[id].meta);
+  if (!meta) return;
+  var proceed = function(){
+    if (REG.profiles[id]) return enterProfile(id);
+    modal('Downloading ' + meta.name + '…', '<div class="aiwait"><div class="spinner" aria-hidden="true"></div><p>Getting this profile from your other device…</p></div>', []);
+    downloadProfile(id).then(function(){ closeModal(); enterProfile(id); }, function(e){ closeModal(); modal('Couldn\'t open this profile', '<p>' + esc(e.message) + '</p>'); });
+  };
+  if (meta.pinHash && !opts.skipPin) askPin(meta, proceed); else proceed();
+}
+function enterProfile(id){
+  if (ACTIVE && ACTIVE !== id) save();
+  ACTIVE = id; REG.activeId = id; REG.lastUsed[id] = now(); saveReg();
+  try { window.sessionStorage.setItem(ACTIVE_SESSION_KEY, id); } catch(e){}
+  load();
+  view = restoreView();
+  render(); window.scrollTo(0, 0);
+  syncNow('open');
+}
+function switchProfile(){
+  if (ACTIVE) { save(); if (canSync()) syncNow('switch'); }
+  ACTIVE = null; S = blankState();
+  try { window.sessionStorage.removeItem(ACTIVE_SESSION_KEY); } catch(e){}
+  view = {page:'profiles', sid:null, filter:'all'};
+  render(); window.scrollTo(0, 0);
+  if (canSync()) syncList().catch(function(){});
+}
+function removeProfileLocal(id, why){
+  try { window.localStorage.removeItem(pdKey(id)); window.localStorage.removeItem(SYNC_PREFIX + id); } catch(e){}
+  var name = profileName(id);
+  delete REG.profiles[id]; REG.order = REG.order.filter(function(x){ return x !== id; }); delete REG.lastUsed[id];
+  if (REG.renamePending === id) REG.renamePending = null;
+  saveReg();
+  if (ACTIVE === id) {
+    ACTIVE = null; S = blankState();
+    try { window.sessionStorage.removeItem(ACTIVE_SESSION_KEY); } catch(e){}
+    view = {page:'profiles', sid:null, filter:'all'}; render();
+    if (why === 'deleted-remote') modal('Profile removed', '<p><b>' + esc(name) + '</b> was deleted on another device, so it was removed here too.</p>');
+  } else if (view.page === 'profiles' && !modalOpen()) render();
+}
+function deleteProfile(id){
+  var known = !!(REG.remote[id] || syncStateGet(id).v);
+  removeProfileLocal(id, 'deleted-here');
+  delete REG.remote[id];
+  if (known) REG.pendingDeletes[id] = now();
+  saveReg();
+  if (known && canSync()) flushDeletes().then(function(){}, function(){});
+  if (view.page !== 'profiles') switchProfile(); else render();
+}
+/* ---------- PIN (light family privacy: hashed + checked on the device; not real security) ---------- */
+function randHex(n){ var s = ''; var c = window.crypto && window.crypto.getRandomValues ? window.crypto.getRandomValues(new Uint8Array(n)) : null; for (var i = 0; i < n; i++) s += ('0' + ((c ? c[i] : Math.floor(Math.random() * 256)).toString(16))).slice(-2); return s; }
+function pinHashOf(pin, salt){ return sha256hex('dsat-pin:' + salt + ':' + pin); }
+function pinMatches(meta, pin){ return !!(meta && meta.pinHash && /^\d{4}$/.test(pin) && pinHashOf(pin, meta.pinSalt) === meta.pinHash); }
+var PIN_NOTE = 'PINs are light family privacy, not real security: they keep siblings out of each other\u2019s profiles, but someone with this device and some know-how could get around one.';
+var pinCtx = null;
+function askPin(meta, onOk){
+  pinCtx = {meta:meta, onOk:onOk};
+  modal('Enter PIN for ' + meta.name, '<p class="small muted" style="margin-top:0">' + avatarHTML(meta, 'sm') + ' This profile is protected with a 4-digit PIN.</p>' +
+    '<input id="pin-in" class="pinbox" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" aria-label="4-digit PIN">' +
+    '<p id="pin-err" class="errmsg small" role="alert" style="min-height:1.4em;margin:6px 0"></p><p class="small muted">' + PIN_NOTE + '</p><p class="small"><a href="#" data-mact="forgot-pin">Forgot the PIN?</a></p>',
+    [{label:'Cancel'}, {label:'Open', primary:true, validate:function(){
+      var i = document.getElementById('pin-in'), v = i ? i.value.trim() : '';
+      if (pinMatches(meta, v)) return true;
+      var er = document.getElementById('pin-err'); if (er) er.textContent = v.length === 4 ? 'That PIN isn\u2019t right. Try again.' : 'Enter all 4 digits.';
+      if (i) { i.value = ''; i.focus(); } return false; }, onClick:function(){ pinCtx = null; onOk(); }}]);
+  setTimeout(function(){ var i = document.getElementById('pin-in'); if (i) i.focus(); }, 30);
+}
+function forgotPin(){
+  var ctx = pinCtx; if (!ctx) return;
+  var hasPass = !!AIS.passcode;
+  modal('Remove the PIN?', '<p>' + (hasPass ? 'To remove the PIN from <b>' + esc(ctx.meta.name) + '</b>, enter the <b>family passcode</b> (the one used for AI questions and sync).' : 'This removes the PIN from <b>' + esc(ctx.meta.name) + '</b>. You can set a new one in the profile settings.') + '</p>' +
+    (hasPass ? '<label class="fld"><span>Family passcode</span><input id="fp-pass" type="password" autocomplete="off" autocapitalize="off" spellcheck="false"></label><p id="fp-err" class="errmsg small" role="alert"></p>' : '') + '<p class="small muted">' + PIN_NOTE + '</p>',
+    [{label:'Cancel'}, {label:'Remove PIN', danger:true, validate:function(){
+      if (!hasPass) return true;
+      var v = (document.getElementById('fp-pass') || {}).value || '';
+      if (v === AIS.passcode) return true;
+      var er = document.getElementById('fp-err'); if (er) er.textContent = 'That isn\u2019t the family passcode.'; return false; },
+      onClick:function(){ var id = ctx.meta.id; var m = REG.profiles[id] || (REG.remote[id] && REG.remote[id].meta); if (!m) return;
+        m = JSON.parse(JSON.stringify(m)); delete m.pinHash; delete m.pinSalt; m.updatedAt = now(); m.id = id;
+        if (REG.profiles[id]) { REG.profiles[id] = m; saveReg(); ctx.onOk(); syncSoon(300); }
+        else { REG.remote[id].meta = m; saveReg(); downloadProfile(id).then(function(){ REG.profiles[id] = m; saveReg(); enterProfile(id); syncSoon(300); }, function(e){ modal('Couldn\'t open this profile', '<p>' + esc(e.message) + '</p>'); }); } }}]);
+}
+/* ---------- create / edit / delete ---------- */
+function defaultProfileName(){ for (var i = 1; i < 99; i++) { var n = 'Profile ' + i; if (!REG.order.some(function(id){ return REG.profiles[id].name === n; })) return n; } return 'Profile'; }
+function profileForm(id){
+  var m = id ? REG.profiles[id] : null, color = m ? m.color : PROFILE_COLORS[REG.order.length % PROFILE_COLORS.length];
+  var html = '<label class="fld"><span>Name</span><input id="pf-name" maxlength="40" autocomplete="off" value="' + esc(m ? m.name : defaultProfileName()) + '"></label>' +
+    '<label class="fld"><span>Avatar letter <span class="muted small">(optional; 1–2 characters or an emoji)</span></span><input id="pf-letter" maxlength="4" autocomplete="off" value="' + esc(m ? m.letter : '') + '" placeholder="First letter of the name"></label>' +
+    '<div class="fld"><span>Color</span><div class="swatches">' + PROFILE_COLORS.map(function(c){ return '<button type="button" class="sw' + (c === color ? ' on' : '') + '" data-mact="pf-color" data-c="' + c + '" style="background:' + c + '" aria-label="Color ' + c + '"></button>'; }).join('') + '</div><input type="hidden" id="pf-color" value="' + esc(color) + '"></div>' +
+    '<div class="fld"><span>' + (m && m.pinHash ? 'Change PIN <span class="muted small">(leave blank to keep the current PIN)</span>' : '4-digit PIN <span class="muted small">(optional)</span>') + '</span>' +
+    '<div class="row"><input id="pf-pin" class="pinsm" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" placeholder="PIN" aria-label="New PIN"><input id="pf-pin2" class="pinsm" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password" placeholder="Repeat" aria-label="Repeat PIN"></div>' +
+    (m && m.pinHash ? '<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:8px"><input type="checkbox" id="pf-nopin"> Remove the PIN</label>' : '') + '</div>' +
+    '<p class="small muted">' + PIN_NOTE + ' The PIN is stored only as a scrambled hash.</p><p id="pf-err" class="errmsg small" role="alert"></p>';
+  var btns = [{label:'Cancel'}];
+  if (m) btns.push({label:'Delete profile', danger:true, onClick:function(){ confirmDeleteProfile(id); }});
+  btns.push({label:m ? 'Save' : 'Create profile', primary:true, validate:function(){
+    var g = function(x){ var e = document.getElementById(x); return e ? (e.type === 'checkbox' ? e.checked : e.value.trim()) : ''; };
+    var err = function(t){ var e = document.getElementById('pf-err'); if (e) e.textContent = t; return false; };
+    var v = {name:g('pf-name').replace(/[<>\u0000-\u001f]/g, '').slice(0, 40), letter:g('pf-letter'), color:g('pf-color'), pin:g('pf-pin'), pin2:g('pf-pin2'), nopin:g('pf-nopin')};
+    if (!v.name) return err('Please enter a name.');
+    if (v.pin || v.pin2) { if (!/^\d{4}$/.test(v.pin)) return err('The PIN must be exactly 4 digits.'); if (v.pin !== v.pin2) return err('The two PINs don\u2019t match.'); }
+    return v; }, onClick:function(v){ saveProfileForm(id, v); }});
+  modal(m ? 'Edit profile' : 'New profile', html, btns);
+  setTimeout(function(){ var i = document.getElementById('pf-name'); if (i && !m) { i.focus(); i.select(); } }, 30);
+}
+function saveProfileForm(id, v){
+  var letter = v.letter ? (Array.from ? Array.from(v.letter).slice(0, 2).join('') : v.letter.slice(0, 2)) : initialOf(v.name);
+  var color = PROFILE_COLORS.indexOf(v.color) >= 0 ? v.color : PROFILE_COLORS[0];
+  if (!id) {
+    var m = makeMeta(v.name, color, letter);
+    if (v.pin) { m.pinSalt = randHex(16); m.pinHash = pinHashOf(v.pin, m.pinSalt); }
+    var st = blankState(); st.updatedAt = now();
+    if (!writeProfileData(m.id, st)) { modal('Couldn\'t create the profile', '<p>This browser\'s storage is full or blocked.</p>'); return; }
+    REG.profiles[m.id] = m; REG.order.push(m.id); saveReg();
+    enterProfile(m.id);
+    return;
+  }
+  var cur = JSON.parse(JSON.stringify(REG.profiles[id]));
+  cur.name = v.name; cur.letter = letter; cur.color = color; cur.updatedAt = now();
+  if (v.nopin) { delete cur.pinHash; delete cur.pinSalt; }
+  else if (v.pin) { cur.pinSalt = randHex(16); cur.pinHash = pinHashOf(v.pin, cur.pinSalt); }
+  REG.profiles[id] = cur; if (REG.renamePending === id) REG.renamePending = null; saveReg();
+  render(); syncSoon(300);
+  if (!ACTIVE || ACTIVE !== id) { if (canSync()) doSync(id).catch(function(){}); }
+}
+function editProfile(id){ var m = REG.profiles[id]; if (!m) return; if (m.pinHash && id !== ACTIVE) askPin(m, function(){ profileForm(id); }); else profileForm(id); }
+function confirmDeleteProfile(id){
+  var m = REG.profiles[id]; if (!m) return;
+  confirmBox('Delete \u201c' + m.name + '\u201d?', '<p>This permanently erases <b>' + esc(m.name) + '</b>\u2019s tests, practice history, concept tracker and saved AI questions' + (canSync() ? ' on this device <b>and on every synced device</b>' : ' on this device') + '.</p><p class="small muted">Want a copy first? Cancel, open the profile, and use Backup.</p>', 'Delete profile', function(){ deleteProfile(id); }, true);
+}
+/* ---------- picker ---------- */
+function renderProfiles(){
+  var ids = REG.order.slice();
+  var remoteOnly = Object.keys(REG.remote).filter(function(id){ var r = REG.remote[id]; return r && r.meta && !REG.profiles[id] && !r.deletedAt && !REG.pendingDeletes[id]; });
+  var h = '<div class="wrap pwrap">' + storageWarning();
+  if (REG.renamePending && REG.profiles[REG.renamePending]) h += '<div class="card pnote" id="rename-note"><b>New: profiles!</b> Everyone in the family can now have their own tests, history and AI questions. All the progress already on this device is safe in <b>' + esc(REG.profiles[REG.renamePending].name) + '</b>.<div class="row" style="margin-top:10px"><button class="btn small primary" data-act="rename-migrated">Rename it</button><button class="btn small ghost" data-act="dismiss-rename">Keep the name</button></div></div>';
+  h += '<div class="card center"><h1 class="ptitle">Who\u2019s practicing?</h1><div class="pgrid">';
+  ids.forEach(function(id){ var m = REG.profiles[id], lu = REG.lastUsed[id];
+    h += '<div class="pcell"><button class="pcard" data-act="pick-profile" data-id="' + esc(id) + '">' + avatarHTML(m) + '<b class="pname">' + esc(m.name) + '</b><span class="small muted">' + ([m.pinHash ? '🔒 PIN' : '', lu ? 'Last used ' + fmtMD(lu) : ''].filter(Boolean).join(' · ') || '&nbsp;') + '</span></button>' +
+      '<button class="pedit" data-act="edit-profile" data-id="' + esc(id) + '" aria-label="Edit ' + esc(m.name) + '">✎ Edit</button></div>'; });
+  remoteOnly.forEach(function(id){ var m = REG.remote[id].meta;
+    h += '<div class="pcell"><button class="pcard remote" data-act="pick-profile" data-id="' + esc(id) + '">' + avatarHTML(m) + '<b class="pname">' + esc(m.name) + '</b><span class="small muted">☁️ From another device' + (m.pinHash ? ' · 🔒' : '') + '</span></button></div>'; });
+  h += '<div class="pcell"><button class="pcard pnew" data-act="new-profile">' + '<span class="avatar add" aria-hidden="true">+</span><b class="pname">New profile</b><span class="small muted">&nbsp;</span></button></div></div>';
+  h += '<div class="psync">' + syncPill() + ' ';
+  if (canSync()) h += '<span class="small muted">Profiles and progress sync across your devices.</span> <button class="btn small ghost" data-act="sync-now">Sync now</button>';
+  else h += '<span class="small muted">Using this on more than one device?</span> <button class="btn small" data-act="connect-sync">Turn on sync</button>';
+  h += '</div></div><p class="small muted center">' + PIN_NOTE + '</p></div>';
+  app.innerHTML = h;
+}
+function connectSyncModal(){
+  var url = AIS.relayUrl || DEFAULT_RELAY_URL || '';
+  modal('Sync across devices', '<p class="small">Enter the <b>family passcode</b> (the same one used for AI questions). Profiles and progress then stay in sync on every device that has it.</p>' +
+    '<label class="fld"><span>Relay address</span><input id="cs-url" type="url" autocapitalize="off" spellcheck="false" value="' + esc(url) + '" placeholder="https://sat-relay.your-name.workers.dev"></label>' +
+    '<label class="fld"><span>Family passcode</span><input id="cs-pass" type="password" autocapitalize="off" autocomplete="current-password" spellcheck="false"></label><p id="cs-err" class="errmsg small" role="alert"></p>',
+    [{label:'Cancel'}, {label:'Connect', primary:true, validate:function(){
+      var u = ((document.getElementById('cs-url') || {}).value || '').trim().replace(/\/+$/, ''), p = ((document.getElementById('cs-pass') || {}).value || '').trim();
+      var er = document.getElementById('cs-err');
+      if (!/^https:\/\/[^\s/?#]+/i.test(u) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(u)) { if (er) er.textContent = 'The relay address should start with https://'; return false; }
+      if (!p) { if (er) er.textContent = 'Enter the passcode.'; return false; }
+      return {u:u, p:p}; }, onClick:function(v){
+        AIS.relayUrl = v.u === DEFAULT_RELAY_URL ? '' : v.u; AIS.passcode = v.p; saveAISettings();
+        setSync('syncing');
+        refreshProviders().then(function(){ return syncNow('list'); }).then(function(){ render(); }, function(e){ setSync('error', e.message); render(); modal('Couldn\'t connect', '<p>' + esc(e.message) + '</p>'); }); }}]);
+}
+
+/* ====================================================================================
+ * Cross-device sync through the relay (see merge.js for the merge rules).
+ * Sync runs on launch, a few seconds after each answer, at the end of each test, when the app is
+ * hidden, when the connection comes back, and every minute or so while open. Offline is fine:
+ * everything is saved on the device first and catches up later.
+ * ==================================================================================== */
+var SY = {status:'off', msg:'', at:0, busy:null, again:false, t1:null, t2:null, maxBytes:1500000, listAt:0};
+var SYNC_LABEL = {off:'Sync off', pending:'Not synced yet', syncing:'Syncing…', ok:'Synced', offline:'Offline', error:'Sync problem'};
+function canSync(){ return !!(relayUrl() && AIS.passcode && typeof fetch === 'function'); }
+function syncTitle(){ var st = canSync() ? SY.status : 'off';
+  return st === 'ok' ? 'Synced ' + (SY.at ? new Date(SY.at).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}) : '') : st === 'off' ? 'Sync is off on this device' : (SY.msg || SYNC_LABEL[st]); }
+function syncPill(){ var st = canSync() ? SY.status : 'off';
+  return '<button id="syncpill" class="syncpill s-' + st + '" data-act="sync-info" title="' + esc(syncTitle()) + '" aria-label="' + esc(SYNC_LABEL[st] + '. ' + syncTitle()) + '"><i aria-hidden="true"></i><span>' + SYNC_LABEL[st] + '</span></button>'; }
+function setSync(st, msg){ SY.status = st; SY.msg = msg || ''; if (st === 'ok') SY.at = now(); var el = document.getElementById('syncpill'); if (el) el.outerHTML = syncPill(); }
+function syncErr(msg, status, offline){ var e = new Error(msg); e.status = status || 0; e.offline = !!offline; return e; }
+function syncFetch(path, method, body, keepalive){
+  var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  var timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 30000);
+  var headers = {'X-Passcode': AIS.passcode}; if (body) headers['Content-Type'] = 'application/json';
+  var init = {method:method, headers:headers, body:body, cache:'no-store', mode:'cors', credentials:'omit'};
+  if (ctrl) init.signal = ctrl.signal;
+  if (keepalive && body && body.length < 60000) init.keepalive = true;
+  return fetch(relayUrl() + path, init).then(function(res){
+    return res.text().then(function(t){
+      clearTimeout(timer);
+      var d = null; try { d = JSON.parse(t); } catch(e){}
+      if (!d) throw syncErr('The relay sent an unreadable reply (HTTP ' + res.status + ').', res.status);
+      if (res.status === 401) throw syncErr('Wrong family passcode. Check it in Settings.', 401);
+      if (res.status === 413) throw syncErr('This profile has too much data to sync. Download a backup from the Backup page.', 413);
+      if (!res.ok && res.status !== 409 && res.status !== 404) throw syncErr(d.error || ('Sync failed (HTTP ' + res.status + ').'), res.status);
+      return {status:res.status, data:d};
+    });
+  }, function(){
+    clearTimeout(timer);
+    throw syncErr(navigator.onLine === false ? 'Offline. Progress is saved on this device and will sync later.' : 'Can\u2019t reach the sync relay right now. Progress is saved on this device and will sync later.', 0, true);
+  });
+}
+function hashStr(s){ var h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (var i = 0, ch; i < s.length; i++) { ch = s.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (h2 >>> 0).toString(16) + (h1 >>> 0).toString(16) + ':' + s.length; }
+function byteLen(s){ try { return new TextEncoder().encode(s).length; } catch(e){ return unescape(encodeURIComponent(s)).length; } }
+function syncStateGet(id){ var o = null; try { o = JSON.parse(window.localStorage.getItem(SYNC_PREFIX + id) || 'null'); } catch(e){} return o && typeof o === 'object' ? o : {v:0, h:''}; }
+function syncStateSet(id, o){ try { window.localStorage.setItem(SYNC_PREFIX + id, JSON.stringify(o)); } catch(e){} }
+function getPState(id){ return id === ACTIVE ? S : (readProfileData(id) || blankState()); }
+function setPState(id, st){ if (id === ACTIVE) { S = st; normalize(); save(); } else writeProfileData(id, st); }
+function metaForSync(id){ var m = REG.profiles[id] || {}; var o = {name:m.name, letter:m.letter, color:m.color, createdAt:m.createdAt || 0, updatedAt:m.updatedAt || 0}; if (m.pinHash) { o.pinHash = m.pinHash; o.pinSalt = m.pinSalt; } return o; }
+function payloadHash(id, st){ return hashStr(JSON.stringify(syncView(st)) + '|' + JSON.stringify(metaForSync(id))); }
+/* If a profile outgrows the relay's per-profile cap, upload it without the oldest unused AI questions
+ * (they stay on this device). Questions used in any test are always kept. */
+function trimForSync(data, limit){
+  var used = {}; Object.keys(data.sessions || {}).forEach(function(sid){ var s = data.sessions[sid]; (s.modules || []).forEach(function(m){ (m || []).forEach(function(id){ used[id] = 1; }); }); });
+  var bank = data.aiBank || {}, keep = {}, out = {}, k;
+  for (k in data) out[k] = data[k];
+  Object.keys(bank).forEach(function(id){ if (used[id]) keep[id] = bank[id]; });
+  out.aiBank = keep;
+  var size = byteLen(JSON.stringify(out));
+  Object.keys(bank).filter(function(id){ return !used[id]; }).sort(function(a, b){ return (bank[b].addedAt || 0) - (bank[a].addedAt || 0); }).forEach(function(id){
+    var add = byteLen(JSON.stringify(bank[id])) + id.length + 6; if (size + add < limit) { keep[id] = bank[id]; size += add; } });
+  return out;
+}
+function sanitizeState(st){
+  st = st && typeof st === 'object' ? st : {};
+  var sessions = {}; Object.keys(st.sessions && typeof st.sessions === 'object' ? st.sessions : {}).forEach(function(id){ var s = st.sessions[id];
+    if (s && typeof s === 'object' && Array.isArray(s.modules) && s.modules.every(Array.isArray) && typeof s.answers === 'object') { s.id = id; s.title = String(s.title || 'Session').slice(0, 120); sessions[id] = s; } });
+  st.sessions = sessions;
+  var bank = {}; Object.keys(st.aiBank && typeof st.aiBank === 'object' ? st.aiBank : {}).forEach(function(id){ var q = cleanAIQuestion(st.aiBank[id]); if (q && q.id === id) bank[id] = q; });
+  st.aiBank = bank;
+  var rp = {}; Object.keys(st.reported && typeof st.reported === 'object' ? st.reported : {}).forEach(function(id){ var x = st.reported[id]; if (x) rp[id] = {at:+x.at || now(), reason:String(x.reason || '').slice(0, 80)}; });
+  st.reported = rp;
+  return st;
+}
+function cleanRemoteMeta(m, id){
+  if (!m || typeof m !== 'object') return null;
+  var o = {id:id, name:String(m.name || 'Profile').replace(/[<>\u0000-\u001f]/g, '').slice(0, 40), letter:String(m.letter || '').slice(0, 4) || initialOf(m.name), color:PROFILE_COLORS.indexOf(m.color) >= 0 || /^#[0-9a-fA-F]{6}$/.test(m.color || '') ? m.color : PROFILE_COLORS[0], createdAt:+m.createdAt || 0, updatedAt:+m.updatedAt || 0};
+  if (/^[0-9a-f]{64}$/.test(m.pinHash || '') && /^[0-9a-f]{8,64}$/.test(m.pinSalt || '')) { o.pinHash = m.pinHash; o.pinSalt = m.pinSalt; }
+  return o;
+}
+function sessionSig(s){ return s ? JSON.stringify([s.answers, s.unsure, s.marked, s.mod, s.idx, s.stage, s.finishedAt]) : ''; }
+function applyRemote(id, remote){
+  var cur = getPState(id), before = id === ACTIVE && view.page === 'run' ? sessionSig(S.sessions[view.sid]) : null;
+  var merged = mergeProfileData(cur, sanitizeState(remote.data || {}));
+  if (remote.meta && REG.profiles[id]) { REG.profiles[id] = mergeProfileMeta(REG.profiles[id], cleanRemoteMeta(remote.meta, id)); saveReg(); }
+  setPState(id, merged);
+  if (id !== ACTIVE || modalOpen()) return;
+  if (view.page === 'run') { if (sessionSig(S.sessions[view.sid]) !== before) render(); }
+  else if (view.page !== 'settings' && view.page !== 'backup') render();
+}
+function doSync(id, opts){
+  opts = opts || {};
+  var st = syncStateGet(id), tries = 0;
+  function push(){
+    var cur = getPState(id), data = syncView(cur), metaO = metaForSync(id);
+    var dataStr = JSON.stringify(data), h = hashStr(dataStr + '|' + JSON.stringify(metaO)), limit = Math.floor(SY.maxBytes * 0.98);
+    if (byteLen(dataStr) > limit) { dataStr = JSON.stringify(trimForSync(data, limit)); if (byteLen(dataStr) > limit) return Promise.reject(syncErr('This profile has too much data to sync. Download a backup from the Backup page.', 413)); }
+    var body = '{"baseVersion":' + (st.v || 0) + ',"meta":' + JSON.stringify(metaO) + ',"data":' + dataStr + '}';
+    return syncFetch('/sync/profiles/' + id, 'PUT', body, opts.keepalive).then(function(r){
+      if (r.status === 200) { st.v = r.data.version; st.h = h; st.at = now(); syncStateSet(id, st); return 'pushed'; }
+      if (r.status === 409 && r.data.conflict) return conflict(r.data);
+      throw syncErr(r.data.error || ('Sync failed (HTTP ' + r.status + ').'), r.status);
+    });
+  }
+  function conflict(remote){
+    if (++tries > 4) throw syncErr('Another device kept changing this profile. Sync will try again shortly.');
+    if (remote.deletedAt && !remote.data) {
+      var cur = getPState(id);
+      if ((cur.updatedAt || 0) > remote.deletedAt || payloadHash(id, cur) !== st.h) { st.v = remote.version; syncStateSet(id, st); return push(); } // changed here after the delete: keep it
+      removeProfileLocal(id, 'deleted-remote'); return 'deleted';
+    }
+    applyRemote(id, remote);
+    st.v = remote.version; syncStateSet(id, st);
+    return push();
+  }
+  function pull(){
+    return syncFetch('/sync/profiles/' + id + '?known=' + (st.v || 0), 'GET').then(function(r){
+      if (r.status === 404) { st.v = 0; return push(); }
+      var d = r.data;
+      if (d.unchanged) { st.at = now(); syncStateSet(id, st); return 'same'; }
+      if (d.deletedAt && !d.data) return conflict(d);
+      applyRemote(id, d);
+      st.v = d.version; st.h = payloadHash(id, getPState(id)); st.at = now(); syncStateSet(id, st);
+      return 'pulled';
+    });
+  }
+  var cur = getPState(id);
+  if (!st.v || payloadHash(id, cur) !== st.h) { cur.updatedAt = now(); if (id === ACTIVE) save(); else writeProfileData(id, cur); return push(); }
+  return pull();
+}
+function syncNow(reason, opts){
+  clearTimeout(SY.t1); SY.t1 = null; clearTimeout(SY.t2); SY.t2 = null;
+  if (!canSync()) { setSync('off'); return Promise.resolve('off'); }
+  if (SY.busy) { SY.again = true; return SY.busy; }
+  if (navigator.onLine === false) { setSync('offline', 'Offline. Progress is saved on this device and will sync later.'); return Promise.resolve('offline'); }
+  setSync('syncing');
+  var p = flushDeletes().then(function(){ return ACTIVE ? doSync(ACTIVE, opts) : null; })
+    .then(function(){ if (reason === 'open' || reason === 'list' || reason === 'visible' || now() - SY.listAt > 5 * 60000) return syncList(); })
+    .then(function(){ setSync('ok'); return 'ok'; }, function(e){ setSync(e.offline ? 'offline' : 'error', e.message); return 'error'; })
+    .then(function(r){ SY.busy = null; if (SY.again) { SY.again = false; syncSoon(400); } return r; });
+  SY.busy = p; return p;
+}
+function syncSoon(ms){
+  if (!canSync()) return;
+  if (SY.status !== 'syncing') setSync('pending');
+  clearTimeout(SY.t1); SY.t1 = setTimeout(function(){ syncNow('change'); }, ms || 2500);
+  if (!SY.t2) SY.t2 = setTimeout(function(){ SY.t2 = null; syncNow('maxwait'); }, 15000);
+}
+function flushDeletes(){
+  return Object.keys(REG.pendingDeletes).reduce(function(pr, id){ return pr.then(function(){
+    return syncFetch('/sync/profiles/' + id, 'DELETE').then(function(){ delete REG.pendingDeletes[id]; saveReg(); }); }); }, Promise.resolve());
+}
+function syncList(){
+  return syncFetch('/sync/profiles', 'GET').then(function(r){
+    SY.listAt = now(); if (+r.data.maxBytes > 0) SY.maxBytes = +r.data.maxBytes;
+    var remote = {};
+    (Array.isArray(r.data.profiles) ? r.data.profiles : []).forEach(function(p){ if (p && /^p[a-z0-9]{6,40}$/.test(p.id)) { var m = cleanRemoteMeta(p.meta, p.id); if (m) remote[p.id] = {meta:m, version:p.version, deletedAt:p.deletedAt || null, updatedAt:p.updatedAt}; } });
+    REG.remote = remote;
+    var jobs = [];
+    Object.keys(remote).forEach(function(id){
+      var rp = remote[id]; if (!REG.profiles[id] || id === ACTIVE) return;
+      var st = syncStateGet(id), cur = getPState(id), dirty = payloadHash(id, cur) !== st.h;
+      if (rp.deletedAt) { if ((cur.updatedAt || 0) <= rp.deletedAt && !dirty) removeProfileLocal(id, 'deleted-remote'); else jobs.push(id); return; }
+      REG.profiles[id] = mergeProfileMeta(REG.profiles[id], rp.meta);
+      if (st.v !== rp.version || dirty) jobs.push(id);
+    });
+    REG.order.forEach(function(id){ if (!remote[id] && id !== ACTIVE && jobs.indexOf(id) < 0) jobs.push(id); }); // made offline / before sync was on
+    saveReg();
+    if (view.page === 'profiles' && !modalOpen()) render();
+    return jobs.reduce(function(pr, id){ return pr.then(function(){ return doSync(id).then(null, function(){}); }); }, Promise.resolve());
+  });
+}
+function downloadProfile(id){
+  if (!canSync()) return Promise.reject(syncErr('Turn on sync first.'));
+  return syncFetch('/sync/profiles/' + id, 'GET').then(function(r){
+    var d = r.data;
+    if (r.status === 404 || d.deletedAt || !d.data) throw syncErr('This profile no longer exists on the relay.');
+    var meta = cleanRemoteMeta(d.meta, id) || (REG.remote[id] && REG.remote[id].meta);
+    var st = mergeProfileData({ui:{page:'home'}}, sanitizeState(d.data));
+    if (!writeProfileData(id, st)) throw syncErr('This browser\u2019s storage is full or blocked.');
+    REG.profiles[id] = meta; if (REG.order.indexOf(id) < 0) REG.order.push(id); saveReg();
+    syncStateSet(id, {v:d.version, h:payloadHash(id, st), at:now()});
+  });
+}
+function syncInfo(){
+  var st = canSync() ? SY.status : 'off';
+  var body = '<p>' + syncPill() + '</p>';
+  if (st === 'off') body += '<p>Sync is off on this device. Turn it on with the family passcode to keep profiles and progress the same on every device.</p>';
+  else body += '<p class="small">' + esc(syncTitle()) + '</p><p class="small muted">Progress is always saved on this device first. It syncs a few seconds after each answer, at the end of each test, and when you leave the app. Offline? It catches up automatically later.</p>';
+  modal('Sync', body, st === 'off' ? [{label:'Close'}, {label:'Turn on sync', primary:true, onClick:connectSyncModal}] : [{label:'Close'}, {label:'Sync now', primary:true, onClick:function(){ syncNow('manual'); }}]);
+}
+
+/* ====================================================================================
+ * Progress dashboard (charts are hand-made inline SVG; no libraries, works offline).
+ * ==================================================================================== */
+var DASH = {range:'30', concept:''};
+var DOMAIN_COLORS = {CS:'#1d4ed8', II:'#0f766e', SEC:'#b45309', EI:'#be185d'};
+function dayStart(t){ var d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); }
+function weekStart(t){ var d = new Date(dayStart(t)); d.setDate(d.getDate() - (d.getDay() + 6) % 7); return d.getTime(); }
+function addDays(t, n){ var d = new Date(t); d.setDate(d.getDate() + n); return d.getTime(); }
+function fmtMD(t){ return new Date(t).toLocaleDateString(undefined, {month:'short', day:'numeric'}); }
+function makeBuckets(from, to, unit){ var out = [], idx = {}, t = unit === 'week' ? weekStart(from) : dayStart(from), end = dayStart(to);
+  while (t <= end && out.length < 400) { idx[t] = out.length; out.push(t); t = addDays(t, unit === 'week' ? 7 : 1); }
+  return {list:out, idx:idx, unit:unit, at:function(x){ var k = unit === 'week' ? weekStart(x) : dayStart(x); return idx[k] === undefined ? -1 : idx[k]; }}; }
+function collectRecords(){
+  var recs = [], sess = [];
+  Object.keys(S.sessions).forEach(function(sid){
+    var s = S.sessions[sid]; if (!s || !Array.isArray(s.modules)) return;
+    var qa = s.qa || {}, hasQa = Object.keys(qa).length > 0, info = {s:s, n:0, ok:0, un:0, sec:0, secN:0, mods:[]};
+    s.modules.forEach(function(mod, mi){
+      var est = s.timed && Array.isArray(s.timeLeft) && mod.length && s.finishedAt && !hasQa ? Math.max(0, MODULE_SECONDS - (+s.timeLeft[mi] || 0)) / mod.length : 0;
+      var mr = {n:0, ok:0};
+      mod.forEach(function(id){
+        var q = Q[id]; if (!q || isReported(id)) return;
+        var a = qa[id] || {}, ans = s.answers[id];
+        var rec = {t:a.a || a.t || s.finishedAt || s.updatedAt || s.createdAt || 0, fin:!!s.finishedAt, ok:!!ans && ans === q.correct, un:!!s.unsure[id], answered:!!ans, concept:q.concept, domain:q.domain, ai:!!q.ai, sec:+a.sec || est || 0};
+        recs.push(rec);
+        if (s.finishedAt) { mr.n++; info.n++; if (rec.ok) { mr.ok++; info.ok++; } if (rec.un) info.un++; if (rec.sec && rec.answered) { info.sec += rec.sec; info.secN++; } }
+      });
+      info.mods.push(mr);
+    });
+    if (s.finishedAt && info.n) sess.push(info);
+  });
+  sess.sort(function(a, b){ return a.s.finishedAt - b.s.finishedAt; });
+  return {recs:recs, sess:sess};
+}
+function streaks(recs){
+  var days = {}; recs.forEach(function(r){ if (r.answered && r.t) days[dayStart(r.t)] = 1; });
+  var cur = 0, best = 0, run = 0, today = dayStart(now());
+  var keys = Object.keys(days).map(Number).sort(function(a, b){ return a - b; });
+  keys.forEach(function(k, i){ run = i && addDays(keys[i - 1], 1) === k ? run + 1 : 1; best = Math.max(best, run); });
+  var t = days[today] ? today : addDays(today, -1); while (days[t]) { cur++; t = addDays(t, -1); }
+  return {cur:cur, best:best, active:keys.length};
+}
+function niceTop(v){ return v <= 0 ? 1 : niceMax(v); }
+function svgOpen(W, H, label){ return '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="' + esc(label) + '" class="dchart">'; }
+function axisY(o, L, R, T, ph, W, yMax, fmt){ var s = ''; for (var i = 0; i <= 4; i++) { var v = yMax * i / 4, y = T + ph - ph * i / 4;
+  s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#e5e8ee"/><text x="' + (L - 6) + '" y="' + (y + 4).toFixed(1) + '" text-anchor="end" font-size="11" fill="#5b6470">' + fmt(v) + '</text>'; } return s; }
+function xLabelsSVG(labels, xs, y, W){ var s = '', n = labels.length, maxL = Math.max(2, Math.floor(W / 64)), step = Math.max(1, Math.ceil(n / maxL));
+  for (var i = 0; i < n; i++) if (i % step === 0 || (i === n - 1 && n > 1 && (n - 1) % step > step / 2)) s += '<text x="' + xs(i).toFixed(1) + '" y="' + y + '" text-anchor="middle" font-size="11" fill="#5b6470">' + esc(labels[i]) + '</text>'; return s; }
+/* o: {w,h,labels[], series:[{name,color,pts:[{i,v,tip}]}], yMax, fmt, ref:{v,label}, label} */
+function lineChart(o){
+  var W = o.w, H = o.h || 230, L = 42, R = 14, T = 12, B = 30, pw = W - L - R, ph = H - T - B, n = o.labels.length;
+  var maxV = 0; o.series.forEach(function(se){ se.pts.forEach(function(p){ maxV = Math.max(maxV, p.v); }); }); if (o.ref) maxV = Math.max(maxV, o.ref.v);
+  var yMax = o.yMax || niceTop(maxV * 1.1), fmt = o.fmt || function(v){ return Math.round(v); };
+  var xs = function(i){ return L + (n <= 1 ? pw / 2 : pw * i / (n - 1)); }, ys = function(v){ return T + ph - ph * Math.min(v, yMax) / yMax; };
+  var s = svgOpen(W, H, o.label) + axisY(o, L, R, T, ph, W, yMax, fmt) + xLabelsSVG(o.labels, xs, H - 10, W);
+  if (o.ref) s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + ys(o.ref.v).toFixed(1) + '" y2="' + ys(o.ref.v).toFixed(1) + '" stroke="#9aa3af" stroke-dasharray="5 4"/><text x="' + (W - R - 2) + '" y="' + (ys(o.ref.v) - 5).toFixed(1) + '" text-anchor="end" font-size="11" fill="#5b6470">' + esc(o.ref.label) + '</text>';
+  o.series.forEach(function(se){
+    if (!se.pts.length) return;
+    if (se.pts.length > 1) s += '<polyline fill="none" stroke="' + se.color + '" stroke-width="2.5" stroke-linejoin="round" points="' + se.pts.map(function(p){ return xs(p.i).toFixed(1) + ',' + ys(p.v).toFixed(1); }).join(' ') + '"/>';
+    se.pts.forEach(function(p){ s += '<circle cx="' + xs(p.i).toFixed(1) + '" cy="' + ys(p.v).toFixed(1) + '" r="' + (se.pts.length > 40 ? 2.5 : 4) + '" fill="' + se.color + '"><title>' + esc(p.tip || (se.name + ': ' + fmt(p.v))) + '</title></circle>'; });
+  });
+  return s + '</svg>';
+}
+/* o: {w,h,labels[],values[],colors[]|color,fmt,tips[],showVals,label} */
+function barChart(o){
+  var W = o.w, H = o.h || 210, L = 42, R = 10, T = 16, B = 30, pw = W - L - R, ph = H - T - B, n = o.values.length;
+  var yMax = o.yMax || niceTop(Math.max.apply(null, o.values.concat([0])) * 1.12), fmt = o.fmt || function(v){ return Math.round(v); };
+  var step = pw / Math.max(1, n), bw = Math.max(2, Math.min(48, step * 0.7));
+  var xs = function(i){ return L + step * i + step / 2; };
+  var s = svgOpen(W, H, o.label) + axisY(o, L, R, T, ph, W, yMax, fmt) + xLabelsSVG(o.labels, xs, H - 10, W);
+  o.values.forEach(function(v, i){ var h = ph * Math.min(v, yMax) / yMax, x = xs(i) - bw / 2, y = T + ph - h, c = Array.isArray(o.colors) ? o.colors[i] : (o.color || '#4f7be8');
+    s += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + Math.max(0, h).toFixed(1) + '" rx="2" fill="' + c + '"><title>' + esc((o.tips && o.tips[i]) || (o.labels[i] + ': ' + fmt(v))) + '</title></rect>';
+    if (o.showVals && v > 0) s += '<text x="' + xs(i).toFixed(1) + '" y="' + (y - 4).toFixed(1) + '" text-anchor="middle" font-size="12" font-weight="700" fill="#1f2328">' + esc(o.valLabels ? o.valLabels[i] : fmt(v)) + '</text>'; });
+  return s + '</svg>';
+}
+function legendHTMLs(items){ return '<div class="dlegend">' + items.map(function(it){ return '<span><i style="background:' + it[1] + '"></i>' + esc(it[0]) + '</span>'; }).join('') + '</div>'; }
+function chartW(){ var el = document.getElementById('app'), w = (el && el.clientWidth) || window.innerWidth || 800; return Math.max(260, Math.min(1000, w) - 32 - 34); }
+function heatColor(r){ if (r === null) return '#f1f3f6'; var h = Math.round(r * 120); return 'hsl(' + h + ',62%,' + (r > 0.85 ? 40 : 46) + '%)'; }
+function renderDashboard(){
+  var range = DASH.range, cutoff = range === 'all' ? 0 : dayStart(addDays(now(), -(+range - 1)));
+  var data = collectRecords(), recs = data.recs, W = chartW();
+  var finRecs = recs.filter(function(r){ return r.fin && r.t >= cutoff; });
+  var sessIn = data.sess.filter(function(x){ return x.s.finishedAt >= cutoff; });
+  var tests = sessIn.filter(function(x){ return x.s.kind === 'test'; }), allTests = data.sess.filter(function(x){ return x.s.kind === 'test'; });
+  var st = conceptStats();
+  var first = recs.length ? Math.min.apply(null, recs.map(function(r){ return r.t || now(); })) : now();
+  var from = range === 'all' ? first : cutoff, spanDays = (now() - from) / 864e5;
+  var unit = range === '7' || (range === 'all' && spanDays <= 14) ? 'day' : 'week'; // daily points get noisy past a couple of weeks
+  var B = makeBuckets(from, now(), unit), blabels = B.list.map(fmtMD);
+  var wk = makeBuckets(from, now(), range === '7' ? 'day' : 'week');
+  var meName = REG.profiles[ACTIVE] ? REG.profiles[ACTIVE].name : '';
+  var h = nav() + '<div class="wrap dash">' + storageWarning();
+  h += '<div class="card"><div class="dhead"><h2 style="margin:0">Progress' + (meName ? ' · ' + esc(meName) : '') + '</h2><div class="filters" role="group" aria-label="Date range">' +
+    [['7','7 days'],['30','30 days'],['all','All time']].map(function(x){ return '<button data-act="dash-range" data-r="' + x[0] + '" class="' + (range === x[0] ? 'on' : '') + '" aria-pressed="' + (range === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>';
+  // metric cards
+  var latest = allTests[allTests.length - 1], latestAny = data.sess[data.sess.length - 1];
+  var best = tests.reduce(function(b, x){ return !b || x.ok / x.n > b.ok / b.n ? x : b; }, null);
+  var wkRecs = recs.filter(function(r){ return r.fin && r.t >= dayStart(addDays(now(), -6)); }), wkOk = wkRecs.filter(function(r){ return r.ok; }).length;
+  var weakest = CONCEPTS.filter(function(c){ return st[c.id].seen && !st[c.id].archived && st[c.id].status !== 'mastered'; }).sort(function(a, b){ return st[a.id].recentRate - st[b.id].recentRate || st[b.id].seen - st[a.id].seen; }).slice(0, 3);
+  var mastered = CONCEPTS.filter(function(c){ return st[c.id].status === 'mastered'; }).length;
+  var sk = streaks(recs);
+  h += '<div class="mgrid">' +
+    mcard('Latest score', latest ? latest.ok + '/' + latest.n : (latestAny ? pct(latestAny.ok, latestAny.n) + '%' : '—'), latest ? pct(latest.ok, latest.n) + '% · ' + fmtMD(latest.s.finishedAt) : (latestAny ? 'practice · ' + fmtMD(latestAny.s.finishedAt) : 'no tests yet')) +
+    mcard('Best score' + (range === 'all' ? '' : ' (' + range + ' days)'), best ? best.ok + '/' + best.n : '—', best ? pct(best.ok, best.n) + '% · ' + fmtMD(best.s.finishedAt) : 'full tests only') +
+    mcard('7-day accuracy', wkRecs.length ? pct(wkOk, wkRecs.length) + '%' : '—', wkRecs.length + ' question' + (wkRecs.length === 1 ? '' : 's')) +
+    mcard('Mastered skills', mastered + '/' + CONCEPTS.length, 'last 5 tries all solid') +
+    mcard('Streak', sk.cur + ' day' + (sk.cur === 1 ? '' : 's'), 'best ' + sk.best + ' · ' + sk.active + ' active day' + (sk.active === 1 ? '' : 's')) +
+    '<div class="mcard wide"><span class="ml">Weakest skills</span>' + (weakest.length ? weakest.map(function(c){ return '<button class="wk" data-act="practice-one" data-c="' + c.id + '">' + esc(c.name) + ' <span class="muted">' + Math.round(st[c.id].recentRate * 100) + '%</span></button>'; }).join('') : '<b class="mv">—</b><span class="ms">practice a bit more to see these</span>') + '</div>' +
+    '</div></div>';
+  if (!data.sess.length) { app.innerHTML = h + '<div class="card"><p class="muted">No finished tests or practice sets yet. Charts appear here as soon as you finish one.</p><button class="btn primary" data-act="nav" data-page="home">Go practice</button></div></div>'; return; }
+  // 1. scores over time
+  h += '<div class="card"><h3>Full-test scores over time</h3>';
+  if (tests.length) {
+    var tl = tests.map(function(x){ return fmtMD(x.s.finishedAt); });
+    var sers = [{name:'Total', color:'#1e3a8a', pts:tests.map(function(x, i){ return {i:i, v:pct(x.ok, x.n), tip:x.s.title + ': ' + x.ok + '/' + x.n + ' (' + pct(x.ok, x.n) + '%)'}; })}];
+    [0, 1].forEach(function(mi){ sers.push({name:'Module ' + (mi + 1), color:mi ? '#be185d' : '#0f766e', pts:tests.filter(function(x){ return x.mods[mi] && x.mods[mi].n; }).map(function(x){ var m = x.mods[mi]; return {i:tests.indexOf(x), v:pct(m.ok, m.n), tip:'Module ' + (mi + 1) + ': ' + m.ok + '/' + m.n}; })}); });
+    h += lineChart({w:W, labels:tl, series:sers, yMax:100, fmt:function(v){ return Math.round(v) + '%'; }, label:'Full-test scores over time'}) + legendHTMLs([['Total', '#1e3a8a'], ['Module 1', '#0f766e'], ['Module 2 (harder)', '#be185d']]);
+  } else h += '<p class="muted small">Finish a full 54-question test' + (range === 'all' ? '' : ' in this date range') + ' to see scores here.</p>';
+  h += '</div>';
+  // 2. accuracy by domain over time
+  function acc(list){ var n = 0, ok = 0; list.forEach(function(r){ n++; if (r.ok) ok++; }); return {n:n, ok:ok}; }
+  function byBucket(list, bk){ var arr = bk.list.map(function(){ return []; }); list.forEach(function(r){ var i = bk.at(r.t); if (i >= 0) arr[i].push(r); }); return arr; }
+  var perB = byBucket(finRecs, B);
+  h += '<div class="card"><h3>Accuracy by domain</h3><p class="small muted" style="margin-top:0">Percent correct per ' + unit + '.</p>' + lineChart({w:W, labels:blabels, yMax:100, fmt:function(v){ return Math.round(v) + '%'; }, label:'Accuracy by domain over time',
+    series:DOMAIN_ORDER.map(function(d){ var pts = []; perB.forEach(function(list, i){ var a = acc(list.filter(function(r){ return r.domain === d; })); if (a.n) pts.push({i:i, v:pct(a.ok, a.n), tip:DOMAINS[d] + ', ' + blabels[i] + ': ' + a.ok + '/' + a.n}); }); return {name:DOMAINS[d], color:DOMAIN_COLORS[d], pts:pts}; })}) +
+    legendHTMLs(DOMAIN_ORDER.map(function(d){ return [DOMAINS[d], DOMAIN_COLORS[d]]; })) + '</div>';
+  // 3. accuracy by concept over time
+  var seenC = CONCEPTS.filter(function(c){ return finRecs.some(function(r){ return r.concept === c.id; }); });
+  if (!DASH.concept || !seenC.some(function(c){ return c.id === DASH.concept; })) DASH.concept = (weakest[0] && seenC.some(function(c){ return c.id === weakest[0].id; })) ? weakest[0].id : (seenC[0] ? seenC[0].id : '');
+  h += '<div class="card"><div class="dhead"><h3 style="margin:0">Accuracy by skill</h3>' + (seenC.length ? '<select id="dash-concept" class="dsel" aria-label="Skill">' + seenC.map(function(c){ return '<option value="' + c.id + '"' + (c.id === DASH.concept ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '</select>' : '') + '</div>';
+  if (DASH.concept) { var cpts = [], upts = []; perB.forEach(function(list, i){ var l = list.filter(function(r){ return r.concept === DASH.concept; }), a = acc(l); if (a.n) { cpts.push({i:i, v:pct(a.ok, a.n), tip:blabels[i] + ': ' + a.ok + '/' + a.n + ' correct'}); upts.push({i:i, v:pct(a.ok - l.filter(function(r){ return r.ok && r.un; }).length, a.n), tip:blabels[i] + ': solid (correct and sure) ' + pct(a.ok - l.filter(function(r){ return r.ok && r.un; }).length, a.n) + '%'}); } });
+    h += lineChart({w:W, labels:blabels, yMax:100, fmt:function(v){ return Math.round(v) + '%'; }, label:'Accuracy over time for ' + CMAP[DASH.concept].name, series:[{name:'Correct', color:DOMAIN_COLORS[CMAP[DASH.concept].domain], pts:cpts}, {name:'Solid', color:'#9aa3af', pts:upts}]}) +
+      legendHTMLs([['Correct', DOMAIN_COLORS[CMAP[DASH.concept].domain]], ['Solid (correct and not flagged unsure)', '#9aa3af']]); }
+  else h += '<p class="muted small">No questions in this date range yet.</p>';
+  h += '</div>';
+  // 4. mastery heat map
+  var perW = byBucket(finRecs, wk), cols = []; perW.forEach(function(l, i){ if (l.length) cols.push(i); }); cols = cols.slice(-10);
+  h += '<div class="card"><h3>Skill mastery heat map</h3><p class="small muted" style="margin-top:0">Share of questions that were correct <b>and</b> not flagged unsure, per ' + (wk.unit === 'week' ? 'week' : 'day') + '. Darker green = stronger.</p><div class="tscroll"><table class="heat"><thead><tr><th>Skill</th>' +
+    cols.map(function(i){ return '<th>' + esc(fmtMD(wk.list[i])) + '</th>'; }).join('') + '<th>Range</th><th>Now</th></tr></thead><tbody>';
+  DOMAIN_ORDER.forEach(function(d){ CONCEPTS.filter(function(c){ return c.domain === d; }).forEach(function(c){
+    var cell = function(list){ var l = list.filter(function(r){ return r.concept === c.id; }); if (!l.length) return '<td style="background:' + heatColor(null) + '"></td>'; var sol = l.filter(function(r){ return r.ok && !r.un; }).length, r = sol / l.length; return '<td style="background:' + heatColor(r) + ';color:#fff" title="' + esc(c.name + ': ' + sol + '/' + l.length + ' solid') + '">' + Math.round(r * 100) + '</td>'; };
+    h += '<tr><td class="hc"><span class="ddot" style="background:' + DOMAIN_COLORS[d] + '"></span>' + esc(c.name) + '</td>' + cols.map(function(i){ return cell(perW[i]); }).join('') + cell(finRecs) + '<td>' + statusBadge(st[c.id]) + '</td></tr>'; }); });
+  h += '</tbody></table></div></div>';
+  // 5. time per question
+  var timed = sessIn.filter(function(x){ return x.secN; });
+  h += '<div class="card"><h3>Time per question</h3>';
+  if (timed.length) {
+    h += lineChart({w:W, labels:timed.map(function(x){ return fmtMD(x.s.finishedAt); }), ref:{v:71, label:'test pace ≈71 s'}, fmt:function(v){ return Math.round(v) + 's'; }, label:'Average seconds per question',
+      series:[{name:'Avg seconds', color:'#6d28d9', pts:timed.map(function(x, i){ return {i:i, v:x.sec / x.secN, tip:x.s.title + ': ' + Math.round(x.sec / x.secN) + ' s per question'}; })}]});
+    var dsec = DOMAIN_ORDER.map(function(d){ var l = finRecs.filter(function(r){ return r.domain === d && r.sec && r.answered; }); return l.length ? l.reduce(function(a, r){ return a + r.sec; }, 0) / l.length : 0; });
+    h += '<p class="small muted" style="margin:10px 0 4px">Average by domain (seconds)</p>' + barChart({w:W, h:180, labels:['Craft & Structure', 'Info & Ideas', 'Conventions', 'Expression'], values:dsec, colors:DOMAIN_ORDER.map(function(d){ return DOMAIN_COLORS[d]; }), showVals:true, fmt:function(v){ return Math.round(v) + 's'; }, label:'Average seconds per question by domain'});
+  } else h += '<p class="muted small">Time is tracked from now on for each question you answer.</p>';
+  h += '</div>';
+  // 6. questions answered per day + streak
+  var dayB = makeBuckets(range === 'all' ? Math.max(first, addDays(now(), -59)) : cutoff, now(), 'day');
+  var counts = dayB.list.map(function(){ return 0; }); recs.forEach(function(r){ if (r.answered) { var i = dayB.at(r.t); if (i >= 0) counts[i]++; } });
+  h += '<div class="card"><div class="dhead"><h3 style="margin:0">Questions answered per day</h3><span class="badge b-mastered">🔥 ' + sk.cur + '-day streak</span></div>' +
+    barChart({w:W, labels:dayB.list.map(fmtMD), values:counts, color:'#1d4ed8', showVals:counts.length <= 14, label:'Questions answered per day', tips:counts.map(function(c, i){ return fmtMD(dayB.list[i]) + ': ' + c + ' answered'; })}) +
+    '<p class="small muted">' + (range === 'all' && dayB.list.length >= 60 ? 'Last 60 days. ' : '') + 'Best streak: ' + sk.best + ' day' + (sk.best === 1 ? '' : 's') + '. A day counts when you answer at least one question.</p></div>';
+  // 7. unsure trend
+  var upts2 = [], ucnt = []; perB.forEach(function(list, i){ var a = list.filter(function(r){ return r.answered; }); if (a.length) { var u = a.filter(function(r){ return r.un; }).length; upts2.push({i:i, v:100 * u / a.length, tip:blabels[i] + ': ' + u + ' of ' + a.length + ' flagged unsure'}); } });
+  h += '<div class="card"><h3>🤔 Unsure flags over time</h3>' + (upts2.length ? lineChart({w:W, labels:blabels, fmt:function(v){ return Math.round(v) + '%'; }, label:'Share of answers flagged unsure', series:[{name:'Unsure', color:'#b45309', pts:upts2}]}) +
+    '<p class="small muted">Share of answered questions you flagged as unsure. Going down = more confidence.</p>' : '<p class="muted small">No answers in this date range yet.</p>') + '</div>';
+  // 8. AI vs bank
+  var ai = acc(finRecs.filter(function(r){ return r.ai; })), bank = acc(finRecs.filter(function(r){ return !r.ai; }));
+  h += '<div class="card"><h3>✨ AI questions vs. question bank</h3>' + barChart({w:Math.min(W, 520), h:200, labels:['Question bank', 'AI-written'], values:[bank.n ? pct(bank.ok, bank.n) : 0, ai.n ? pct(ai.ok, ai.n) : 0], colors:['#1d4ed8', '#6d28d9'], yMax:100, showVals:true,
+      valLabels:[bank.n ? pct(bank.ok, bank.n) + '% (' + bank.n + ')' : 'none', ai.n ? pct(ai.ok, ai.n) + '% (' + ai.n + ')' : 'none'], fmt:function(v){ return Math.round(v) + '%'; }, label:'Accuracy on AI questions vs question bank'}) +
+    '<p class="small muted">Percent correct (number of questions in brackets).' + (ai.n ? '' : ' Try ✨ AI practice to compare.') + '</p></div>';
+  app.innerHTML = h + '</div>';
+}
+function mcard(label, val, sub){ return '<div class="mcard"><span class="ml">' + esc(label) + '</span><b class="mv">' + esc(val) + '</b><span class="ms">' + esc(sub) + '</span></div>'; }
+
 /* ---------- render ---------- */
 function render(){
   var p = view.page;
-  if (p === 'run') renderRun();
+  if (!ACTIVE || p === 'profiles') { view.page = 'profiles'; renderProfiles(); return; }
+  if (p === 'dashboard') renderDashboard();
+  else if (p === 'run') renderRun();
   else if (p === 'results') renderResults();
   else if (p === 'tracker') renderTracker();
   else if (p === 'archive') renderArchive();
@@ -1043,7 +1845,8 @@ function render(){
 function choose(L){
   var s = curSession(), id = s.modules[s.mod][s.idx];
   if (s.answers[id] === L) delete s.answers[id]; else s.answers[id] = L;
-  save(); render();
+  var r = qaRec(s, id); r.t = now(); if (s.answers[id] && !r.a) r.a = r.t;
+  save(); render(); syncSoon();
 }
 function move(d){
   var s = curSession(), n = s.modules[s.mod].length;
@@ -1060,20 +1863,20 @@ var ACTIONS = {
   open: function(el){ go('results', el.getAttribute('data-sid')); },
   discard: function(el){ var id = el.getAttribute('data-sid'), s = S.sessions[id];
     confirmBox('Discard this '+(s.kind==='test'?'test':'practice set')+'?', '<p>Your answers in <b>'+esc(s.title)+'</b> will be erased. ' + (s.source==='original' ? 'You can start the original test again from the beginning.' : 'Its questions stay marked as seen.') + '</p>', 'Discard', function(){
-      S.openIds = S.openIds.filter(function(x){ return x !== id; }); delete S.sessions[id]; save(); render(); }, true); },
+      S.openIds = S.openIds.filter(function(x){ return x !== id; }); delete S.sessions[id]; S.deleted[id] = now(); save(); render(); syncSoon(); }, true); },
   del: function(el){ var id = el.getAttribute('data-sid'), s = S.sessions[id];
     confirmBox('Delete from history?', '<p><b>'+esc(s.title)+'</b> ('+fmtDate(s.finishedAt)+') will be removed from Past Tests and from your concept history. This can\'t be undone unless you have a backup.</p>', 'Delete', function(){
-      S.archiveIds = S.archiveIds.filter(function(x){ return x !== id; }); delete S.sessions[id]; save(); render(); }, true); },
+      S.archiveIds = S.archiveIds.filter(function(x){ return x !== id; }); delete S.sessions[id]; S.deleted[id] = now(); save(); render(); syncSoon(); }, true); },
   'start-orig': function(){ startOriginal(); },
   'gen-test': function(){ generateTest(); },
   'practice-weak': function(){ startPractice(weakConcepts(), 'weak concepts'); },
   'practice-from': function(el){ var s = S.sessions[el.getAttribute('data-sid')]; startPractice(fromSessionConcepts(s), 'from ' + s.title); },
   'practice-one': function(el){ var c = el.getAttribute('data-c'); startPractice([c], CMAP[c].name); },
-  'archive-c': function(el){ S.conceptArchived[el.getAttribute('data-c')] = true; save(); render(); },
-  restore: function(el){ delete S.conceptArchived[el.getAttribute('data-c')]; save(); render(); },
+  'archive-c': function(el){ S.conceptArchived[el.getAttribute('data-c')] = true; S.settingsAt = now(); save(); render(); syncSoon(); },
+  restore: function(el){ delete S.conceptArchived[el.getAttribute('data-c')]; S.settingsAt = now(); save(); render(); syncSoon(); },
   choose: function(el){ choose(el.getAttribute('data-l')); },
-  mark: function(){ var s = curSession(), id = s.modules[s.mod][s.idx]; if (s.marked[id]) delete s.marked[id]; else s.marked[id] = true; save(); render(); },
-  unsure: function(){ var s = curSession(), id = s.modules[s.mod][s.idx]; if (s.unsure[id]) delete s.unsure[id]; else s.unsure[id] = true; save(); render(); },
+  mark: function(){ var s = curSession(), id = s.modules[s.mod][s.idx]; if (s.marked[id]) delete s.marked[id]; else s.marked[id] = true; qaRec(s, id).mt = now(); save(); render(); syncSoon(); },
+  unsure: function(){ var s = curSession(), id = s.modules[s.mod][s.idx]; if (s.unsure[id]) delete s.unsure[id]; else s.unsure[id] = true; qaRec(s, id).ut = now(); save(); render(); syncSoon(); },
   next: function(){ move(1); },
   back: function(){ move(-1); },
   grid: function(){ var s = curSession(); modal((s.kind==='test'?'Module '+(s.mod+1):'Practice')+' questions', gridHTML(s, true) + legendHTML() + '<p style="margin-top:14px"><button class="btn" data-act="tocheck">Go to Review Page</button></p>', [{label:'Close'}]); },
@@ -1088,7 +1891,7 @@ var ACTIONS = {
   'export-text': function(){ showExportText(); },
   import: function(el){ doImport(el.getAttribute('data-mode')); },
   report: function(el){ reportQuestion(el.getAttribute('data-id')); },
-  unreport: function(el){ delete S.reported[el.getAttribute('data-id')]; save(); render(); },
+  unreport: function(el){ var id = el.getAttribute('data-id'); delete S.reported[id]; S.unreported[id] = now(); save(); render(); syncSoon(); },
   'ai-practice-weak': function(){ aiPractice(weakConcepts(), 'weak concepts'); },
   'ai-practice-from': function(el){ var s = S.sessions[el.getAttribute('data-sid')]; aiPractice(fromSessionConcepts(s), 'from ' + s.title); },
   'ai-practice-one': function(el){ var c = el.getAttribute('data-c'); aiPractice([c], CMAP[c].name); },
@@ -1096,9 +1899,21 @@ var ACTIONS = {
   'ai-connect': function(){ aiConnect(); },
   'ai-pick': function(el){ AIS.provider = el.getAttribute('data-p'); saveAISettings(); render(); },
   'ai-showpass': function(el){ var i = document.getElementById('ai-pass'); if (i) { i.type = i.type === 'password' ? 'text' : 'password'; el.textContent = i.type === 'password' ? 'Show' : 'Hide'; } },
-  'ai-forget': function(){ AIS.passcode = ''; AIS.providers = []; AIS.status = null; saveAISettings(); render(); },
-  'ai-restore-all': function(){ confirmBox('Restore all reported questions?', '<p>They will count in scores again and can be picked for future tests.</p>', 'Restore', function(){ S.reported = {}; save(); render(); }); },
-  wipe: function(){ confirmBox('Erase all progress?', '<p>Every test, practice set, and all concept history on this device will be deleted.</p>', 'Erase everything', function(){ S = blankState(); save(); go('home'); }, true); }
+  'ai-forget': function(){ AIS.passcode = ''; AIS.providers = []; AIS.status = null; saveAISettings(); setSync('off'); render(); },
+  'ai-restore-all': function(){ confirmBox('Restore all reported questions?', '<p>They will count in scores again and can be picked for future tests.</p>', 'Restore', function(){ var t = now(); Object.keys(S.reported).forEach(function(id){ S.unreported[id] = t; }); S.reported = {}; save(); render(); syncSoon(); }); },
+  wipe: function(){ confirmBox('Erase ' + profileName(ACTIVE) + '\u2019s progress?', '<p>Every test, practice set, and all concept history for this profile will be deleted' + (canSync() ? ', on every synced device' : '') + '. Other profiles are not affected.</p>', 'Erase everything', function(){
+    var t = now(); Object.keys(S.sessions).forEach(function(id){ S.deleted[id] = t; }); S.sessions = {}; Object.keys(S.reported).forEach(function(id){ S.unreported[id] = t; }); S.reported = {}; S.conceptArchived = {}; S.settingsAt = t; S.updatedAt = t;
+    normalize(); save(); go('home'); syncNow('wipe'); }, true); },
+  'pick-profile': function(el){ openProfile(el.getAttribute('data-id')); },
+  'edit-profile': function(el){ editProfile(el.getAttribute('data-id')); },
+  'new-profile': function(){ profileForm(null); },
+  'switch-profile': function(){ switchProfile(); },
+  'rename-migrated': function(){ var id = REG.renamePending; REG.renamePending = null; saveReg(); render(); if (REG.profiles[id]) profileForm(id); },
+  'dismiss-rename': function(){ REG.renamePending = null; saveReg(); render(); },
+  'connect-sync': function(){ connectSyncModal(); },
+  'sync-now': function(){ syncNow('manual').then(function(){ if (view.page === 'settings' || view.page === 'profiles') render(); }); },
+  'sync-info': function(){ syncInfo(); },
+  'dash-range': function(el){ DASH.range = el.getAttribute('data-r'); render(); }
 };
 app.addEventListener('click', function(e){
   var g = e.target.closest('[data-goto]');
@@ -1107,6 +1922,8 @@ app.addEventListener('click', function(e){
   var fn = ACTIONS[el.getAttribute('data-act')]; if (fn) { e.preventDefault(); fn(el); }
 });
 app.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && (e.target.id === 'ai-url' || e.target.id === 'ai-pass')) { e.preventDefault(); aiConnect(); } });
+app.addEventListener('change', function(e){ if (e.target && e.target.id === 'dash-concept') { DASH.concept = e.target.value; render(); } });
+var resizeT = null; window.addEventListener('resize', function(){ clearTimeout(resizeT); resizeT = setTimeout(function(){ if (view.page === 'dashboard' && !modalOpen()) render(); }, 250); });
 document.addEventListener('keydown', function(e){
   if (modalOpen() || view.page !== 'run') return;
   var t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
@@ -1122,8 +1939,10 @@ document.addEventListener('keydown', function(e){
 var lastTick = now(), saveCounter = 0;
 function tick(){
   var t = now(), dt = Math.min(t - lastTick, 2000) / 1000; lastTick = t;
-  if (view.page !== 'run' || document.hidden) return;
-  var s = curSession(); if (!s || !s.timed || s.finishedAt || (s.stage !== 'q' && s.stage !== 'check')) return;
+  if (view.page !== 'run' || document.hidden || !ACTIVE) return;
+  var s = curSession(); if (!s || s.finishedAt) return;
+  if (s.stage === 'q' && !modalOpen()) { var tq = qaRec(s, s.modules[s.mod][s.idx]); tq.sec = Math.round(((+tq.sec || 0) + dt) * 10) / 10; }
+  if (!s.timed || (s.stage !== 'q' && s.stage !== 'check')) { if (++saveCounter % 5 === 0) save(); return; }
   var before = s.timeLeft[s.mod];
   s.timeLeft[s.mod] = Math.max(0, before - dt);
   var left = s.timeLeft[s.mod];
@@ -1138,19 +1957,27 @@ function tick(){
   }
 }
 setInterval(tick, 1000);
-document.addEventListener('visibilitychange', function(){ lastTick = now(); if (document.hidden) save(); });
+document.addEventListener('visibilitychange', function(){
+  lastTick = now();
+  if (document.hidden) { save(); if (ACTIVE && canSync()) syncNow('hidden', {keepalive:true}); }
+  else if (canSync() && now() - SY.at > 15000) syncNow(ACTIVE ? 'visible' : 'list');
+});
 window.addEventListener('pagehide', save);
+window.addEventListener('online', function(){ if (canSync()) syncNow('online'); });
+window.addEventListener('offline', function(){ if (canSync()) setSync('offline', 'Offline. Progress is saved on this device and will sync later.'); });
+setInterval(function(){ if (!document.hidden && canSync() && !SY.busy && now() - SY.at > 55000) syncNow(ACTIVE ? 'poll' : 'list'); }, 15000);
 
 /* ---------- boot ---------- */
-load();
-if (S.ui && S.ui.page === 'run' && S.sessions[S.ui.sid] && !S.sessions[S.ui.sid].finishedAt) view = {page:'run', sid:S.ui.sid, filter:'all'};
-else if (S.ui && S.ui.page === 'results' && S.sessions[S.ui.sid]) view = {page:'results', sid:S.ui.sid, filter:'all'};
-else if (S.ui && ['tracker','archive','backup','settings'].indexOf(S.ui.page) >= 0) view = {page:S.ui.page, sid:null, filter:'all'};
-render();
+loadReg();
+migrateLegacy();
+var chosen = null; try { chosen = window.sessionStorage.getItem(ACTIVE_SESSION_KEY); } catch(e){}
+if (chosen && REG.profiles[chosen]) { ACTIVE = chosen; REG.lastUsed[chosen] = now(); saveReg(); load(); view = restoreView(); render(); syncNow('open'); }
+else { S = blankState(); view = {page:'profiles', sid:null, filter:'all'}; render(); if (canSync()) syncNow('list'); }
 if (relayUrl() && AIS.passcode && now() - (AIS.checkedAt || 0) > 6*3600e3 && navigator.onLine !== false) {
   refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); }, function(){});
 }
-window.__SAT = {state:function(){ return S; }, Q:Q, DATA:DATA, conceptStats:conceptStats, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion};
+window.__SAT = {state:function(){ return S; }, Q:Q, DATA:DATA, conceptStats:conceptStats, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion,
+  reg:function(){ return REG; }, active:function(){ return ACTIVE; }, sync:function(){ return SY; }, syncNow:syncNow, merge:mergeProfileData, sha256hex:sha256hex, records:collectRecords};
 })();
 
 </script>
