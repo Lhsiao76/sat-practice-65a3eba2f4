@@ -137,6 +137,20 @@ textarea.bk{width:100%;min-height:140px;font-family:ui-monospace,Menlo,monospace
 .center{text-align:center}
 .big{font-size:20px}
 .kbd{font-size:12px;color:var(--muted)}
+/* AI questions */
+.flag.report{color:#4b5563;margin-left:auto}.flag.report.on{background:#eef0f3;border-color:#6b7280;color:#374151}
+.aitag{font-size:12px;font-weight:700;color:#6d28d9;background:#f1ebff;border-radius:999px;padding:2px 9px;display:inline-block;white-space:nowrap}
+.btn.ai{border-color:#6d28d9;color:#6d28d9}.btn.ai.primary{background:#6d28d9;color:#fff}
+.fld{display:block;margin:12px 0}.fld>span{display:block;font-weight:600;font-size:15px;margin-bottom:4px}
+.fld input{width:100%;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:#fff;min-height:44px;color:var(--ink)}
+.fld input:focus{outline:none;border-color:var(--blue)}
+.pick{display:flex;gap:12px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0;background:#fff;width:100%;text-align:left;min-height:52px}
+.pick .dot{width:18px;height:18px;border-radius:50%;border:2px solid #9ca3af;flex:none}.pick.on{border-color:#6d28d9;background:#f6f2ff}.pick.on .dot{border:6px solid #6d28d9}
+.okmsg{color:var(--ok);font-weight:600}.errmsg{color:var(--bad);font-weight:600}
+.aiwait{text-align:center}.spinner{width:42px;height:42px;border:4px solid #e4dcfb;border-top-color:#6d28d9;border-radius:50%;margin:8px auto 12px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation-duration:3s}}
+.replist{border-top:1px solid var(--line);padding:8px 0;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
 @media print{.topnav,.btn{display:none}}
 </style>
 </head>
@@ -165,16 +179,34 @@ var BLUEPRINT = [
  [['wic',5],['structure',1],['crosstext',2],['central',1],['detail',1],['coe-text',2],['coe-quant',2],['inference',1],['supplement',1],['boundaries',1],['sva',1],['verbform',1],['colon',1],['pronoun',1],['modifier',1],['transition',2],['synthesis',3]]
 ];
 var KEY = 'dsat-rw-simulator-v1';
+/* ---------- AI relay config ---------- */
+var DEFAULT_RELAY_URL = '__SAT_RELAY_URL__'; // replaced with the deployed relay URL at publish time
+if (/^__/.test(DEFAULT_RELAY_URL)) DEFAULT_RELAY_URL = '';
+var AI_KEY = 'dsat-rw-ai-settings-v1';       // kept separate from progress so backups never contain the passcode
+var AI_PER_SKILL = 3, AI_MORE_COUNT = 5, AI_TEST_TARGET = 18, AI_TEST_PER_SKILL = 4, AI_CONCURRENCY = 3, AI_MAX_BANK = 1500, AI_TIMEOUT_MS = 180000;
+var PROVIDER_NAMES = {openai:'OpenAI', anthropic:'Claude', xai:'Grok'};
 
 /* ---------- storage ---------- */
 var S, storageOK = true;
-function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, openIds:[], archiveIds:[], conceptArchived:{}, counters:{test:0, practice:0}, lastExport:null, ui:{page:'home'}}; }
+function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, openIds:[], archiveIds:[], conceptArchived:{}, counters:{test:0, practice:0}, lastExport:null, ui:{page:'home'}, aiBank:{}, reported:{}}; }
 function normalize(){
   var b = blankState();
   for (var k in b) if (S[k] === undefined) S[k] = b[k];
   S.openIds = S.openIds.filter(function(id){ return S.sessions[id] && !S.sessions[id].finishedAt; });
   S.archiveIds = S.archiveIds.filter(function(id){ return S.sessions[id] && S.sessions[id].finishedAt; });
+  if (!S.aiBank || typeof S.aiBank !== 'object') S.aiBank = {};
+  if (!S.reported || typeof S.reported !== 'object') S.reported = {};
+  registerAIBank();
 }
+/* AI questions live in S.aiBank (so they are saved, archived with sessions, and included in backups). */
+function registerAIBank(){
+  Object.keys(S.aiBank).forEach(function(id){
+    var q = S.aiBank[id];
+    if (!q || q.id !== id || !CMAP[q.concept] || !Array.isArray(q.choices) || q.choices.length !== 4 || 'ABCD'.indexOf(q.correct) < 0) { delete S.aiBank[id]; return; }
+    q.ai = true; Q[id] = q;
+  });
+}
+function aiList(){ return Object.keys(S.aiBank).map(function(id){ return S.aiBank[id]; }); }
 function load(){
   try { var raw = window.localStorage.getItem(KEY); S = raw ? JSON.parse(raw) : blankState(); }
   catch(e){ storageOK = false; S = blankState(); }
@@ -199,6 +231,56 @@ function pct(a,b){ return b ? Math.round(100*a/b) : 0; }
 function flat(sess){ return sess.modules.reduce(function(a,m){ return a.concat(m); }, []); }
 function LET(i){ return 'ABCD'[i]; }
 
+/* ---------- sanitizing AI-written content (defense in depth; the relay already escapes it) ---------- */
+var SAFE_TAGS = {P:1,SPAN:1,UL:1,LI:1,U:1,EM:1,I:1,B:1,STRONG:1,TABLE:1,THEAD:1,TBODY:1,TR:1,TH:1,TD:1,BR:1};
+var INLINE_TAGS = {SPAN:1,U:1,EM:1,I:1,B:1,STRONG:1,BR:1};
+var DROP_TAGS = {SCRIPT:1,STYLE:1,IFRAME:1,OBJECT:1,EMBED:1,SVG:1,MATH:1,TEMPLATE:1,NOSCRIPT:1,TEXTAREA:1,SELECT:1,BUTTON:1,FORM:1,INPUT:1,LINK:1,META:1,IMG:1,VIDEO:1,AUDIO:1};
+var SAFE_CLASS = {P:['caption','intro'], SPAN:['blank'], UL:['notes'], TABLE:['data']};
+function sanitizeHTML(html, inlineOnly){
+  var tpl = document.createElement('template'); tpl.innerHTML = String(html == null ? '' : html);
+  function clean(node){
+    var frag = document.createDocumentFragment(), kids = node.childNodes;
+    for (var i = 0; i < kids.length; i++){
+      var n = kids[i];
+      if (n.nodeType === 3) { frag.appendChild(document.createTextNode(n.nodeValue)); continue; }
+      if (n.nodeType !== 1) continue;
+      var tag = n.tagName.toUpperCase();
+      if (DROP_TAGS[tag]) continue;
+      if (!SAFE_TAGS[tag] || (inlineOnly && !INLINE_TAGS[tag])) { frag.appendChild(clean(n)); continue; }
+      var el = document.createElement(tag.toLowerCase());
+      var cls = (n.getAttribute('class') || '').split(/\s+/).filter(function(c){ return (SAFE_CLASS[tag] || []).indexOf(c) >= 0; });
+      if (cls.length) el.setAttribute('class', cls.join(' '));
+      if (tag === 'SPAN' && cls.indexOf('blank') >= 0) el.setAttribute('aria-label', 'blank');
+      el.appendChild(clean(n));
+      frag.appendChild(el);
+    }
+    return frag;
+  }
+  var box = document.createElement('div'); box.appendChild(clean(tpl.content || tpl));
+  return box.innerHTML;
+}
+function cleanChart(c){
+  if (!c || typeof c !== 'object' || (c.type !== 'bar' && c.type !== 'line')) return null;
+  if (!Array.isArray(c.labels) || !Array.isArray(c.values) || c.labels.length < 2 || c.labels.length > 12 || c.labels.length !== c.values.length) return null;
+  var vals = c.values.map(Number); if (!vals.every(function(v){ return isFinite(v) && v >= 0; }) || Math.max.apply(null, vals) <= 0) return null;
+  return {type:c.type, title:String(c.title || '').slice(0, 140), yLabel:String(c.yLabel || '').slice(0, 60), labels:c.labels.map(function(l){ return String(l).slice(0, 24); }), values:vals};
+}
+/* Validate + sanitize one AI question (from the relay or from an imported backup). Returns null if unusable. */
+function cleanAIQuestion(q){
+  if (!q || typeof q !== 'object' || typeof q.id !== 'string' || !/^[\w-]{4,80}$/.test(q.id) || !CMAP[q.concept]) return null;
+  if (!Array.isArray(q.choices) || q.choices.length !== 4 || typeof q.correct !== 'string' || q.correct.length !== 1 || 'ABCD'.indexOf(q.correct) < 0) return null;
+  var src = q.source && typeof q.source === 'object' ? q.source : {};
+  var c = {id:q.id, passage:sanitizeHTML(q.passage), chart:cleanChart(q.chart), stem:sanitizeHTML(q.stem, true),
+    choices:q.choices.map(function(x){ return sanitizeHTML(x, true); }), correct:q.correct, domain:CMAP[q.concept].domain, concept:q.concept,
+    difficulty:q.difficulty === 'hard' ? 'hard' : 'medium', explanation:sanitizeHTML(q.explanation || '', true), topic:String(q.topic || '').slice(0, 80),
+    ai:true, addedAt:+q.addedAt || now(),
+    source:{type:'ai', provider:String(src.provider || 'ai').replace(/[^\w-]/g, '').slice(0, 20), model:String(src.model || '').slice(0, 60), generatedAt:String(src.generatedAt || '').slice(0, 40), verified:!!src.verified}};
+  if (!strip(c.passage).trim() || !strip(c.stem).trim() || c.choices.some(function(x){ return !strip(x).trim(); })) return null;
+  return c;
+}
+function aiSourceLabel(q){ return q && q.ai ? '✨ AI · ' + (PROVIDER_NAMES[q.source && q.source.provider] || 'AI') : ''; }
+function isReported(id){ return !!(S.reported && S.reported[id]); }
+
 /* ---------- history / stats ---------- */
 function seenInfo(){
   var info = {};
@@ -219,7 +301,7 @@ function conceptStats(){
   CONCEPTS.forEach(function(c){ st[c.id] = {seen:0, correct:0, unsure:0, hist:[], lastSeen:0, lastPracticed:0}; });
   finishedSessions().forEach(function(s){
     flat(s).forEach(function(id){
-      var q = Q[id]; if (!q) return; var r = st[q.concept];
+      var q = Q[id]; if (!q || isReported(id)) return; var r = st[q.concept];
       var ok = s.answers[id] === q.correct, un = !!s.unsure[id];
       r.seen++; if (ok) r.correct++; if (un) r.unsure++;
       r.hist.push(ok && !un ? 1 : 0);
@@ -248,11 +330,13 @@ function weakConcepts(st){
     .map(function(c){ return c.id; });
 }
 function sessionResults(s){
-  var res = {total:0, correct:0, unsure:0, modules:[], byDomain:{}, byConcept:{}, review:[]};
+  var res = {total:0, correct:0, unsure:0, reported:0, reportedIds:[], modules:[], byDomain:{}, byConcept:{}, review:[]};
   s.modules.forEach(function(m, mi){
-    var mr = {total:m.length, correct:0};
+    var mr = {total:0, correct:0};
     m.forEach(function(id, qi){
       var q = Q[id]; if (!q) return;
+      if (isReported(id)) { res.reported++; res.reportedIds.push({id:id, mod:mi, num:qi+1}); return; }
+      mr.total++;
       var ans = s.answers[id], ok = ans === q.correct, un = !!s.unsure[id];
       res.total++; if (ok) { res.correct++; mr.correct++; } if (un) res.unsure++;
       var d = res.byDomain[q.domain] || (res.byDomain[q.domain] = {total:0, correct:0});
@@ -270,7 +354,7 @@ function sessionResults(s){
 
 /* ---------- building sessions ---------- */
 function pickForConcept(cid, n, exclude, info, prefDiff){
-  var pool = DATA.bank.filter(function(q){ return q.concept === cid && !exclude[q.id]; });
+  var pool = DATA.bank.concat(aiList()).filter(function(q){ return q.concept === cid && !exclude[q.id] && !isReported(q.id); });
   pool = shuffle(pool);
   pool.sort(function(a,b){
     var sa = info[a.id] ? info[a.id].n : 0, sb = info[b.id] ? info[b.id].n : 0;
@@ -282,7 +366,7 @@ function pickForConcept(cid, n, exclude, info, prefDiff){
   });
   var out = pool.slice(0, n);
   if (out.length < n) { // bank exhausted for this test: fall back to original questions of the concept
-    var extra = shuffle(DATA.test.filter(function(q){ return q.concept === cid && !exclude[q.id]; }));
+    var extra = shuffle(DATA.test.filter(function(q){ return q.concept === cid && !exclude[q.id] && !isReported(q.id); }));
     out = out.concat(extra.slice(0, n - out.length));
   }
   return out.map(function(q){ return q.id; });
@@ -299,18 +383,24 @@ function startOriginal(){
   var s = newSession('test', 'Original Practice Test', ORIGINAL_MODULES.map(function(m){return m.slice();}), {source:'original'});
   go('run', s.id);
 }
-function generateTest(){
-  var info = seenInfo(), exclude = {}, repeats = 0;
+function generateTest(opts){
+  opts = opts || {};
+  var info = seenInfo(), exclude = {}, repeats = 0, aiCount = 0;
+  var aiIds = {}; Object.keys(opts.aiIds || {}).forEach(function(c){ aiIds[c] = opts.aiIds[c].slice(); });
   var modules = BLUEPRINT.map(function(bp, mi){
-    var ids = [];
+    var ids = [], want = mi === 0 ? 'medium' : 'hard';
     bp.forEach(function(slot){
-      var got = pickForConcept(slot[0], slot[1], exclude, info, mi === 0 ? 'medium' : 'hard');
-      got.forEach(function(id){ exclude[id] = 1; if (info[id]) repeats++; ids.push(id); });
+      var avail = aiIds[slot[0]] || [], take = [];
+      avail.sort(function(a, b){ return (Q[a].difficulty === want ? 0 : 1) - (Q[b].difficulty === want ? 0 : 1); });
+      while (take.length < slot[1] && avail.length) take.push(avail.shift());
+      take.forEach(function(id){ exclude[id] = 1; ids.push(id); aiCount++; });
+      var got = take.length < slot[1] ? pickForConcept(slot[0], slot[1] - take.length, exclude, info, want) : [];
+      got.forEach(function(id){ exclude[id] = 1; if (info[id]) repeats++; ids.push(id); if (Q[id] && Q[id].ai) aiCount++; });
     });
     return ids;
   });
   S.counters.test = (S.counters.test || 0) + 1;
-  var s = newSession('test', 'Generated Test #' + S.counters.test, modules, {source:'generated', repeats:repeats});
+  var s = newSession('test', (opts.aiIds ? 'AI Mix Test #' : 'Generated Test #') + S.counters.test, modules, {source:opts.aiIds ? 'generated-ai' : 'generated', repeats:repeats, aiCount:aiCount, aiProvider:opts.aiIds ? AIS.provider : null});
   if (repeats) {
     modal('Heads up', '<p>This test has <b>' + repeats + '</b> question' + (repeats===1?'':'s') + ' you have seen before, because the question bank ran out of new questions for some skills. Everything else is new.</p>', [{label:'OK', primary:true}]);
   }
@@ -400,7 +490,7 @@ function passageHTML(q){ return (q.chart ? '<div class="chart">'+chartSVG(q.char
 
 /* ---------- top nav ---------- */
 function nav(){
-  var items = [['home','Home'],['tracker','Concept Tracker'],['archive','Past Tests'],['backup','Backup']];
+  var items = [['home','Home'],['tracker','Concept Tracker'],['archive','Past Tests'],['backup','Backup'],['settings','Settings']];
   return '<div class="topnav"><div class="in"><span class="brand">SAT Reading &amp; Writing</span>' + items.map(function(it){
     return '<button data-act="nav" data-page="'+it[0]+'" class="'+(view.page===it[0]?'on':'')+'">'+it[1]+'</button>'; }).join('') + '</div></div>';
 }
@@ -411,7 +501,7 @@ function storageWarning(){
 /* ---------- home ---------- */
 function renderHome(){
   var st = conceptStats(), weak = weakConcepts(st), info = seenInfo();
-  var unseen = DATA.bank.filter(function(q){ return !info[q.id]; }).length;
+  var unseen = DATA.bank.concat(aiList()).filter(function(q){ return !info[q.id] && !isReported(q.id); }).length;
   var h = nav() + '<div class="wrap">' + storageWarning();
   h += '<div class="card hero"><h1>Digital SAT Reading &amp; Writing</h1><p class="muted" style="margin:0">Practice like the real Bluebook test: 2 modules, 27 questions each, 32 minutes per module. Module 2 is harder.</p>' +
     '<div class="flaghelp"><div class="fh-mark"><b>🔖 Mark for Review</b>: just a bookmark so you can find the question again before you submit the module. It does not change your score or review.</div>' +
@@ -429,11 +519,14 @@ function renderHome(){
   var tookOrig = S.archiveIds.some(function(id){ return S.sessions[id].source==='original'; });
   h += '<div class="card"><h2>Take a full test</h2><div class="row" style="align-items:stretch">' +
     '<div style="flex:1;min-width:240px"><h3>Original practice test</h3><p class="small muted">The 54-question test (Module 1 medium, Module 2 harder).'+(tookOrig?' You have taken it before; retaking gives the same questions.':'')+'</p><button class="btn primary" data-act="start-orig">'+(tookOrig?'Retake original test':'Start original test')+'</button></div>' +
-    '<div style="flex:1;min-width:240px"><h3>Generate a new test</h3><p class="small muted">A brand-new 54-question test built from the question bank with a real-test mix of skills. Questions you haven\'t seen come first ('+unseen+' unseen questions left in the bank).</p><button class="btn primary" data-act="gen-test">Generate new test</button></div></div></div>';
+    '<div style="flex:1;min-width:240px"><h3>Generate a new test</h3><p class="small muted">A brand-new 54-question test built from the question bank with a real-test mix of skills. Questions you haven\'t seen come first ('+unseen+' unseen questions left in the bank).</p><button class="btn primary" data-act="gen-test">Generate new test</button></div>' +
+    (aiReady() ? '<div style="flex:1;min-width:240px"><h3>✨ New test with AI questions</h3><p class="small muted">Same real-test mix, but about '+AI_TEST_TARGET+' questions are brand-new ones written by '+esc(providerLabel(AIS.provider))+', focused on your weak skills. The rest come from the bank.</p><button class="btn ai primary" data-act="ai-test">Generate AI mix test</button></div>' : '') +
+    '</div>' + (aiReady() ? '' : '<p class="small muted" style="margin:12px 0 0">✨ Want unlimited new questions written by AI? <a href="#" data-act="nav" data-page="settings">Set it up in Settings</a>. Everything else works without it, even offline.</p>') + '</div>';
   h += '<div class="card"><h2>Practice my weak concepts</h2>';
   if (weak.length){
     h += '<p class="small muted">Based on <b>all</b> your past tests and practice sets: skills you recently missed or marked Unsure. '+PER_CONCEPT+' new questions per skill'+(weak.length>MAX_PRACTICE_CONCEPTS?' (the '+MAX_PRACTICE_CONCEPTS+' weakest skills this round)':'')+'.</p><p>' +
-      weak.slice(0, MAX_PRACTICE_CONCEPTS).map(function(c){ return '<span class="badge b-'+st[c].status+'" style="margin:2px">'+esc(CMAP[c].name)+'</span>'; }).join(' ') + '</p><button class="btn primary" data-act="practice-weak">Start practice set</button>';
+      weak.slice(0, MAX_PRACTICE_CONCEPTS).map(function(c){ return '<span class="badge b-'+st[c].status+'" style="margin:2px">'+esc(CMAP[c].name)+'</span>'; }).join(' ') + '</p><div class="row"><button class="btn primary" data-act="practice-weak">Start practice set</button>' +
+      (aiReady() ? '<button class="btn ai" data-act="ai-practice-weak">✨ Practice with new AI questions</button>' : '') + '</div>';
   } else {
     h += '<p class="muted">'+(S.archiveIds.length? 'Nothing to practice right now. No recent misses or Unsure flags. 🎉 You can still practice any single skill from the Concept Tracker.' : 'Finish a test first, and your weak skills will show up here. You can also practice any skill from the Concept Tracker.')+'</p>';
   }
@@ -479,8 +572,10 @@ function renderRun(){
     var left = '<div class="pane left"><div class="passage">'+passageHTML(q)+'</div></div>';
     var right = '<div class="pane right"><div class="qtop"><span class="qnum">'+(s.idx+1)+'</span>' +
       '<button class="flag mark'+(s.marked[id]?' on':'')+'" data-act="mark" aria-pressed="'+!!s.marked[id]+'"><span class="ico">🔖</span>Mark for Review</button>' +
-      '<button class="flag unsure'+(s.unsure[id]?' on':'')+'" data-act="unsure" aria-pressed="'+!!s.unsure[id]+'"><span class="ico">🤔</span>'+(s.unsure[id]?'Unsure ✓':'Unsure')+'</button></div>' +
-      (isTest ? '' : '<div class="ctag">Skill: '+esc(CMAP[q.concept].name)+'</div>') +
+      '<button class="flag unsure'+(s.unsure[id]?' on':'')+'" data-act="unsure" aria-pressed="'+!!s.unsure[id]+'"><span class="ico">🤔</span>'+(s.unsure[id]?'Unsure ✓':'Unsure')+'</button>' +
+      '<button class="flag report'+(isReported(id)?' on':'')+'" data-act="report" data-id="'+esc(id)+'" aria-label="'+(isReported(id)?'Reported. Tap to undo':'Report a problem with this question')+'"><span class="ico">⚑</span>'+(isReported(id)?'Reported':'Report')+'</button></div>' +
+      (isTest ? '' : '<div class="ctag">Skill: '+esc(CMAP[q.concept].name)+'</div>' + (q.ai ? ' <span class="aitag">'+esc(aiSourceLabel(q))+'</span>' : '')) +
+      (isReported(id) ? '<p class="small muted">⚑ You reported this question. It won\'t count in your score, and it won\'t be used again.</p>' : '') +
       '<div class="stem">'+q.stem+'</div><div class="choices">' + q.choices.map(function(c, i){
         var L = LET(i), sel = s.answers[id] === L;
         return '<button class="choice'+(sel?' sel':'')+'" data-act="choose" data-l="'+L+'" aria-pressed="'+sel+'"><span class="L">'+L+'</span><span>'+c+'</span></button>'; }).join('') + '</div>' +
@@ -525,6 +620,8 @@ function renderResults(){
   h += '<div class="score">Total<b>'+r.correct+' / '+r.total+'</b>'+pct(r.correct,r.total)+'% correct</div>';
   if (isTest) r.modules.forEach(function(m, i){ h += '<div class="score">Module '+(i+1)+(i?' (harder)':'')+'<b>'+m.correct+' / '+m.total+'</b>'+pct(m.correct,m.total)+'%</div>'; });
   h += '<div class="score" style="background:var(--amber-l)">Flagged unsure<b style="color:var(--amber)">'+r.unsure+'</b>'+r.review.filter(function(x){return x.ok&&x.un;}).length+' correct but unsure</div></div>';
+  if (r.reported) h += '<p class="small muted">⚑ '+r.reported+' reported question'+(r.reported===1?' is':'s are')+' not counted in this score.</p>';
+  if (s.aiCount) h += '<p class="small muted"><span class="aitag">✨ AI</span> '+s.aiCount+' question'+(s.aiCount===1?' was':'s were')+' written by AI and double-checked. If one looks wrong, tap <b>Report question</b> on it below.</p>';
   if (isTest && r.total === 54) h += '<p class="small muted">Rough guide for this practice: 45+ correct = strong · 35–44 = solid with room to grow · under 35 = focus on the skills below. (Real SAT scores are scaled from 200–800 and depend on the adaptive module, so this isn\'t an official score.)</p>';
   h += '</div>';
   // practice buttons
@@ -532,6 +629,7 @@ function renderResults(){
   var weakAll = weakConcepts(st);
   h += '<div class="card"><h2>What next?</h2><div class="row">';
   h += fromThis.length ? '<button class="btn primary" data-act="practice-from" data-sid="'+s.id+'">Practice what I missed or was unsure about ('+Math.min(fromThis.length,MAX_PRACTICE_CONCEPTS)+' skill'+(fromThis.length>1?'s':'')+')</button>' : '<span class="muted">🎉 Nothing missed or flagged unsure in this set!</span>';
+  if (fromThis.length && aiReady()) h += '<button class="btn ai" data-act="ai-practice-from" data-sid="'+s.id+'">✨ New AI questions on what I missed</button>';
   if (weakAll.length) h += '<button class="btn" data-act="practice-weak">Practice my weak concepts (all history)</button>';
   h += '<button class="btn" data-act="nav" data-page="home">Home</button></div>';
   if (fromThis.length) h += '<p class="small muted">The practice set uses new questions ('+PER_CONCEPT+' per skill'+(fromThis.length>MAX_PRACTICE_CONCEPTS?', weakest '+MAX_PRACTICE_CONCEPTS+' skills first':'')+') with the same Unsure button, so you can keep looping until everything is solid.</p>';
@@ -557,15 +655,17 @@ function reviewSection(s, r){
   var f = view.filter || 'all';
   var list = f === 'wrong' ? wrong : f === 'cu' ? cu : r.review;
   var h = '<div class="card" id="review"><h2>Review: missed and unsure questions</h2>';
-  if (!r.review.length) return h + '<p>Perfect: no wrong answers and no Unsure flags. 🎉</p></div>';
+  if (!r.review.length && !r.reportedIds.length) return h + '<p>Perfect: no wrong answers and no Unsure flags. 🎉</p></div>';
   h += '<div class="filters"><button data-act="filter" data-f="all" class="'+(f==='all'?'on':'')+'">All ('+r.review.length+')</button><button data-act="filter" data-f="wrong" class="'+(f==='wrong'?'on':'')+'">Wrong ('+wrong.length+')</button><button data-act="filter" data-f="cu" class="'+(f==='cu'?'on':'')+'">Correct but unsure ('+cu.length+')</button></div>';
   list.forEach(function(x){ h += reviewCard(s, x); });
+  if (r.reportedIds.length) { h += '<h3 style="margin-top:18px">Reported questions (not scored)</h3>'; r.reportedIds.forEach(function(x){ h += reviewCard(s, {id:x.id, mod:x.mod, num:x.num, ok:s.answers[x.id] === Q[x.id].correct, un:!!s.unsure[x.id], ans:s.answers[x.id] || null, rep:true}); }); }
   return h + '</div>';
 }
 function reviewCard(s, x){
   var q = Q[x.id], c = CMAP[q.concept], isTest = s.kind === 'test';
-  var status = !x.ok ? (x.ans ? '<span class="badge b-wrong">✗ Wrong</span>' : '<span class="badge b-wrong">No answer</span>') : '<span class="badge b-unsure">✓ Correct but unsure</span>';
+  var status = !x.ok ? (x.ans ? '<span class="badge b-wrong">✗ Wrong</span>' : '<span class="badge b-wrong">No answer</span>') : (x.un ? '<span class="badge b-unsure">✓ Correct but unsure</span>' : '<span class="badge b-ok">✓ Correct</span>');
   if (!x.ok && x.un) status += ' <span class="badge b-unsure">🤔 Also flagged unsure</span>';
+  if (q.ai) status += ' <span class="aitag">'+esc(aiSourceLabel(q))+'</span>';
   var label = isTest ? 'Module '+(x.mod+1)+' · Question '+x.num : 'Question '+x.num;
   var h = '<div class="rv"><div class="rv-h"><b>'+label+'</b>'+status+'<span class="badge b-new" style="margin-left:auto">'+esc(c.name)+'</span></div><div class="rv-b">';
   h += '<details class="pass" open><summary>Passage</summary><div class="passage">'+passageHTML(q)+'</div></details>';
@@ -575,6 +675,10 @@ function reviewCard(s, x){
   h += '<div class="yours"><div><b>Your answer:</b> '+(x.ans ? x.ans+') '+q.choices['ABCD'.indexOf(x.ans)] : '<i>No answer</i>')+'</div><div><b>Correct answer:</b> '+q.correct+') '+q.choices['ABCD'.indexOf(q.correct)]+'</div></div>';
   h += '<div class="why"><b>Why '+q.correct+' is right:</b> '+q.explanation+'</div>';
   h += '<div class="lesson"><b>Concept: '+esc(c.name)+'</b> <span class="small muted">('+DOMAINS[c.domain]+')</span><br>'+esc(c.lesson)+'</div>';
+  var rep = S.reported[x.id];
+  h += '<div class="row" style="margin-top:10px">' + (aiReady() ? '<button class="btn small ai" data-act="ai-practice-one" data-c="'+q.concept+'">✨ More AI questions on this skill</button>' : '') +
+    (rep ? '<span class="small muted">⚑ Reported'+(rep.reason?' ('+esc(rep.reason)+')':'')+'. Not scored, not reused.</span><button class="btn small" data-act="unreport" data-id="'+esc(x.id)+'">Undo report</button>'
+         : '<button class="btn small ghost" data-act="report" data-id="'+esc(x.id)+'">⚑ Report question</button>') + '</div>';
   return h + '</div></div>';
 }
 
@@ -589,10 +693,10 @@ function renderTracker(){
     '<p class="small muted"><b>Weak</b>: under 60% solid in your last 6 tries. <b>Mastered</b>: your last 5 tries were all solid. <b>Improving</b>: in between, or too few tries so far to call it mastered. Archive a mastered skill to hide it from practice (it still appears on full tests); restore it any time.</p>' +
     (weak.length ? '<button class="btn primary" data-act="practice-weak">Practice my weak concepts ('+Math.min(weak.length,MAX_PRACTICE_CONCEPTS)+' skill'+(weak.length>1?'s':'')+')</button>' : '') + '</div>';
   function table(list, archivedSection){
-    var t = '<div class="tscroll"><table class="t" style="table-layout:fixed;min-width:760px"><colgroup><col style="width:26%"><col style="width:13%"><col style="width:7%"><col style="width:10%"><col style="width:8%"><col style="width:11%"><col style="width:11%"><col style="width:14%"></colgroup><thead><tr><th>Skill</th><th>Status</th><th>Seen</th><th>% correct</th><th>Unsure</th><th>Last seen</th><th>Last practiced</th><th></th></tr></thead><tbody>';
+    var t = '<div class="tscroll"><table class="t" style="table-layout:fixed;min-width:760px"><colgroup><col style="width:24%"><col style="width:12%"><col style="width:7%"><col style="width:9%"><col style="width:7%"><col style="width:10%"><col style="width:10%"><col style="width:21%"></colgroup><thead><tr><th>Skill</th><th>Status</th><th>Seen</th><th>% correct</th><th>Unsure</th><th>Last seen</th><th>Last practiced</th><th></th></tr></thead><tbody>';
     list.forEach(function(c){ var o = st[c.id];
       t += '<tr><td><b>'+esc(c.name)+'</b><div class="small muted">'+DOMAINS[c.domain]+'</div></td><td>'+statusBadge(o)+'</td><td>'+o.seen+'</td><td>'+(o.seen?pct(o.correct,o.seen)+'%':'—')+'</td><td>'+o.unsure+'</td><td class="small">'+fmtDay(o.lastSeen)+'</td><td class="small">'+fmtDay(o.lastPracticed)+'</td><td><div class="row" style="flex-wrap:nowrap">' +
-        '<button class="btn small" data-act="practice-one" data-c="'+c.id+'">Practice</button>' +
+        '<button class="btn small" data-act="practice-one" data-c="'+c.id+'">Practice</button>' + (aiReady() ? '<button class="btn small ai" data-act="ai-practice-one" data-c="'+c.id+'" aria-label="New AI questions: '+esc(c.name)+'">✨ AI</button>' : '') +
         (archivedSection ? '<button class="btn small" data-act="restore" data-c="'+c.id+'">Restore</button>' : (o.status==='mastered' ? '<button class="btn small" data-act="archive-c" data-c="'+c.id+'">Archive</button>' : '')) + '</div></td></tr>'; });
     return t + '</tbody></table></div>';
   }
@@ -624,7 +728,7 @@ function exportText(){ return JSON.stringify({app:'dsat-rw-simulator', kind:'bac
 function renderBackup(){
   var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card"><h2>Back up your progress</h2>' +
     '<p>Your tests, practice sets, and concept history live in this browser\'s storage on this device. If that storage gets cleared (or you switch devices), restore everything from a backup file.</p>' +
-    '<p class="small muted">Last backup: '+(S.lastExport?fmtDate(S.lastExport):'never')+' · '+S.archiveIds.length+' finished, '+S.openIds.length+' in progress.</p>' +
+    '<p class="small muted">Last backup: '+(S.lastExport?fmtDate(S.lastExport):'never')+' · '+S.archiveIds.length+' finished, '+S.openIds.length+' in progress · '+Object.keys(S.aiBank).length+' saved AI questions. (Your AI passcode is never included.)</p>' +
     '<div class="row"><button class="btn primary" data-act="export">⬇️ Download backup file</button><button class="btn" data-act="export-text">Show backup as text (copy/paste)</button></div>' +
     '<p class="small muted">On iPad, the file goes to your Downloads folder in the Files app. Keep it somewhere safe, like iCloud Drive or Google Drive.</p></div>' +
     '<div class="card"><h2>Restore from a backup</h2><p class="small muted"><b>Merge</b> adds anything from the backup that isn\'t already here (nothing is deleted). <b>Replace</b> wipes this device\'s progress and uses only the backup.</p>' +
@@ -658,6 +762,10 @@ function parseBackup(txt){
   if (!st || typeof st !== 'object' || !st.sessions || !Array.isArray(st.archiveIds)) throw new Error('This does not look like a simulator backup file.');
   Object.keys(st.sessions).forEach(function(id){ var s = st.sessions[id];
     if (!s || !Array.isArray(s.modules) || typeof s.answers !== 'object') throw new Error('Backup file is damaged (session ' + id + ').'); });
+  var bank = {}; Object.keys(st.aiBank && typeof st.aiBank === 'object' ? st.aiBank : {}).forEach(function(id){ var q = cleanAIQuestion(st.aiBank[id]); if (q && q.id === id) bank[id] = q; });
+  st.aiBank = bank;
+  var rp = {}; Object.keys(st.reported && typeof st.reported === 'object' ? st.reported : {}).forEach(function(id){ var x = st.reported[id]; if (x) rp[id] = {at:+x.at || now(), reason:String(x.reason || '').slice(0, 80)}; });
+  st.reported = rp;
   return st;
 }
 function doImport(mode){
@@ -672,6 +780,8 @@ function doImport(mode){
         Object.keys(st.sessions).forEach(function(id){ if (!S.sessions[id]) { S.sessions[id] = st.sessions[id]; added++;
           if (st.sessions[id].finishedAt) S.archiveIds.push(id); else S.openIds.push(id); } });
         Object.keys(st.conceptArchived || {}).forEach(function(c){ if (st.conceptArchived[c]) S.conceptArchived[c] = true; });
+        Object.keys(st.aiBank).forEach(function(id){ if (!S.aiBank[id]) S.aiBank[id] = st.aiBank[id]; });
+        Object.keys(st.reported).forEach(function(id){ if (!S.reported[id]) S.reported[id] = st.reported[id]; });
         S.counters.test = Math.max(S.counters.test||0, (st.counters||{}).test||0);
         S.counters.practice = Math.max(S.counters.practice||0, (st.counters||{}).practice||0);
         normalize();
@@ -686,6 +796,237 @@ function doImport(mode){
   else modal('Nothing to restore', '<p>Choose a backup file or paste backup text first.</p>');
 }
 
+
+/* ---------- AI questions (private relay) ---------- */
+var AIS = loadAISettings();
+function loadAISettings(){
+  var d = {relayUrl:'', passcode:'', provider:'', providers:[], status:null, checkedAt:0};
+  try { var o = JSON.parse(window.localStorage.getItem(AI_KEY) || 'null'); if (o && typeof o === 'object') for (var k in d) if (o[k] !== undefined) d[k] = o[k]; } catch(e){}
+  if (!Array.isArray(d.providers)) d.providers = [];
+  return d;
+}
+function saveAISettings(){ try { window.localStorage.setItem(AI_KEY, JSON.stringify(AIS)); } catch(e){} }
+function relayUrl(){ return String(AIS.relayUrl || DEFAULT_RELAY_URL || '').trim().replace(/\/+$/, ''); }
+function aiReady(){ return !!(relayUrl() && AIS.passcode && AIS.provider && AIS.providers.some(function(p){ return p.id === AIS.provider; })); }
+function providerLabel(id){ var p = AIS.providers.filter(function(x){ return x.id === id; })[0]; return p ? p.label : (PROVIDER_NAMES[id] || 'AI'); }
+function aiErr(msg, status){ var e = new Error(msg); e.status = status || 0; return e; }
+function relayFetch(path, opts, timeoutMs, job){
+  if (typeof fetch !== 'function') return Promise.reject(aiErr('This browser cannot reach the AI relay.'));
+  var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null, timedOut = false;
+  if (ctrl && job) job.ctrls.push(ctrl);
+  var timer = setTimeout(function(){ timedOut = true; if (ctrl) ctrl.abort(); }, timeoutMs || 20000);
+  opts = opts || {};
+  var headers = {'X-Passcode': AIS.passcode}; if (opts.body) headers['Content-Type'] = 'application/json';
+  var init = {method:opts.method || 'GET', headers:headers, body:opts.body, cache:'no-store', mode:'cors', credentials:'omit'};
+  if (ctrl) init.signal = ctrl.signal;
+  return fetch(relayUrl() + path, init).then(function(res){
+    return res.text().then(function(txt){
+      clearTimeout(timer);
+      var data = null; try { data = JSON.parse(String(txt).trim()); } catch(e){}
+      if (!data) throw aiErr('The AI relay sent an unreadable reply (HTTP ' + res.status + ').', res.status);
+      if (!res.ok || data.ok === false) {
+        var st = res.ok ? (data.status || 500) : res.status;
+        throw aiErr(st === 401 ? 'Wrong passcode. Check it in Settings.' : (data.error || ('The AI relay returned HTTP ' + st + '.')), st);
+      }
+      if (typeof data.remainingToday === 'number' && AIS.status) { AIS.status.remaining = data.remainingToday; saveAISettings(); }
+      return data;
+    });
+  }, function(e){
+    clearTimeout(timer);
+    if (job && job.cancelled) throw aiErr('Cancelled.', -1);
+    if (timedOut) throw aiErr('The AI took too long to answer. Try again in a minute, or use the question bank.');
+    if (navigator.onLine === false) throw aiErr('You are offline. The built-in question bank still works.');
+    throw aiErr('Could not reach the AI relay. Check the relay address in Settings and your internet connection.');
+  });
+}
+function refreshProviders(){
+  return relayFetch('/providers', {method:'GET'}, 15000).then(function(data){
+    AIS.providers = (Array.isArray(data.providers) ? data.providers : []).filter(function(p){ return p && /^[\w-]{2,20}$/.test(p.id); })
+      .map(function(p){ return {id:p.id, label:String(p.label || PROVIDER_NAMES[p.id] || p.id).slice(0, 40), model:String(p.model || '').slice(0, 60)}; });
+    if (!AIS.providers.some(function(p){ return p.id === AIS.provider; })) AIS.provider = AIS.providers.length ? AIS.providers[0].id : '';
+    AIS.status = {ok:true, remaining:data.remainingToday, limit:data.dailyLimit, mock:!!data.mock, at:now()};
+    AIS.checkedAt = now(); saveAISettings();
+    return data;
+  }, function(e){
+    AIS.status = {ok:false, msg:e.message, at:now()};
+    if (e.status === 401) AIS.providers = [];
+    saveAISettings();
+    throw e;
+  });
+}
+function aiConnect(){
+  var u = document.getElementById('ai-url'), pw = document.getElementById('ai-pass');
+  var url = (u ? u.value : '').trim().replace(/\/+$/, ''), pass = (pw ? pw.value : '').trim();
+  if (url && !/^https:\/\/[^\s/?#]+/i.test(url) && !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(url)) { AIS.status = {ok:false, msg:'The relay address should start with https://'}; render(); return; }
+  AIS.relayUrl = url === DEFAULT_RELAY_URL ? '' : url; AIS.passcode = pass; saveAISettings();
+  if (!relayUrl() || !pass) { AIS.status = {ok:false, msg:'Enter both the relay address and the passcode.'}; saveAISettings(); render(); return; }
+  AIS.status = {ok:null, msg:'Connecting…'}; render();
+  refreshProviders().then(render, render);
+}
+function aiAvoidTopics(cid){
+  return aiList().filter(function(q){ return q.concept === cid && q.topic; }).sort(function(a, b){ return b.addedAt - a.addedAt; }).slice(0, 12).map(function(q){ return q.topic; });
+}
+function exampleFor(cid){
+  var pool = DATA.bank.filter(function(q){ return q.concept === cid; }); if (!pool.length) return null;
+  var q = pool[Math.floor(Math.random() * pool.length)];
+  return {passage:(q.chart ? '[Graph: ' + q.chart.title + ' — ' + q.chart.labels.map(function(l, i){ return l + ': ' + q.chart.values[i]; }).join(', ') + '] ' : '') + q.passage, stem:q.stem, choices:q.choices, correct:q.correct};
+}
+/* Ask the relay for `t.count` questions on one concept; caches valid ones in the AI bank. */
+function requestAI(t, job){
+  var c = CMAP[t.concept];
+  var body = {provider:AIS.provider, concept:t.concept, conceptName:c.name, conceptDescription:c.lesson, domain:c.domain, count:t.count, difficulty:t.difficulty || 'medium', exampleQuestion:exampleFor(t.concept), avoid:aiAvoidTopics(t.concept)};
+  return relayFetch('/generate', {method:'POST', body:JSON.stringify(body)}, AI_TIMEOUT_MS, job).then(function(data){
+    var out = [];
+    (Array.isArray(data.questions) ? data.questions : []).forEach(function(raw){
+      if (!raw || raw.concept !== t.concept) return;
+      var q = cleanAIQuestion(raw); if (!q) return;
+      while (Q[q.id]) q.id = q.id + 'x';
+      q.addedAt = now(); S.aiBank[q.id] = q; Q[q.id] = q; out.push(q);
+    });
+    pruneAIBank(); save();
+    if (!out.length) throw aiErr('The AI\'s questions didn\'t pass the answer-key double-check this time. Please try again.');
+    return out;
+  });
+}
+/* Keep the AI bank bounded: drop the oldest AI questions that no session uses. */
+function pruneAIBank(){
+  var ids = Object.keys(S.aiBank); if (ids.length <= AI_MAX_BANK) return;
+  var used = {}; Object.keys(S.sessions).forEach(function(sid){ flat(S.sessions[sid]).forEach(function(id){ used[id] = 1; }); });
+  ids.filter(function(id){ return !used[id]; }).sort(function(a, b){ return S.aiBank[a].addedAt - S.aiBank[b].addedAt; })
+    .slice(0, ids.length - AI_MAX_BANK).forEach(function(id){ delete S.aiBank[id]; delete Q[id]; });
+}
+function aiPool(cid, info, taken, prefDiff){
+  return aiList().filter(function(q){ return q.concept === cid && !info[q.id] && !isReported(q.id) && !taken[q.id]; })
+    .sort(function(a, b){ if (prefDiff){ var d = (a.difficulty === prefDiff ? 0 : 1) - (b.difficulty === prefDiff ? 0 : 1); if (d) return d; } return a.addedAt - b.addedAt; })
+    .map(function(q){ return q.id; });
+}
+/* reqs: [{concept, need, difficulty}] -> reuses unseen saved AI questions first, then asks the relay for the rest. */
+function ensureAIQuestions(reqs, job, onProgress){
+  var info = seenInfo(), taken = {}, result = {ids:{}, errors:[], fetched:0, reused:0}, tasks = [];
+  reqs.forEach(function(r){
+    var have = aiPool(r.concept, info, taken, r.difficulty === 'hard' ? 'hard' : null).slice(0, r.need);
+    have.forEach(function(id){ taken[id] = 1; });
+    result.ids[r.concept] = have; result.reused += have.length;
+    if (r.need - have.length > 0) tasks.push({concept:r.concept, count:Math.min(10, r.need - have.length), difficulty:r.difficulty || 'medium'});
+  });
+  var done = 0, next = 0;
+  if (onProgress) onProgress(0, tasks.length);
+  function worker(){
+    if (job.cancelled || next >= tasks.length) return Promise.resolve();
+    var t = tasks[next++];
+    return requestAI(t, job).then(function(qs){ qs.forEach(function(q){ result.ids[t.concept].push(q.id); }); result.fetched += qs.length; },
+      function(e){ result.errors.push({concept:t.concept, msg:e.message, status:e.status}); })
+      .then(function(){ done++; if (onProgress && !job.cancelled) onProgress(done, tasks.length); return worker(); });
+  }
+  var ws = []; for (var i = 0; i < Math.min(AI_CONCURRENCY, tasks.length); i++) ws.push(worker());
+  return Promise.all(ws).then(function(){ save(); return result; });
+}
+function aiBusy(title, job){
+  modal(title, '<div class="aiwait" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><p id="aiprog">Connecting to <b>' + esc(providerLabel(AIS.provider)) + '</b>…</p>' +
+    '<p class="small muted">The AI writes each question, then solves it again on its own to double-check the answer key. Questions that fail the check are thrown out. This usually takes 20–90 seconds.</p></div>',
+    [{label:'Cancel', onClick:function(){ job.cancelled = true; job.ctrls.forEach(function(c){ try { c.abort(); } catch(e){} }); }}]);
+}
+function aiProgress(done, total){
+  var el = document.getElementById('aiprog'); if (!el) return;
+  el.innerHTML = total ? 'Writing questions with <b>' + esc(providerLabel(AIS.provider)) + '</b>… ' + done + ' of ' + total + ' skill' + (total === 1 ? '' : 's') + ' done.' : 'Using AI questions you already saved…';
+}
+function aiFail(errors, fallback, fallbackLabel){
+  var e = errors[0] || {msg:'No AI questions came back.'};
+  var btns = [{label:'Close'}];
+  if (e.status === 401) btns.push({label:'Open Settings', onClick:function(){ go('settings'); }});
+  if (fallback) btns.push({label:fallbackLabel || 'Use the question bank instead', primary:true, onClick:fallback});
+  modal('Couldn\'t get AI questions', '<p>' + esc(e.msg) + '</p><p class="small muted">The built-in question bank still works, including offline.</p>', btns);
+}
+function aiNotice(errors, filled){
+  if (!errors.length && !filled) return;
+  modal('Heads up', '<p>' + (filled ? filled + ' question' + (filled === 1 ? '' : 's') + ' came from the regular question bank because the AI couldn\'t supply enough' : 'Some AI requests didn\'t work') + '.</p>' +
+    (errors.length ? '<p class="small muted">' + esc(errors[0].msg) + '</p>' : ''), [{label:'OK', primary:true}]);
+}
+function aiPractice(conceptIds, label, perSkill){
+  conceptIds = (conceptIds || []).slice(0, MAX_PRACTICE_CONCEPTS);
+  if (!conceptIds.length) return;
+  if (!aiReady()) { go('settings'); return; }
+  perSkill = perSkill || (conceptIds.length === 1 ? AI_MORE_COUNT : AI_PER_SKILL);
+  var st = conceptStats(), job = {cancelled:false, ctrls:[]};
+  aiBusy('Writing new practice questions', job);
+  ensureAIQuestions(conceptIds.map(function(c){ return {concept:c, need:perSkill, difficulty:st[c].status === 'weak' ? 'medium' : 'mixed'}; }), job, aiProgress).then(function(r){
+    if (job.cancelled) return;
+    closeModal();
+    var ids = [], exclude = {}, info = seenInfo(), filled = 0, aiCount = 0;
+    conceptIds.forEach(function(c){ aiCount += (r.ids[c] || []).length; });
+    if (!aiCount) { aiFail(r.errors.length ? r.errors : [{msg:'No AI questions came back.'}], function(){ startPractice(conceptIds, label); }); return; }
+    conceptIds.forEach(function(c){
+      var got = r.ids[c] || [];
+      got.forEach(function(id){ exclude[id] = 1; ids.push(id); });
+      if (got.length < perSkill) pickForConcept(c, perSkill - got.length, exclude, info, null).forEach(function(id){ exclude[id] = 1; ids.push(id); filled++; });
+    });
+    S.counters.practice = (S.counters.practice || 0) + 1;
+    var s = newSession('practice', 'AI Practice Set #' + S.counters.practice + (label ? ' (' + label + ')' : ''), [ids], {source:'ai-practice', targets:conceptIds, aiCount:aiCount, aiProvider:AIS.provider});
+    go('run', s.id);
+    aiNotice(r.errors, filled);
+  });
+}
+function generateAITest(){
+  if (!aiReady()) { go('settings'); return; }
+  var weak = weakConcepts(), totals = {};
+  BLUEPRINT.forEach(function(bp){ bp.forEach(function(sl){ totals[sl[0]] = (totals[sl[0]] || 0) + sl[1]; }); });
+  var order = weak.filter(function(c){ return totals[c]; }).concat(shuffle(Object.keys(totals).filter(function(c){ return weak.indexOf(c) < 0; })));
+  var reqs = [], sum = 0;
+  order.forEach(function(c){ if (sum >= AI_TEST_TARGET) return; var n = Math.min(totals[c], AI_TEST_PER_SKILL, AI_TEST_TARGET - sum); reqs.push({concept:c, need:n, difficulty:'mixed'}); sum += n; });
+  var job = {cancelled:false, ctrls:[]};
+  aiBusy('Building your AI mix test', job);
+  ensureAIQuestions(reqs, job, aiProgress).then(function(r){
+    if (job.cancelled) return;
+    closeModal();
+    var aiIds = {}, got = 0;
+    reqs.forEach(function(q){ aiIds[q.concept] = (r.ids[q.concept] || []).slice(); got += aiIds[q.concept].length; });
+    if (!got) { aiFail(r.errors.length ? r.errors : [{msg:'No AI questions came back.'}], function(){ generateTest(); }, 'Make a regular test instead'); return; }
+    generateTest({aiIds:aiIds});
+    if (r.errors.length) aiNotice(r.errors, sum - got);
+  });
+}
+var REPORT_REASONS = ['The answer key is wrong', 'More than one answer works', 'Confusing, or has a typo'];
+function reportQuestion(id){
+  if (!id || !Q[id]) return;
+  if (isReported(id)) { delete S.reported[id]; save(); render(); return; }
+  modal('Report this question?', '<p>Reported questions are removed from scoring and are never used again in practice or new tests. ' + (Q[id].ai ? 'This one was written by AI.' : '') + ' What\'s wrong?</p>',
+    REPORT_REASONS.map(function(r){ return {label:r, onClick:function(){ S.reported[id] = {at:now(), reason:r}; save(); render(); }}; }).concat([{label:'Cancel', primary:true}]));
+}
+
+/* ---------- settings page ---------- */
+function renderSettings(){
+  var st = AIS.status, url = AIS.relayUrl || DEFAULT_RELAY_URL || '';
+  var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card"><h2>✨ AI practice questions</h2>' +
+    '<p class="small muted">Connect to your private AI relay to get unlimited new questions on the skills you miss. Without it, everything still works with the built-in question bank, even offline.</p>' +
+    '<label class="fld"><span>Relay address</span><input id="ai-url" type="url" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="https://sat-relay.your-name.workers.dev" value="' + esc(url) + '"></label>' +
+    '<label class="fld"><span>Passcode</span><input id="ai-pass" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Ask your parent for the passcode" value="' + esc(AIS.passcode || '') + '"></label>' +
+    '<div class="row"><button class="btn primary" data-act="ai-connect">Save &amp; connect</button><button class="btn small ghost" data-act="ai-showpass">Show</button>' + (AIS.passcode ? '<button class="btn small danger" data-act="ai-forget">Forget passcode</button>' : '') + '</div>' +
+    '<p class="small" id="ai-status" style="margin-bottom:0">' + (!st ? '<span class="muted">Not connected yet.</span>' : st.ok === null ? '<span class="muted">' + esc(st.msg) + '</span>' : st.ok ?
+      '<span class="okmsg">✅ Connected' + (st.mock ? ' (test mode)' : '') + '</span> · ' + AIS.providers.length + ' AI' + (AIS.providers.length === 1 ? '' : 's') + ' available' + (typeof st.remaining === 'number' ? ' · ' + st.remaining + ' of ' + st.limit + ' AI questions left today (resets at midnight Pacific)' : '') :
+      '<span class="errmsg">⚠️ ' + esc(st.msg) + '</span>') + '</p>' +
+    '<p class="small muted">The passcode is saved only in this browser on this device. It is never put in backup files.</p></div>';
+  h += '<div class="card"><h2>Which AI writes your questions?</h2>';
+  if (!AIS.providers.length) h += '<p class="muted">Connect first. Only the AIs your relay has a key for will show up here.</p>';
+  else h += AIS.providers.map(function(p){ var on = p.id === AIS.provider;
+    return '<button class="pick' + (on ? ' on' : '') + '" data-act="ai-pick" data-p="' + esc(p.id) + '" aria-pressed="' + on + '"><span class="dot"></span><span><b>' + esc(p.label) + '</b><br><span class="small muted">' + esc(p.model) + '</span></span></button>'; }).join('') +
+    '<p class="small muted">Every AI question is double-checked by a second, separate solve before you see it. If one still looks wrong, tap ⚑ Report on it.</p>';
+  h += '</div>';
+  var all = aiList(), info = seenInfo(), byP = {};
+  all.forEach(function(q){ var k = providerLabel(q.source.provider); byP[k] = (byP[k] || 0) + 1; });
+  var unseenAI = all.filter(function(q){ return !info[q.id] && !isReported(q.id); }).length;
+  var reps = Object.keys(S.reported).filter(function(id){ return Q[id]; }).sort(function(a, b){ return S.reported[b].at - S.reported[a].at; });
+  h += '<div class="card"><h2>Saved AI questions</h2><p>' + all.length + ' saved · ' + unseenAI + ' not tried yet' + (all.length ? ' · ' + Object.keys(byP).map(function(k){ return esc(k) + ': ' + byP[k]; }).join(' · ') : '') + '</p>' +
+    '<p class="small muted">AI questions are kept on this device so they can be reused in practice and new tests, and they are included in your backups.</p>';
+  h += '<h3 style="margin-top:14px">Reported questions (' + reps.length + ')</h3>';
+  if (!reps.length) h += '<p class="small muted">None. Use ⚑ Report on any question that looks wrong.</p>';
+  else {
+    reps.slice(0, 40).forEach(function(id){ var q = Q[id], r = S.reported[id];
+      h += '<div class="replist"><div class="small"><b>' + esc(CMAP[q.concept].name) + '</b>' + (q.ai ? ' <span class="aitag">' + esc(aiSourceLabel(q)) + '</span>' : '') + '<br>' + esc(strip(q.passage).slice(0, 110)) + '…<br><span class="muted">' + esc(r.reason || 'Reported') + ' · ' + fmtDay(r.at) + '</span></div><button class="btn small" data-act="unreport" data-id="' + esc(id) + '">Restore</button></div>'; });
+    if (reps.length > 1) h += '<p><button class="btn small" data-act="ai-restore-all">Restore all</button></p>';
+  }
+  app.innerHTML = h + '</div></div>';
+}
+
 /* ---------- render ---------- */
 function render(){
   var p = view.page;
@@ -694,6 +1035,7 @@ function render(){
   else if (p === 'tracker') renderTracker();
   else if (p === 'archive') renderArchive();
   else if (p === 'backup') renderBackup();
+  else if (p === 'settings') renderSettings();
   else renderHome();
 }
 
@@ -745,6 +1087,17 @@ var ACTIONS = {
   export: function(){ doExport(); },
   'export-text': function(){ showExportText(); },
   import: function(el){ doImport(el.getAttribute('data-mode')); },
+  report: function(el){ reportQuestion(el.getAttribute('data-id')); },
+  unreport: function(el){ delete S.reported[el.getAttribute('data-id')]; save(); render(); },
+  'ai-practice-weak': function(){ aiPractice(weakConcepts(), 'weak concepts'); },
+  'ai-practice-from': function(el){ var s = S.sessions[el.getAttribute('data-sid')]; aiPractice(fromSessionConcepts(s), 'from ' + s.title); },
+  'ai-practice-one': function(el){ var c = el.getAttribute('data-c'); aiPractice([c], CMAP[c].name); },
+  'ai-test': function(){ generateAITest(); },
+  'ai-connect': function(){ aiConnect(); },
+  'ai-pick': function(el){ AIS.provider = el.getAttribute('data-p'); saveAISettings(); render(); },
+  'ai-showpass': function(el){ var i = document.getElementById('ai-pass'); if (i) { i.type = i.type === 'password' ? 'text' : 'password'; el.textContent = i.type === 'password' ? 'Show' : 'Hide'; } },
+  'ai-forget': function(){ AIS.passcode = ''; AIS.providers = []; AIS.status = null; saveAISettings(); render(); },
+  'ai-restore-all': function(){ confirmBox('Restore all reported questions?', '<p>They will count in scores again and can be picked for future tests.</p>', 'Restore', function(){ S.reported = {}; save(); render(); }); },
   wipe: function(){ confirmBox('Erase all progress?', '<p>Every test, practice set, and all concept history on this device will be deleted.</p>', 'Erase everything', function(){ S = blankState(); save(); go('home'); }, true); }
 };
 app.addEventListener('click', function(e){
@@ -753,6 +1106,7 @@ app.addEventListener('click', function(e){
   var el = e.target.closest('[data-act]'); if (!el) return;
   var fn = ACTIONS[el.getAttribute('data-act')]; if (fn) { e.preventDefault(); fn(el); }
 });
+app.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && (e.target.id === 'ai-url' || e.target.id === 'ai-pass')) { e.preventDefault(); aiConnect(); } });
 document.addEventListener('keydown', function(e){
   if (modalOpen() || view.page !== 'run') return;
   var t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
@@ -791,9 +1145,12 @@ window.addEventListener('pagehide', save);
 load();
 if (S.ui && S.ui.page === 'run' && S.sessions[S.ui.sid] && !S.sessions[S.ui.sid].finishedAt) view = {page:'run', sid:S.ui.sid, filter:'all'};
 else if (S.ui && S.ui.page === 'results' && S.sessions[S.ui.sid]) view = {page:'results', sid:S.ui.sid, filter:'all'};
-else if (S.ui && ['tracker','archive','backup'].indexOf(S.ui.page) >= 0) view = {page:S.ui.page, sid:null, filter:'all'};
+else if (S.ui && ['tracker','archive','backup','settings'].indexOf(S.ui.page) >= 0) view = {page:S.ui.page, sid:null, filter:'all'};
 render();
-window.__SAT = {state:function(){ return S; }, Q:Q, DATA:DATA, conceptStats:conceptStats, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }};
+if (relayUrl() && AIS.passcode && now() - (AIS.checkedAt || 0) > 6*3600e3 && navigator.onLine !== false) {
+  refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); }, function(){});
+}
+window.__SAT = {state:function(){ return S; }, Q:Q, DATA:DATA, conceptStats:conceptStats, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion};
 })();
 
 </script>
