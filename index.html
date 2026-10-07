@@ -180,7 +180,7 @@ var BLUEPRINT = [
 ];
 var KEY = 'dsat-rw-simulator-v1';
 /* ---------- AI relay config ---------- */
-var DEFAULT_RELAY_URL = '__SAT_RELAY_URL__'; // replaced with the deployed relay URL at publish time
+var DEFAULT_RELAY_URL = 'https://sat-relay.lhsiao2.workers.dev'; // replaced with the deployed relay URL at publish time
 if (/^__/.test(DEFAULT_RELAY_URL)) DEFAULT_RELAY_URL = '';
 var AI_KEY = 'dsat-rw-ai-settings-v1';       // kept separate from progress so backups never contain the passcode
 var AI_PER_SKILL = 3, AI_MORE_COUNT = 5, AI_TEST_TARGET = 18, AI_TEST_PER_SKILL = 4, AI_CONCURRENCY = 3, AI_MAX_BANK = 1500, AI_TIMEOUT_MS = 180000;
