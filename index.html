@@ -549,7 +549,7 @@ body.touring{overflow:hidden}
 .lblist li.me{background:var(--blue-l);border-radius:10px}
 .lbpos{width:28px;text-align:center;font-weight:800}.lbname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lbxp{font-weight:700}.lbst{width:56px;text-align:right}
 .gtoast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,40px);opacity:0;background:#1f2937;color:#fff;padding:10px 16px;border-radius:999px;font-weight:700;z-index:90;pointer-events:none;transition:opacity .2s,transform .2s;max-width:92vw;text-align:center}
-.gtoast.on{opacity:1;transform:translate(-50%,0)}.gtoast.xp{background:#4338ca}.gtoast.win{background:#047857}
+.aichoice{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:8px 0 4px;padding:8px 10px;border:1px dashed #c7d2fe;border-radius:10px;background:#f8faff}.aichoice .fld.inline{display:flex;align-items:center;gap:6px;margin:0}.aichoice .fld.inline span{font-size:.85rem;color:#475569}.aichoice select{max-width:200px}.aireview{display:inline-flex;align-items:center;gap:4px;margin:0}.aireview.compact{margin-left:6px;font-size:.9rem}.aireview.dis{opacity:.6}.gtoast.on{opacity:1;transform:translate(-50%,0)}.gtoast.note{background:#1e3a8a;max-width:min(92vw,520px);width:max-content;white-space:normal;text-align:center;font-weight:600;line-height:1.35}.gtoast.xp{background:#4338ca}.gtoast.win{background:#047857}
 .confetti{position:fixed;inset:0;pointer-events:none;z-index:95;overflow:hidden}
 .confetti i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation-name:cfall;animation-timing-function:ease-in;animation-fill-mode:forwards}
 @keyframes cfall{to{top:105%;transform:rotate(540deg) translateX(30px)}}
@@ -615,6 +615,7 @@ body.touring{overflow:hidden}
  *  - device-only fields (ui = current page) are never synced and always kept from the local copy.
  */
 var LOCAL_ONLY_FIELDS = ['ui', 'lastExport'];
+var CONTENT_TOMB = 9e15; // legacy-tombstone base for sessions cleared by a content migration
 function mObj(o) { return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; }
 function mNum(v) { v = +v; return isFinite(v) ? v : 0; }
 function mKeys() { var seen = {}, out = []; for (var i = 0; i < arguments.length; i++) { var o = mObj(arguments[i]); for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k) && !seen[k]) { seen[k] = 1; out.push(k); } } return out.sort(); }
@@ -677,6 +678,10 @@ function mergeProfileData(local, remote) {
   var deleted = {};
   mKeys(a.deleted, b.deleted).forEach(function (id) { deleted[id] = Math.max(mNum(mObj(a.deleted)[id]), mNum(mObj(b.deleted)[id])); });
   out.deleted = deleted;
+  // sessions cleared by a content migration (id -> contentVersion): gone for good unless finished elsewhere
+  var cleared = {}, ck = mKeys(a.cleared, b.cleared);
+  ck.forEach(function (id) { cleared[id] = Math.max(mNum(mObj(a.cleared)[id]), mNum(mObj(b.cleared)[id])); });
+  if (ck.length) out.cleared = cleared;
   // sessions
   out.sessions = {};
   mKeys(a.sessions, b.sessions).forEach(function (id) {
@@ -684,7 +689,8 @@ function mergeProfileData(local, remote) {
     if ((x && typeof x !== 'object') || (y && typeof y !== 'object')) return;
     var s = mergeSession(x, y);
     if (!s || !Array.isArray(s.modules)) return;
-    if (deleted[id] && deleted[id] >= sessionTime(s)) return; // deleted, and not changed since
+    if (cleared[id] || deleted[id] >= CONTENT_TOMB) { if (!s.finishedAt) return; } // cleared by migration (a copy finished elsewhere survives)
+    else if (deleted[id] && deleted[id] >= sessionTime(s)) return; // deleted, and not changed since
     out.sessions[id] = s;
   });
   var ids = Object.keys(out.sessions);
@@ -722,9 +728,14 @@ function mergeProfileData(local, remote) {
   var la = mObj(a.levels), lb = mObj(b.levels), lk = mKeys(la, lb);
   if (lk.length || a.levels || b.levels) { out.levels = {}; lk.forEach(function (c) { var p = la[c], q = lb[c]; var l = p && q ? (mNum(q.at) > mNum(p.at) ? q : p) : (p || q); if (l && typeof l === 'object') out.levels[c] = mCopy(l); }); }
   if (a.game || b.game) out.game = mergeGame(a.game, b.game);
+  // content migrations: highest version wins; the fresh-test flags only move forward
+  ['contentVersion', 'freshPending', 'freshMade'].forEach(function (k) { var v = Math.max(mNum(a[k]), mNum(b[k])); if (v) out[k] = v; });
+  if (a.migrations || b.migrations) { var mg = {}; [].concat(Array.isArray(a.migrations) ? a.migrations : [], Array.isArray(b.migrations) ? b.migrations : []).forEach(function (m) {
+    if (!m || typeof m !== 'object' || !mNum(m.v)) return; var o = mg[m.v]; if (!o || mNum(m.at) < mNum(o.at)) mg[m.v] = mCopy(m); });
+    out.migrations = Object.keys(mg).sort(function (x, y) { return x - y; }).map(function (v) { return mg[v]; }).slice(-10); }
   out.updatedAt = Math.max(mNum(a.updatedAt), mNum(b.updatedAt));
   // fields added by a newer app version: keep them (prefer the copy that changed last)
-  var known = { app: 1, version: 1, deleted: 1, sessions: 1, openIds: 1, archiveIds: 1, aiBank: 1, reported: 1, unreported: 1, conceptArchived: 1, settingsAt: 1, prefs: 1, prefsAt: 1, counters: 1, updatedAt: 1, explain: 1, levels: 1, coach: 1, game: 1, aiStats: 1 };
+  var known = { app: 1, version: 1, deleted: 1, sessions: 1, openIds: 1, archiveIds: 1, aiBank: 1, reported: 1, unreported: 1, conceptArchived: 1, settingsAt: 1, prefs: 1, prefsAt: 1, counters: 1, updatedAt: 1, explain: 1, levels: 1, coach: 1, game: 1, aiStats: 1, cleared: 1, contentVersion: 1, freshPending: 1, freshMade: 1, migrations: 1 };
   mKeys(a, b).forEach(function (k) { if (known[k] || LOCAL_ONLY_FIELDS.indexOf(k) >= 0) return; var v = mNum(b.updatedAt) > mNum(a.updatedAt) ? (b[k] !== undefined ? b[k] : a[k]) : (a[k] !== undefined ? a[k] : b[k]); if (v !== undefined) out[k] = mCopy(v); });
   // device-only fields come from the local copy
   LOCAL_ONLY_FIELDS.forEach(function (k) { if (a[k] !== undefined) out[k] = mCopy(a[k]); });
@@ -734,6 +745,7 @@ function mergeProfileData(local, remote) {
 /* Gamification state (S.game). Every field is optional so older copies merge cleanly. */
 function mNewest(p, q, f) { if (!p) return mCopy(q); if (!q) return mCopy(p); return mCopy(mNum(q[f || 'at']) > mNum(p[f || 'at']) ? q : p); }
 function mMin(p, q) { p = mNum(p); q = mNum(q); return p && q ? Math.min(p, q) : (p || q); }
+function bossVoid(b) { return !!(b && (mNum(b.void) || mNum(b.done) >= CONTENT_TOMB)); }
 function mergeGame(ga, gb) {
   var a = mObj(ga), b = mObj(gb), o = { v: Math.max(mNum(a.v), mNum(b.v), 1) };
   o.days = {}; mKeys(a.days, b.days).forEach(function (d) { var n = Math.max(mNum(mObj(a.days)[d]), mNum(mObj(b.days)[d])); if (n > 0) o.days[d] = n; });
@@ -743,7 +755,9 @@ function mergeGame(ga, gb) {
     var h = mNewest(p, q, 'ck'), r = { at: mMin(p && p.at, q && q.at) }; var gd = mMin(p && p.gold, q && q.gold); if (gd) r.gold = gd;
     if (h && h.hs) { r.hs = mNum(h.hs); r.hn = mNum(h.hn); } if (h && h.ck) r.ck = mNum(h.ck); if (r.at) o.badges[c] = r; });
   o.boss = {}; mKeys(a.boss, b.boss).forEach(function (w) { var p = mObj(a.boss)[w], q = mObj(b.boss)[w]; if (!p && !q) return; var e;
-    if (p && q && p.sid === q.sid) { e = mCopy(mNum(q.done) > mNum(p.done) || (mNum(q.done) === mNum(p.done) && mNum(q.n) > mNum(p.n)) ? q : p); }
+    if (p && q && p.sid === q.sid) { e = mCopy(mNum(q.done) > mNum(p.done) || (mNum(q.done) === mNum(p.done) && mNum(q.n) > mNum(p.n)) ? q : p); var vd = Math.max(mNum(p.void), mNum(q.void), mNum(p.done) >= CONTENT_TOMB ? 1 : 0, mNum(q.done) >= CONTENT_TOMB ? 1 : 0);
+      if (vd && (!e.done || mNum(e.done) >= CONTENT_TOMB)) { e = { sid: e.sid, at: e.at, void: vd }; if (p.skills || q.skills) e.skills = mCopy(p.skills || q.skills); } }
+    else if (p && q && !bossVoid(p) !== !bossVoid(q)) e = mCopy(bossVoid(p) ? q : p); // a voided attempt never beats a real one
     else e = p && q ? mCopy(mNum(q.at) < mNum(p.at) ? q : p) : mCopy(p || q);
     o.boss[w] = e; });
   o.speed = {}; mKeys(a.speed, b.speed).forEach(function (c) { var p = mObj(a.speed)[c], q = mObj(b.speed)[c]; var e = p && q ? (mNum(q.best) > mNum(p.best) || (mNum(q.best) === mNum(p.best) && mNum(q.at) < mNum(p.at)) ? q : p) : (p || q); if (e) { e = mCopy(e); e.runs = Math.max(mNum(p && p.runs), mNum(q && q.runs)); o.speed[c] = e; } });
@@ -757,6 +771,30 @@ function mergeGame(ga, gb) {
   return o;
 }
 /* Profile card info (name, color, PIN hash): last write wins on updatedAt. The family-leaderboard line (lb) has its own time. */
+/* One-time content migration (versioned). Clears every unfinished test / practice set so fresh ones are
+ * built from the current bank. Each cleared id gets cleared[id] = cv (new merge rule) plus a far-future
+ * legacy tombstone deleted[id] = CONTENT_TOMB + cv, so even an older app version's merge drops it.
+ * Completed sessions, answers, scores, XP/streaks, badges, levels and caches are untouched.
+ * Idempotent: does nothing once contentVersion >= cv. Returns {changed, cleared:[...]} */
+function migrateContent(d, cv, t) {
+  var res = { changed: false, cleared: [] };
+  if (!d || typeof d !== 'object' || mNum(d.contentVersion) >= cv) return res;
+  d.sessions = mObj(d.sessions); d.deleted = mObj(d.deleted); d.cleared = mObj(d.cleared);
+  Object.keys(d.sessions).forEach(function (id) {
+    var s = d.sessions[id]; if (!s || typeof s !== 'object' || s.finishedAt) return;
+    var total = 0; (Array.isArray(s.modules) ? s.modules : []).forEach(function (m) { total += Array.isArray(m) ? m.length : 0; });
+    res.cleared.push({ id: id, title: String(s.title || 'Session').slice(0, 120), kind: s.kind || '', mode: s.mode || '', answered: answeredCount(s), total: total, createdAt: mNum(s.createdAt) });
+    d.cleared[id] = cv; d.deleted[id] = CONTENT_TOMB + cv; delete d.sessions[id];
+  });
+  if (Array.isArray(d.openIds)) d.openIds = d.openIds.filter(function (id) { return d.sessions[id]; });
+  var g = mObj(d.game), bo = mObj(g.boss);
+  Object.keys(bo).forEach(function (w) { var b = bo[w]; if (b && typeof b === 'object' && !b.done && b.sid && d.cleared[b.sid]) b.void = cv; });
+  d.contentVersion = cv; d.freshPending = cv;
+  d.migrations = (Array.isArray(d.migrations) ? d.migrations : []).concat([{ v: cv, at: mNum(t), cleared: res.cleared.length, ids: res.cleared.map(function (c) { return c.id; }).slice(0, 50), items: res.cleared.slice(0, 20).map(function (c) { return { title: c.title, mode: c.mode, answered: c.answered, total: c.total }; }) }]).slice(-10);
+  if (res.cleared.length) d.updatedAt = Math.max(mNum(d.updatedAt), mNum(t));
+  res.changed = true; return res;
+}
+
 function mergeProfileMeta(a, b) {
   if (!a) return mCopy(b); if (!b) return mCopy(a);
   var m = mCopy(mNum(b.updatedAt) > mNum(a.updatedAt) ? b : a), lb = mNewest(a.lb, b.lb);
@@ -1514,15 +1552,59 @@ function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, 
 function normalize(){
   var b = blankState();
   for (var k in b) if (S[k] === undefined) S[k] = b[k];
+  if (ACTIVE) contentMigrate();
   S.openIds = S.openIds.filter(function(id){ return S.sessions[id] && !S.sessions[id].finishedAt; });
   S.archiveIds = S.archiveIds.filter(function(id){ return S.sessions[id] && S.sessions[id].finishedAt; });
   if (!S.aiBank || typeof S.aiBank !== 'object') S.aiBank = {};
   if (!S.reported || typeof S.reported !== 'object') S.reported = {};
   ['unreported','deleted','conceptArchived','counters','prefs','explain','levels'].forEach(function(k){ if (!S[k] || typeof S[k] !== 'object' || Array.isArray(S[k])) S[k] = blankState()[k]; });
+  if (ACTIVE) dedupeFresh();
   registerAIBank();
   seedLevels();
   if (ACTIVE && REG && REG.profiles[ACTIVE]) gameRecalc(false);
 }
+/* ---------- content upgrades ----------
+ * Bumping CONTENT_VERSION clears every unfinished test / practice set once per profile (on whichever
+ * device loads first; synced copies carry the tombstones), keeps all finished work, and builds a fresh
+ * Full SAT from the current bank. See migrateContent() in merge.js. */
+var CONTENT_VERSION = 2;
+function contentMigrate(){
+  var r = migrateContent(S, CONTENT_VERSION, now());
+  if (!r.changed) return;
+  if (!S.ui || typeof S.ui !== 'object') S.ui = {page:'home'};
+  S.ui.migRan = CONTENT_VERSION;
+  try { console.info('[content v' + CONTENT_VERSION + '] cleared ' + r.cleared.length + ' unfinished session(s)'); } catch(e){}
+  save();
+}
+function freshSessions(){ return Object.keys(S.sessions).map(function(id){ return S.sessions[id]; }).filter(function(s){ return s && s.fresh === CONTENT_VERSION && !s.finishedAt; }); }
+/* Two devices may each have built the fresh test before syncing: keep one untouched copy. */
+function dedupeFresh(){
+  var f = freshSessions().filter(function(s){ return !Object.keys(s.answers || {}).length; });
+  if (f.length < 2) return;
+  var keep = f.filter(function(s){ return view && view.sid === s.id; })[0] || f.slice().sort(function(a, b){ return (a.createdAt || 0) - (b.createdAt || 0) || (a.id < b.id ? -1 : 1); })[0];
+  f.forEach(function(s){ if (s !== keep) { S.deleted[s.id] = now(); delete S.sessions[s.id]; } });
+  S.openIds = S.openIds.filter(function(id){ return S.sessions[id]; });
+}
+var MIG_TEXT = 'Questions were upgraded \u2014 unfinished tests were cleared and a fresh test is ready.';
+/* Runs after the first sync attempt when a profile opens: builds the fresh Full SAT (once per profile,
+ * across devices) and shows the one-time notice (once per device). */
+function freshAfterOpen(){
+  if (!ACTIVE || !S) return;
+  var made = null;
+  if ((+S.freshPending || 0) >= CONTENT_VERSION && (+S.freshMade || 0) < CONTENT_VERSION && !freshSessions().length) {
+    try { made = buildFullSAT(); made.fresh = CONTENT_VERSION; S.freshMade = CONTENT_VERSION; save(); syncSoon(1500); } catch(e){ made = null; }
+  }
+  var mig = (Array.isArray(S.migrations) ? S.migrations : []).filter(function(m){ return m && m.v === CONTENT_VERSION; })[0];
+  if (mig && (+(S.ui && S.ui.migSeen) || 0) < CONTENT_VERSION && view.page !== 'run' && !modalOpen()) {
+    S.ui.migSeen = CONTENT_VERSION; save();
+    if (view.page === 'home') render();
+    var fs = freshSessions()[0], items = Array.isArray(mig.items) ? mig.items : [];
+    var body = '<p>' + esc(MIG_TEXT) + '</p>' + (items.length ? '<p class="small muted" style="margin-bottom:4px">Cleared:</p><ul class="small" style="margin-top:0">' + items.map(function(it){ return '<li>' + esc(it.title || 'Session') + ' <span class="muted">(' + (+it.answered || 0) + ' of ' + (+it.total || 0) + ' answered)</span></li>'; }).join('') + '</ul>' : '') +
+      '<p class="small muted">Finished tests, scores, XP, streaks, badges and skill levels are unchanged.</p>';
+    modal('Questions upgraded', body, fs ? [{label:'Later'}, {label:'Start the fresh test', primary:true, onClick:function(){ go('run', fs.id); }}] : [{label:'OK', primary:true}], 'mig-notice');
+  } else if (made && view.page === 'home') render();
+}
+function afterOpenSync(p){ var f = function(){ try { freshAfterOpen(); } catch(e){} }; if (p && p.then) p.then(f, f); else f(); }
 /* AI questions live in S.aiBank (so they are saved, archived with sessions, and included in backups). */
 function registerAIBank(){
   Object.keys(S.aiBank).forEach(function(id){
@@ -2055,12 +2137,12 @@ function startMathTest(){
   var s = newSession('test', 'Math Test #' + S.counters.math, sp.modules, {source:'generated', mode:'math', section:'math', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}});
   go('run', s.id);
 }
-function startFullSAT(){
+function startFullSAT(){ go('run', buildFullSAT().id); }
+function buildFullSAT(){
   var r = buildRWSection({}), m = buildMathSection();
   var sp = sectionSpec([{sec:'rw', m1:r.m1, harder:r.harder, easier:r.easier}, {sec:'math', m1:m.m1, harder:m.harder, easier:m.easier}]);
   S.counters.full = (S.counters.full || 0) + 1;
-  var s = newSession('test', 'Full SAT #' + S.counters.full, sp.modules, {source:'generated', mode:'full', section:'full', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, longBreakAfter:1, repeats:r.repeats});
-  go('run', s.id);
+  return newSession('test', 'Full SAT #' + S.counters.full, sp.modules, {source:'generated', mode:'full', section:'full', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, longBreakAfter:1, repeats:r.repeats});
 }
 /* Adaptive routing: when module `base` is submitted, module i becomes the harder or easier version. */
 function routeNext(s, i){
@@ -2073,14 +2155,14 @@ function routeNext(s, i){
   s.modules[i] = (harder ? r.harder : r.easier).slice();
 }
 /* ---------- "Start practice" modes 4 and 5: practice sets across both sections ---------- */
-var PREF_DEFAULTS = {ai:{provider:'', model:'', review:true}, coach:false, coachAll:false, mode:'full', instant:false, practiceCheck:true, adaptive:true, missed:{section:'all', count:20, ai:false}, types:{concepts:[], count:20, difficulty:'mixed', timed:false, ai:false}};
+var PREF_DEFAULTS = {ai:{provider:'', model:'', review:true, prefetch:true}, coach:false, coachAll:false, mode:'full', instant:false, practiceCheck:true, adaptive:true, missed:{section:'all', count:20, ai:false}, types:{concepts:[], count:20, difficulty:'mixed', timed:false, ai:false}};
 function prefs(){
   var p = S.prefs && typeof S.prefs === 'object' && !Array.isArray(S.prefs) ? S.prefs : (S.prefs = {});
   if (!MODE_LABEL[p.mode] || p.mode === 'practice') p.mode = PREF_DEFAULTS.mode;
   ['ai', 'missed', 'types'].forEach(function(k){ var d = PREF_DEFAULTS[k]; if (!p[k] || typeof p[k] !== 'object') p[k] = {}; for (var f in d) if (p[k][f] === undefined) p[k][f] = Array.isArray(d[f]) ? d[f].slice() : d[f]; });
   p.missed.count = Math.max(1, Math.min(60, Math.round(+p.missed.count) || 20)); p.types.count = Math.max(1, Math.min(60, Math.round(+p.types.count) || 20));
   if (!Array.isArray(p.types.concepts)) p.types.concepts = [];
-  p.ai.provider = /^[\w-]{0,20}$/.test(p.ai.provider) ? p.ai.provider : ''; p.ai.model = /^[\w.:-]{0,80}$/.test(p.ai.model) ? p.ai.model : ''; p.ai.review = p.ai.review !== false;
+  p.ai.provider = /^[\w-]{0,20}$/.test(p.ai.provider) ? p.ai.provider : ''; p.ai.model = /^[\w.:-]{0,80}$/.test(p.ai.model) ? p.ai.model : ''; p.ai.review = p.ai.review !== false; p.ai.prefetch = p.ai.prefetch !== false;
   p.coach = p.coach === true; p.coachAll = p.coachAll === true;
   p.instant = p.instant === true; p.practiceCheck = p.practiceCheck !== false; p.adaptive = p.adaptive !== false;
   p.types.concepts = p.types.concepts.filter(function(c){ return CMAP[c]; });
@@ -2116,8 +2198,10 @@ function startModePractice(mode){
     if (job.cancelled) return;
     closeModal();
     var ai = []; reqs.forEach(function(q){ ai = ai.concat(r.ids[q.concept] || []); });
+    noteHot(Object.keys(need));
     buildModeSession(o, ai);
     if (r.errors.length) aiNotice(r.errors, Math.max(0, share - ai.length));
+    schedulePrefetch(2000);
   });
 }
 function buildModeSession(o, aiIds){
@@ -2289,6 +2373,25 @@ function countPicker(path, n){
   return '<div class="row">' + seg(path, custom ? 'custom' : n, [[10, '10'], [20, '20'], [30, '30'], ['custom', 'Custom']], 'Number of questions') +
     (custom ? '<label class="small">How many? <input type="number" class="numin" min="1" max="60" step="1" data-pref="' + path + '" value="' + (+n) + '" aria-label="Custom number of questions"></label>' : '') + '</div>';
 }
+/* Cross-AI review switch, shown wherever AI questions are requested (picker, review rows) and in Settings.
+   All copies read/write the same per-profile pref (prefs.ai.review, synced). */
+function aiReviewToggle(compact){
+  if (!aiReady()) return '';
+  var avail = reviewAvailable(), on = aiReviewOn() && avail;
+  return '<label class="ck aireview' + (compact ? ' compact' : '') + (avail ? '' : ' dis') + '"><input type="checkbox" data-aiset="review"' + (on ? ' checked' : '') + (avail ? '' : ' disabled') + ' aria-label="Cross-AI review"> 🛡️ <b>Cross-AI review</b> <span class="small muted">' +
+    (!avail ? '(needs keys for 2+ AIs)' : on ? (compact ? '(on)' : '(on: the other AIs solve and grade every question)') : (compact ? '(off)' : '(off: faster, one AI double-checks the answer key)')) + '</span></label>';
+}
+/* Which AI + model + Cross-AI review, inline in the practice picker. */
+function aiChoiceRow(){
+  if (!aiReady()) return '';
+  var cat = AIS.catalog && AIS.catalog.length ? AIS.catalog : AIS.providers.map(function(p){ return {id:p.id, label:p.label, available:true, models:[]}; });
+  var cur = catalogEntry(AIS.provider), mc = aiModelChoice();
+  return '<div class="aichoice"><label class="fld inline"><span>AI</span><select data-aiset="provider" aria-label="Which AI writes the questions">' + cat.map(function(c){
+      return '<option value="' + esc(c.id) + '"' + (c.id === AIS.provider ? ' selected' : '') + (c.available ? '' : ' disabled') + '>' + esc(c.label) + (c.available ? '' : ' (add key to enable)') + '</option>'; }).join('') + '</select></label>' +
+    (cur && cur.models && cur.models.length ? '<label class="fld inline"><span>Model</span><select data-aiset="model" aria-label="Model">' + cur.models.map(function(m){
+      return '<option value="' + (m.def ? '' : esc(m.id)) + '"' + ((m.def && !mc) || m.id === mc ? ' selected' : '') + '>' + esc(m.label) + (m.def ? ' (default)' : '') + '</option>'; }).join('') + '</select></label>' : '') +
+    aiReviewToggle(false) + '</div>';
+}
 function aiToggle(path, on){
   var ready = aiReady();
   return '<label class="ck aick' + (ready ? '' : ' dis') + '"><input type="checkbox" data-pref="' + path + '"' + (on && ready ? ' checked' : '') + (ready ? '' : ' disabled') + '> ✨ Include AI questions' + (ready ? ' <span class="small muted">(about a third of the set, new questions written and double-checked by ' + esc(providerLabel(AIS.provider)) + ')</span>' : ' <span class="small muted">(<a href="#" data-act="nav" data-page="settings">set up AI in Settings</a>)</span>') + '</label>';
@@ -2312,12 +2415,12 @@ function renderPicker(unseen){
   h += panel('math', '<h3>Math section</h3><p class="small muted">Module 1 (22 questions, 35 minutes) is a mix of easier and harder questions. Do well and Module 2 is harder (and can earn more points); otherwise it is easier. About a quarter of the questions are student-produced responses (you type the answer). Built-in graphing calculator and reference sheet. Estimated score 200–800.</p>' + instantToggle() + '<button class="btn primary" data-act="start-math">Start Math section</button>');
   h += panel('rw', '<h3>Reading &amp; Writing section</h3>' + instantToggle() + '<div class="row" style="align-items:stretch">' +
     '<div style="flex:1;min-width:220px"><p class="small muted">A brand-new adaptive section from the question bank with a real-test mix of skills. Questions you haven\'t seen come first (' + unseen + ' unseen questions left in the banks). The original practice test you already took is never reused here.</p><button class="btn primary" data-act="gen-test">Generate new RW section</button></div>' +
-    (aiReady() ? '<div style="flex:1;min-width:220px"><p class="small muted">Same real-test mix, but about ' + AI_TEST_TARGET + ' questions are brand-new ones written by ' + esc(providerLabel(AIS.provider)) + ', focused on your weak skills.</p><button class="btn ai primary" data-act="ai-test">✨ Generate AI mix test</button></div>' : '') + '</div>');
+    (aiReady() ? '<div style="flex:1;min-width:220px"><p class="small muted">Same real-test mix, but about ' + AI_TEST_TARGET + ' questions are brand-new ones written by ' + esc(providerLabel(AIS.provider)) + ', focused on your weak skills.</p>' + aiChoiceRow() + '<button class="btn ai primary" data-act="ai-test">✨ Generate AI mix test</button></div>' : '') + '</div>');
   var mc = missedConcepts(P.missed.section);
   h += panel('missed', '<h3>Previously missed concepts</h3><p class="small muted">Skills you got wrong, flagged 🤔 Unsure, or are weak on, from <b>all</b> your tests and practice sets (weakest first). New questions from the question bank come first.</p>' +
     '<div class="prow"><span class="pl">Section</span>' + seg('missed.section', P.missed.section, [['all', 'Both'], ['rw', 'Reading & Writing'], ['math', 'Math']], 'Section') + '</div>' +
     '<div class="prow"><span class="pl">Questions</span>' + countPicker('missed.count', P.missed.count) + '</div>' +
-    '<div class="prow">' + aiToggle('missed.ai', P.missed.ai) + '</div>' + '<div class="prow">' + adaptiveToggle() + '</div>' + '<div class="prow">' + practiceCheckToggle() + '</div>' + '<div class="prow">' + coachAllToggle() + '</div>' +
+    '<div class="prow">' + aiToggle('missed.ai', P.missed.ai) + aiChoiceRow() + '</div>' + '<div class="prow">' + adaptiveToggle() + '</div>' + '<div class="prow">' + practiceCheckToggle() + '</div>' + '<div class="prow">' + coachAllToggle() + '</div>' +
     (mc.length ? '<p class="small">' + mc.length + ' skill' + (mc.length === 1 ? '' : 's') + ': ' + mc.slice(0, 14).map(function(c){ return '<span class="badge b-' + st[c].status + '" style="margin:2px">' + esc(CMAP[c].name) + '</span>'; }).join(' ') + (mc.length > 14 ? ' …' : '') + '</p>' : '<p class="muted small">' + (S.archiveIds.length ? 'Nothing missed or flagged unsure here yet. 🎉' : 'Finish a test or practice set first, and the skills you miss will show up here.') + '</p>') +
     '<div class="row"><button class="btn primary" data-act="start-missed"' + (mc.length ? '' : ' disabled') + '>Start practice set</button>' + (weakConcepts(st).length ? '<button class="btn small" data-act="practice-weak">Quick set: ' + PER_CONCEPT + ' per weak skill</button>' : '') + '</div>');
   var sel = {}; P.types.concepts.forEach(function(c){ sel[c] = 1; });
@@ -2336,7 +2439,7 @@ function renderPicker(unseen){
       : '<div class="prow"><span class="pl">Difficulty</span>' + seg('types.difficulty', P.types.difficulty, [['mixed', 'Mixed'], ['easy', 'Easy'], ['medium', 'Medium'], ['hard', 'Hard']], 'Difficulty') + '</div>') +
     '<div class="prow"><span class="pl">Timing</span>' + seg('types.timed', P.types.timed ? 'timed' : 'untimed', [['untimed', 'Untimed'], ['timed', 'Timed (test pace)']], 'Timing') + '</div>' +
     '<p class="small muted" style="margin-top:0">Timed uses the real test pace: about 71 seconds per Reading &amp; Writing question and 95 seconds per Math question. If a skill runs out of questions at one difficulty, the closest difficulty is used.</p>' +
-    '<div class="prow">' + aiToggle('types.ai', P.types.ai) + '</div>' + '<div class="prow">' + practiceCheckToggle() + '</div>' + '<div class="prow">' + coachAllToggle() + '</div>' +
+    '<div class="prow">' + aiToggle('types.ai', P.types.ai) + aiChoiceRow() + '</div>' + '<div class="prow">' + practiceCheckToggle() + '</div>' + '<div class="prow">' + coachAllToggle() + '</div>' +
     '<div class="row"><button class="btn primary" data-act="start-types"' + (P.types.concepts.length ? '' : ' disabled') + '>Start practice set</button><span class="small muted">' + P.types.concepts.length + ' skill' + (P.types.concepts.length === 1 ? '' : 's') + ' selected</span>' + (P.types.concepts.length ? '<button class="btn small ghost" data-act="types-clear">Clear</button>' : '') + '</div>');
   h += (aiReady() ? '' : '<p class="small muted aihint" style="margin:12px 0 0">✨ Want unlimited new questions written by AI? <a href="#" data-act="nav" data-page="settings">Set it up in Settings</a>. Everything else works without it, even offline.</p>') + '</div>';
   return h;
@@ -2761,7 +2864,7 @@ function renderResults(){
   var weakAll = weakConcepts(st);
   h += '<div class="card"><h2>What next?</h2><div class="row">';
   h += fromThis.length ? '<button class="btn primary" data-act="practice-from" data-sid="'+s.id+'">Practice what I missed or was unsure about ('+Math.min(fromThis.length,MAX_PRACTICE_CONCEPTS)+' skill'+(fromThis.length>1?'s':'')+')</button>' : '<span class="muted">🎉 Nothing missed or flagged unsure in this set!</span>';
-  if (fromThis.length && aiReady()) h += '<button class="btn ai" data-act="ai-practice-from" data-sid="'+s.id+'">✨ New AI questions on what I missed</button>';
+  if (fromThis.length && aiReady()) h += '<button class="btn ai" data-act="ai-practice-from" data-sid="'+s.id+'">✨ New AI questions on what I missed</button>' + aiReviewToggle(true);
   if (weakAll.length) h += '<button class="btn" data-act="practice-weak">Practice my weak concepts (all history)</button>';
   h += '<button class="btn" data-act="nav" data-page="home">Home</button></div>';
   if (fromThis.length) h += '<p class="small muted">The practice set uses new questions ('+PER_CONCEPT+' per skill'+(fromThis.length>MAX_PRACTICE_CONCEPTS?', weakest '+MAX_PRACTICE_CONCEPTS+' skills first':'')+') with the same Unsure button, so you can keep looping until everything is solid.</p>';
@@ -2817,7 +2920,7 @@ function reviewCard(s, x){
   var tOpen = !!(view.thx && view.thx[q.id]);
   h += '<div class="fb-acts"><button class="btn small thbtn" data-act="thorough" data-id="' + esc(q.id) + '" data-ans="' + esc(x.ans || '') + '" aria-expanded="' + tOpen + '" aria-controls="thw-' + esc(q.id) + '">' + (tOpen ? '▾ Hide thorough explanation' : '📘 Show thorough explanation') + '</button></div><div class="thwrap" id="thw-' + esc(q.id) + '" data-q="' + esc(q.id) + '" data-ans="' + esc(x.ans || '') + '">' + (tOpen ? thoroughHTML(q, x.ans || null) : '') + '</div>';
   var rep = S.reported[x.id];
-  h += '<div class="row" style="margin-top:10px">' + (aiReady() ? '<button class="btn small ai" data-act="ai-practice-one" data-c="'+q.concept+'">✨ More AI questions on this skill</button>' : '') +
+  h += '<div class="row" style="margin-top:10px">' + (aiReady() ? '<button class="btn small ai" data-act="ai-practice-one" data-c="'+q.concept+'">✨ More AI questions on this skill</button>' + aiReviewToggle(true) : '') +
     (rep ? '<span class="small muted">⚑ Reported'+(rep.reason?' ('+esc(rep.reason)+')':'')+'. Not scored, not reused.</span><button class="btn small" data-act="unreport" data-id="'+esc(x.id)+'">Undo report</button>'
          : '<button class="btn small ghost" data-act="report" data-id="'+esc(x.id)+'">⚑ Report question</button>') + '</div>';
   return h + '</div></div>';
@@ -2946,10 +3049,12 @@ function doImport(mode){
 /* ---------- AI questions (private relay) ---------- */
 var AIS = loadAISettings();
 function loadAISettings(){
-  var d = {relayUrl:'', passcode:'', provider:'', providers:[], catalog:[], review:null, status:null, checkedAt:0};
+  var d = {relayUrl:'', passcode:'', provider:'', providers:[], catalog:[], review:null, status:null, checkedAt:0, hot:{}, pf:{day:'', n:0}};
   try { var o = JSON.parse(window.localStorage.getItem(AI_KEY) || 'null'); if (o && typeof o === 'object') for (var k in d) if (o[k] !== undefined) d[k] = o[k]; } catch(e){}
   if (!Array.isArray(d.providers)) d.providers = [];
   if (!Array.isArray(d.catalog)) d.catalog = [];
+  if (!d.hot || typeof d.hot !== 'object' || Array.isArray(d.hot)) d.hot = {};
+  if (!d.pf || typeof d.pf !== 'object') d.pf = {day:'', n:0};
   return d;
 }
 function saveAISettings(){ try { window.localStorage.setItem(AI_KEY, JSON.stringify(AIS)); } catch(e){} }
@@ -3038,14 +3143,17 @@ function exampleFor(cid){
 function requestAI(t, job){
   var c = CMAP[t.concept];
   var body = {provider:AIS.provider, section:cSec(t.concept), concept:t.concept, conceptName:c.name, conceptDescription:c.lesson, domain:c.domain, count:t.count, difficulty:t.difficulty || 'medium', exampleQuestion:exampleFor(t.concept), avoid:aiAvoidTopics(t.concept), model:aiModelChoice(), review:aiReviewOn()};
+  var pid = ACTIVE, t0 = now();
   return relayFetch('/generate', {method:'POST', body:JSON.stringify(body)}, AI_TIMEOUT_MS, job).then(function(data){
+    if (ACTIVE !== pid || !S) throw aiErr('Switched profile.', -1);   // never write one profile's questions into another
     var out = [];
     (Array.isArray(data.questions) ? data.questions : []).forEach(function(raw){
       if (!raw || raw.concept !== t.concept) return;
       var q = cleanAIQuestion(raw); if (!q) return;
       while (Q[q.id]) q.id = q.id + 'x';
-      q.addedAt = now(); S.aiBank[q.id] = q; Q[q.id] = q; out.push(q);
+      q.addedAt = now(); if (job && job.bg) q.pre = 1; S.aiBank[q.id] = q; Q[q.id] = q; out.push(q);
     });
+    PF.lastMs = now() - t0;
     noteAIStats(data, out.length);
     pruneAIBank(); save(); syncSoon(5000);
     if (!out.length) throw aiErr('The AI\'s questions didn\'t pass the answer-key double-check this time. Please try again.');
@@ -3074,6 +3182,13 @@ function aiPool(cid, info, taken, prefDiff){
 }
 /* reqs: [{concept, need, difficulty}] -> reuses unseen saved AI questions first, then asks the relay for the rest. */
 function ensureAIQuestions(reqs, job, onProgress){
+  if (PF.promise && PF.cur && reqs.some(function(r){ return r.concept === PF.cur.concept; })) {
+    var el = document.getElementById('aiprog'); if (el) el.innerHTML = 'Finishing the AI questions that were being prepared in the background…';
+    return PF.promise.then(function(){ return job.cancelled ? {ids:{}, errors:[], fetched:0, reused:0} : ensureAIQuestionsNow(reqs, job, onProgress); });
+  }
+  return ensureAIQuestionsNow(reqs, job, onProgress);
+}
+function ensureAIQuestionsNow(reqs, job, onProgress){
   var info = seenInfo(), taken = {}, result = {ids:{}, errors:[], fetched:0, reused:0}, tasks = [];
   reqs.forEach(function(r){
     var have = aiPool(r.concept, info, taken, /^(easy|medium|hard)$/.test(r.difficulty) ? r.difficulty : null).slice(0, r.need);
@@ -3093,9 +3208,57 @@ function ensureAIQuestions(reqs, job, onProgress){
   var ws = []; for (var i = 0; i < Math.min(AI_CONCURRENCY, tasks.length); i++) ws.push(worker());
   return Promise.all(ws).then(function(){ save(); return result; });
 }
+/* ---- background prefetch: keep a small per-profile queue of panel-approved AI questions ready ----
+   The queue IS the profile's saved AI bank (S.aiBank, synced), so a batch fetched on the iPad is ready on the
+   iPhone too. "Hot" skills = the ones this profile recently practiced with AI (kept on this device). One request
+   at a time, only while the app is visible and online, capped per device per day. */
+var AI_QUEUE_TARGET = 5, AI_PREFETCH_HOT = 3, AI_PREFETCH_DAILY = 60;
+var PF = {busy:false, timer:null, promise:null, cur:null, backoff:{}, fetched:0, errors:0, last:null, lastMs:0};
+function aiPrefetchOn(){ return !!(ACTIVE && S && prefs().ai.prefetch !== false); }
+function noteHot(cids){
+  if (!ACTIVE) return; var h = AIS.hot[ACTIVE] = AIS.hot[ACTIVE] || {};
+  cids.forEach(function(c){ if (CMAP[c]) h[c] = now(); });
+  Object.keys(h).sort(function(a, b){ return h[b] - h[a]; }).slice(6).forEach(function(c){ delete h[c]; });
+  saveAISettings();
+}
+function hotList(){
+  var h = (ACTIVE && AIS.hot[ACTIVE]) || {};
+  var list = Object.keys(h).filter(function(c){ return CMAP[c] && now() - h[c] < 14 * 864e5; }).sort(function(a, b){ return h[b] - h[a]; }).slice(0, AI_PREFETCH_HOT);
+  return list;
+}
+function queueDiff(c){ return prefs().adaptive ? diffForLevel(levelOf(c), c) : 'medium'; }
+function queueCount(c, d, info){ info = info || seenInfo(); return aiList().filter(function(q){ return q.concept === c && !info[q.id] && !isReported(q.id) && (!d || q.difficulty === d); }).length; }
+function queueStatus(){ var info = seenInfo(); return hotList().map(function(c){ var d = queueDiff(c); return {concept:c, difficulty:d, ready:queueCount(c, d, info)}; }); }
+function schedulePrefetch(ms){ clearTimeout(PF.timer); PF.timer = setTimeout(prefetchTick, ms == null ? 4000 : ms); }
+function prefetchTick(){
+  if (PF.busy || !aiPrefetchOn() || !aiReady() || (typeof navigator !== 'undefined' && navigator.onLine === false) || (typeof document !== 'undefined' && document.hidden)) return null;
+  var day = todayKey(); if (AIS.pf.day !== day) AIS.pf = {day:day, n:0};
+  if (AIS.pf.n >= AI_PREFETCH_DAILY) return null;
+  var list = hotList(), info = seenInfo(), pick = null;
+  // the skills being practiced with AI first; then (once AI is in use) the 2 weakest skills so "AI practice on weak skills" is instant too
+  var extra = list.length ? weakConcepts().filter(function(c){ return list.indexOf(c) < 0; }).slice(0, 2) : [];
+  list.concat(extra).some(function(c, i){
+    var d = queueDiff(c), want = i < list.length ? AI_QUEUE_TARGET : AI_PER_SKILL;
+    if ((PF.backoff[c + ':' + d] || 0) > now()) return false;
+    var have = queueCount(c, d, info);
+    if (have >= want) return false;
+    pick = {concept:c, count:Math.min(10, Math.max(3, want - have)), difficulty:d}; return true;
+  });
+  if (!pick) return null;
+  var job = {cancelled:false, ctrls:[], bg:true}, pid = ACTIVE;
+  PF.busy = true; PF.cur = pick; PF.job = job;
+  AIS.pf.n += pick.count; saveAISettings();
+  PF.promise = requestAI(pick, job).then(function(qs){ PF.fetched += qs.length; PF.last = {at:now(), concept:pick.concept, n:qs.length, ms:PF.lastMs}; },
+    function(e){ PF.errors++; PF.last = {at:now(), concept:pick.concept, n:0, error:e.message}; if (e.status !== -1) PF.backoff[pick.concept + ':' + pick.difficulty] = now() + (e.status === 401 ? 3600e3 : 5 * 60e3); })
+    .then(function(){ PF.busy = false; PF.cur = null; PF.job = null; PF.promise = null; if (ACTIVE === pid) { schedulePrefetch(1500); if (view.page === 'settings' && !modalOpen()) render(); } });
+  return PF.promise;
+}
+function cancelPrefetch(){ if (PF.job) { PF.job.cancelled = true; PF.job.ctrls.forEach(function(c){ try { c.abort(); } catch(e){} }); } clearTimeout(PF.timer); }
+/* A gentle, non-blocking note (used instead of an error screen when AI questions aren't ready). */
+function gentleNote(msg){ if (typeof toast === 'function') toast(msg, 'note', 7000); }
 function aiBusy(title, job){
   modal(title, '<div class="aiwait" role="status" aria-live="polite"><div class="spinner" aria-hidden="true"></div><p id="aiprog">Connecting to <b>' + esc(providerLabel(AIS.provider)) + '</b>…</p>' +
-    '<p class="small muted">The AI writes each question, then solves it again on its own to double-check the answer key. Questions that fail the check are thrown out. This usually takes 20–90 seconds.</p></div>',
+    '<p class="small muted">The AI writes each question, then other AIs solve it without seeing the answer and grade it. Questions that fail are thrown out. The first batch can take a minute or two; after that, new questions are prepared in the background so they are usually ready instantly.</p></div>',
     [{label:'Cancel', onClick:function(){ job.cancelled = true; job.ctrls.forEach(function(c){ try { c.abort(); } catch(e){} }); }}]);
 }
 function aiProgress(done, total){
@@ -3111,8 +3274,7 @@ function aiFail(errors, fallback, fallbackLabel){
 }
 function aiNotice(errors, filled){
   if (!errors.length && !filled) return;
-  modal('Heads up', '<p>' + (filled ? filled + ' question' + (filled === 1 ? '' : 's') + ' came from the regular question bank because the AI couldn\'t supply enough' : 'Some AI requests didn\'t work') + '.</p>' +
-    (errors.length ? '<p class="small muted">' + esc(errors[0].msg) + '</p>' : ''), [{label:'OK', primary:true}]);
+  gentleNote(filled ? '📚 ' + filled + ' question' + (filled === 1 ? '' : 's') + ' came from the built-in bank (same skill and level) while more AI questions are prepared.' : 'Some AI questions weren\'t ready; more are being prepared in the background.');
 }
 function aiPractice(conceptIds, label, perSkill){
   conceptIds = (conceptIds || []).slice(0, MAX_PRACTICE_CONCEPTS);
@@ -3127,7 +3289,14 @@ function aiPractice(conceptIds, label, perSkill){
     closeModal();
     var ids = [], exclude = {}, info = seenInfo(), filled = 0, aiCount = 0;
     conceptIds.forEach(function(c){ aiCount += (r.ids[c] || []).length; });
-    if (!aiCount) { aiFail(r.errors.length ? r.errors : [{msg:'No AI questions came back.'}], function(){ startPractice(conceptIds, label); }); return; }
+    noteHot(conceptIds);
+    if (!aiCount) {   // never an empty screen: same skills and level from the built-in bank, with a gentle note
+      startPractice(conceptIds, label);
+      var e0 = r.errors[0];
+      gentleNote(e0 && e0.status === 401 ? 'AI questions need the family passcode (Settings). Here are built-in questions on the same skills.' : '📚 The AI questions weren\'t ready yet, so these are built-in questions at the same skill and level. New AI questions are being prepared in the background.');
+      schedulePrefetch(3000);
+      return;
+    }
     conceptIds.forEach(function(c){
       var got = r.ids[c] || [];
       got.forEach(function(id){ exclude[id] = 1; ids.push(id); });
@@ -3138,6 +3307,7 @@ function aiPractice(conceptIds, label, perSkill){
     var s = newSession('practice', 'AI Practice Set #' + S.counters.practice + (label ? ' (' + label + ')' : ''), [ids], {source:'ai-practice', targets:conceptIds, aiCount:aiCount, aiProvider:AIS.provider, mode:'practice', section:psec, modSec:[psec], adaptive:adaptive});
     go('run', s.id);
     aiNotice(r.errors, filled);
+    schedulePrefetch(2000);   // get the next batch ready while the student works
   });
 }
 function generateAITest(){
@@ -3154,7 +3324,7 @@ function generateAITest(){
     closeModal();
     var aiIds = {}, got = 0;
     reqs.forEach(function(q){ aiIds[q.concept] = (r.ids[q.concept] || []).slice(); got += aiIds[q.concept].length; });
-    if (!got) { aiFail(r.errors.length ? r.errors : [{msg:'No AI questions came back.'}], function(){ generateTest(); }, 'Make a regular test instead'); return; }
+    if (!got) { generateTest(); gentleNote('📚 The AI questions weren\'t ready, so this test uses the built-in bank. AI questions are being prepared for next time.'); return; }
     generateTest({aiIds:aiIds});
     if (r.errors.length) aiNotice(r.errors, sum - got);
   });
@@ -3198,8 +3368,9 @@ function renderSettings(){
         return '<option value="' + esc(c.id) + '"' + (c.id === AIS.provider ? ' selected' : '') + (c.available ? '' : ' disabled') + '>' + esc(c.label) + (c.available ? '' : ' (add key to enable)') + '</option>'; }).join('') + '</select></label>' +
       (cur && cur.models && cur.models.length ? '<label class="fld"><span>Model</span><select id="ai-model" aria-label="Model">' + cur.models.map(function(m){
         return '<option value="' + (m.def ? '' : esc(m.id)) + '"' + ((m.def && !mc) || m.id === mc ? ' selected' : '') + '>' + esc(m.label) + (m.def ? ' (default)' : '') + '</option>'; }).join('') + '</select></label>' : '') + '</div>' +
-      '<label class="ck"><input type="checkbox" id="ai-review"' + (aiReviewOn() ? ' checked' : '') + (reviewAvailable() ? '' : ' disabled') + '> <b>Cross-AI review</b> <span class="small muted">' + (reviewAvailable() ?
+      '<label class="ck"><input type="checkbox" id="ai-review" data-aiset="review"' + (aiReviewOn() ? ' checked' : '') + (reviewAvailable() ? '' : ' disabled') + '> <b>Cross-AI review</b> <span class="small muted">' + (reviewAvailable() ?
         '(the other ' + (AIS.providers.length - 1 === 1 ? 'AI solves' : (AIS.providers.length - 1) + ' AIs each solve') + ' every question without seeing the answer and grade it; only questions they all agree on are kept. Takes a little longer.)' : '(needs keys for at least two AIs on the relay)') + '</span></label>' +
+      '<label class="ck"><input type="checkbox" id="ai-prefetch"' + (prefs().ai.prefetch !== false ? ' checked' : '') + '> <b>Get AI questions ready in the background</b> <span class="small muted">(recommended) While you practice, the next few checked AI questions for the skills you are working on are prepared ahead of time, so they are ready instantly.' + (function(){ var qs = queueStatus(); return qs.length ? ' Ready now: ' + qs.map(function(x){ return esc(CMAP[x.concept].name) + ' ' + x.ready; }).join(', ') + (PF.busy ? ' · preparing more…' : '') + '.' : ''; })() + '</span></label>' +
       '<p class="small muted">Saved for this profile. Every AI question must match official SAT length and reading level for its difficulty and is double-checked before you see it. If one still looks wrong, tap ⚑ Report on it.</p>';
   }
   h += '</div>';
@@ -3282,15 +3453,17 @@ function openProfile(id, opts){
   if (meta.pinHash && !opts.skipPin) askPin(meta, proceed); else proceed();
 }
 function enterProfile(id){
-  if (ACTIVE && ACTIVE !== id) save();
+  if (ACTIVE && ACTIVE !== id) { save(); cancelPrefetch(); }
   ACTIVE = id; REG.activeId = id; REG.lastUsed[id] = now(); saveReg();
   try { window.sessionStorage.setItem(ACTIVE_SESSION_KEY, id); } catch(e){}
   load();
   view = restoreView();
   render(); window.scrollTo(0, 0);
-  syncNow('open');
+  afterOpenSync(syncNow('open'));
+  schedulePrefetch(6000);
 }
 function switchProfile(){
+  cancelPrefetch();
   if (ACTIVE) { save(); if (canSync()) syncNow('switch'); }
   ACTIVE = null; S = blankState();
   try { window.sessionStorage.removeItem(ACTIVE_SESSION_KEY); } catch(e){}
@@ -3305,7 +3478,7 @@ function removeProfileLocal(id, why){
   if (REG.renamePending === id) REG.renamePending = null;
   saveReg();
   if (ACTIVE === id) {
-    ACTIVE = null; S = blankState();
+    cancelPrefetch(); ACTIVE = null; S = blankState();
     try { window.sessionStorage.removeItem(ACTIVE_SESSION_KEY); } catch(e){}
     view = {page:'profiles', sid:null, filter:'all'}; render();
     if (why === 'deleted-remote') modal('Profile removed', '<p><b>' + esc(name) + '</b> was deleted on another device, so it was removed here too.</p>');
@@ -3382,7 +3555,7 @@ function saveProfileForm(id, v){
   if (!id) {
     var m = makeMeta(v.name, color, letter);
     if (v.pin) { m.pinSalt = randHex(16); m.pinHash = pinHashOf(v.pin, m.pinSalt); }
-    var st = blankState(); st.updatedAt = now();
+    var st = blankState(); st.updatedAt = now(); st.contentVersion = CONTENT_VERSION; // a new profile has nothing to upgrade
     if (!writeProfileData(m.id, st)) { modal('Couldn\'t create the profile', '<p>This browser\'s storage is full or blocked.</p>'); return; }
     REG.profiles[m.id] = m; REG.order.push(m.id); saveReg();
     enterProfile(m.id);
@@ -3692,6 +3865,7 @@ function applyRemote(id, remote){
   var merged = mergeProfileData(cur, sanitizeState(remote.data || {}));
   if (remote.meta && REG.profiles[id]) { REG.profiles[id] = mergeProfileMeta(REG.profiles[id], cleanRemoteMeta(remote.meta, id)); saveReg(); }
   setPState(id, merged);
+  if (id === ACTIVE && view.page === 'run' && !S.sessions[view.sid]) view = {page:'home', sid:null, filter:'all'}; // cleared elsewhere
   if (id !== ACTIVE || modalOpen()) return;
   if (view.page === 'run') { if (sessionSig(S.sessions[view.sid]) !== before) render(); }
   else if (view.page !== 'settings' && view.page !== 'backup') render();
@@ -4210,7 +4384,7 @@ function badgeStep(rec, L, t) {
 function badgeCount(badges) { return Object.keys(badges || {}).filter(function (c) { return badges[c] && badges[c].at; }).length; }
 /* Weekly boss: one scored attempt per week (Monday-based, device-local). */
 function bossState(boss, today) {
-  var wk = mondayKey(today), b = boss && boss[wk];
+  var wk = mondayKey(today), b = boss && boss[wk]; if (b && (+b.void || +b.done >= 9e15)) b = null; // voided by a content migration
   return { week: wk, resetsIn: 7 - keyDiff(wk, today), attempt: b || null, status: !b ? 'ready' : b.done ? (b.win ? 'won' : 'tried') : 'progress',
     wins: Object.keys(boss || {}).filter(function (w) { return boss[w] && boss[w].win; }).sort() };
 }
@@ -4286,7 +4460,8 @@ function gameRecalc(quiet){
   Object.keys(S.levels || {}).forEach(function(c){ if (!CMAP[c]) return; var old = g.badges[c], nb = badgeStep(old, S.levels[c], t);
     if (JSON.stringify(nb) !== JSON.stringify(old || null)) { if (nb) g.badges[c] = nb; if (nb && !old) q.push({type:'badge', c:c}); else if (nb && nb.gold && !(old && old.gold)) q.push({type:'gold', c:c}); } });
   // boss attempts
-  Object.keys(g.boss).forEach(function(wk){ var b = g.boss[wk], s = S.sessions[b.sid]; if (b.done) return;
+  Object.keys(g.boss).forEach(function(wk){ var b = g.boss[wk], s = S.sessions[b.sid]; if (b.done || bossVoid(b)) return;
+    if (!s && S.cleared && S.cleared[b.sid]) { b.void = S.cleared[b.sid]; return; } // cleared by a content migration: doesn't use up the week
     if (s && s.finishedAt) { var r = sessionResults(s); b.done = s.finishedAt; b.n = r.correct; b.of = r.total; b.win = r.correct >= GAME.BOSS_WIN;
       if (b.win) { g.xp['b:' + wk] = [GAME.XP_BOSS_WIN, dayKeyOf(s.finishedAt)]; q.push({type:'boss', wk:wk, n:b.n}); } else q.push({type:'bosstry', wk:wk, n:b.n}); }
     else if (!s && S.deleted[b.sid]) { b.done = S.deleted[b.sid]; b.n = 0; b.of = GAME.BOSS_N; b.win = false; } });
@@ -4318,7 +4493,7 @@ function cleanGame(g){
   o.days = {}; Object.keys(obj(g.days)).slice(-4000).forEach(function(d){ if (isDayKey(d) && +g.days[d] > 0) o.days[d] = Math.min(100000, Math.round(+g.days[d])); });
   o.xp = {}; Object.keys(obj(g.xp)).slice(0, 30000).forEach(function(k){ var e = g.xp[k]; if (/^[\w:.-]{1,90}$/.test(k) && Array.isArray(e) && isFinite(+e[0]) && isDayKey(e[1])) o.xp[k] = [Math.max(0, Math.min(5000, Math.round(+e[0]))), e[1]]; });
   o.badges = {}; Object.keys(obj(g.badges)).forEach(function(c){ var b = g.badges[c]; if (!CMAP[c] || !b || !(+b.at)) return; var r = {at:+b.at}; ['gold','hs','hn','ck'].forEach(function(f){ if (+b[f]) r[f] = +b[f]; }); o.badges[c] = r; });
-  o.boss = {}; Object.keys(obj(g.boss)).forEach(function(w){ var b = g.boss[w]; if (!isDayKey(w) || !b || typeof b.sid !== 'string') return; o.boss[w] = {sid:str(b.sid, 40), at:+b.at || 0}; ['done','n','of'].forEach(function(f){ if (+b[f]) o.boss[w][f] = +b[f]; }); if (b.win === true) o.boss[w].win = true; if (Array.isArray(b.skills)) o.boss[w].skills = b.skills.filter(function(c){ return CMAP[c]; }).slice(0, 10); });
+  o.boss = {}; Object.keys(obj(g.boss)).forEach(function(w){ var b = g.boss[w]; if (!isDayKey(w) || !b || typeof b.sid !== 'string') return; o.boss[w] = {sid:str(b.sid, 40), at:+b.at || 0}; ['done','n','of'].forEach(function(f){ if (+b[f]) o.boss[w][f] = +b[f]; }); if (b.win === true) o.boss[w].win = true; if (+b.void) o.boss[w].void = +b.void; if (Array.isArray(b.skills)) o.boss[w].skills = b.skills.filter(function(c){ return CMAP[c]; }).slice(0, 10); });
   o.speed = {}; Object.keys(obj(g.speed)).forEach(function(c){ var x = g.speed[c]; if (CMAP[c] && x && isFinite(+x.best)) o.speed[c] = {best:Math.max(0, Math.round(+x.best)), at:+x.at || 0, runs:Math.max(0, Math.round(+x.runs || 0))}; });
   o.miles = {}; Object.keys(obj(g.miles)).forEach(function(m){ if (/^\d{3,4}$/.test(m) && +g.miles[m]) o.miles[m] = +g.miles[m]; });
   if (g.goal && +g.goal.score >= 400 && +g.goal.score <= 1600) o.goal = {score:Math.round(+g.goal.score / 10) * 10, at:+g.goal.at || 0, by:g.goal.by === 'parent' ? 'parent' : 'kid'};
@@ -4351,9 +4526,9 @@ function gameOnFinish(s){
   gameRecalc(); save();
 }
 /* ---------- celebrations ---------- */
-function toast(msg, cls){
+function toast(msg, cls, ms){
   var el = document.getElementById('gtoast'); if (!el) { el = document.createElement('div'); el.id = 'gtoast'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
-  el.className = 'gtoast on ' + (cls || ''); el.textContent = msg; clearTimeout(GUI.toastT); GUI.toastT = setTimeout(function(){ el.className = 'gtoast'; }, 2600);
+  el.className = 'gtoast on ' + (cls || ''); el.textContent = msg; clearTimeout(GUI.toastT); GUI.toastT = setTimeout(function(){ el.className = 'gtoast' + (cls ? ' ' + cls : ''); }, ms || 2600);
 }
 function confetti(){
   if (reducedMotion()) return;
@@ -4638,7 +4813,7 @@ function choose(L){
   if (s.struck && s.struck[id] && s.struck[id][L]) delete s.struck[id][L]; // choosing a crossed-out answer un-crosses it (like Bluebook)
   if (s.answers[id] === L) delete s.answers[id]; else s.answers[id] = L;
   var r = qaRec(s, id); r.t = now(); if (s.answers[id] && !r.a) { r.a = r.t; r.d = dayKeyOf(r.a); }
-  save(); render(); syncSoon(); gameOnAnswer(s);
+  save(); render(); syncSoon(); gameOnAnswer(s); schedulePrefetch(5000);
   if (s.mode === 'speed' && s.answers[id]) setTimeout(function(){ var cs = curSession(); if (cs === s && !s.finishedAt && s.stage === 'q' && s.modules[s.mod][s.idx] === id) move(1); }, 220);   // speed rounds: auto-advance
 }
 function move(d){
@@ -4746,7 +4921,7 @@ app.addEventListener('click', function(e){
   var fn = ACTIONS[el.getAttribute('data-act')]; if (fn) { e.preventDefault(); fn(el); }
 });
 app.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && (e.target.id === 'ai-url' || e.target.id === 'ai-pass')) { e.preventDefault(); aiConnect(); } if (e.key === 'Enter' && e.target && e.target.id === 'spr-in') { e.preventDefault(); var ks = curSession(); if (ks && checkOn(ks) && e.target.value && !isChecked(ks, ks.modules[ks.mod][ks.idx])) doCheck(); else e.target.blur(); } });
-app.addEventListener('change', function(e){ var t = e.target; if (!t) return; if (t.id === 'ai-provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.id === 'ai-model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-review') { setPref('ai.review', !!t.checked); render(); return; } if (view.page === 'settings' && t.type === 'checkbox' && t.getAttribute('data-pref') === 'coach') { setPref('coach', !!t.checked); render(); return; } if (t.type === 'checkbox' && t.getAttribute('data-gpref')) { var gp = t.getAttribute('data-gpref'); if (gp === 'sound') { setPref('gameSound', !!t.checked); if (t.checked) chime(); } else if (gp === 'lb') { G().lbOpt = {off:!t.checked, at:now()}; updateLbLine(); save(); syncSoon(1500); } render(); return; } if (t.id === 'dash-concept') { DASH.concept = t.value; render(); return; } if (t.id === 'dash-mode') { DASH.mode = t.value; render(); return; } homeChange(t); });
+app.addEventListener('change', function(e){ var t = e.target; if (!t) return; if (t.id === 'ai-provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.id === 'ai-model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-review' || t.getAttribute('data-aiset') === 'review') { setPref('ai.review', !!t.checked); render(); return; } if (t.getAttribute('data-aiset') === 'provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.getAttribute('data-aiset') === 'model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-prefetch') { setPref('ai.prefetch', !!t.checked); if (t.checked) schedulePrefetch(500); else cancelPrefetch(); render(); return; } if (view.page === 'settings' && t.type === 'checkbox' && t.getAttribute('data-pref') === 'coach') { setPref('coach', !!t.checked); render(); return; } if (t.type === 'checkbox' && t.getAttribute('data-gpref')) { var gp = t.getAttribute('data-gpref'); if (gp === 'sound') { setPref('gameSound', !!t.checked); if (t.checked) chime(); } else if (gp === 'lb') { G().lbOpt = {off:!t.checked, at:now()}; updateLbLine(); save(); syncSoon(1500); } render(); return; } if (t.id === 'dash-concept') { DASH.concept = t.value; render(); return; } if (t.id === 'dash-mode') { DASH.mode = t.value; render(); return; } homeChange(t); });
 /* Student-produced response box: saved as you type (no re-render, so the keyboard stays up). */
 app.addEventListener('input', function(e){
   var t = e.target; if (!t || t.id !== 'spr-in' || view.page !== 'run') return;
@@ -4809,6 +4984,7 @@ document.addEventListener('visibilitychange', function(){
   if (!document.hidden && view.page === 'run' && ACTIVE) { var vs = curSession(); if (vs && vs.stage === 'break' && vs.breakEnds && vs.breakEnds <= now()) startNextModule(vs); }
   if (document.hidden) { save(); if (ACTIVE && canSync()) syncNow('hidden', {keepalive:true}); }
   else if (canSync() && now() - SY.at > 15000) syncNow(ACTIVE ? 'visible' : 'list');
+  if (!document.hidden) schedulePrefetch(5000);
 });
 window.addEventListener('pagehide', save);
 window.addEventListener('online', function(){ if (canSync()) syncNow('online'); });
@@ -4821,12 +4997,12 @@ setInterval(function(){ if (!document.hidden && canSync() && !SY.busy && now() -
 loadReg();
 migrateLegacy();
 var chosen = null; try { chosen = window.sessionStorage.getItem(ACTIVE_SESSION_KEY); } catch(e){}
-if (chosen && REG.profiles[chosen]) { ACTIVE = chosen; REG.lastUsed[chosen] = now(); saveReg(); load(); view = restoreView(); render(); syncNow('open'); }
+if (chosen && REG.profiles[chosen]) { ACTIVE = chosen; REG.lastUsed[chosen] = now(); saveReg(); load(); view = restoreView(); render(); afterOpenSync(syncNow('open')); }
 else { S = blankState(); view = {page:'profiles', sid:null, filter:'all'}; render(); if (canSync()) syncNow('list'); }
 if (relayUrl() && AIS.passcode && now() - (AIS.checkedAt || 0) > 6*3600e3 && navigator.onLine !== false) {
-  refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); }, function(){});
-}
-window.__SAT = {state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
+  refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); schedulePrefetch(6000); }, function(){});
+} else schedulePrefetch(6000);
+window.__SAT = {content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
   game:{G:G, recalc:gameRecalc, stats:gameStats, streakInfo:streakInfo, sessionXP:sessionXP, levelInfo:levelInfo, badgeStep:badgeStep, bossState:bossState, leaderboard:leaderboard, lbRows:lbRows, cleanGame:cleanGame, dayKeyOf:dayKeyOf, mondayKey:mondayKey, todayKey:todayKey, startBoss:startBoss, startSpeed:startSpeed, goalInfo:goalInfo, GAME:GAME, SKILL_BADGES:SKILL_BADGES, queue:function(){ return GUI.queue; }, flush:flushCelebrations},
   reg:function(){ return REG; }, active:function(){ return ACTIVE; }, sync:function(){ return SY; }, syncNow:syncNow, merge:mergeProfileData, sha256hex:sha256hex, records:collectRecords};
 })();
