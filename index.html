@@ -600,6 +600,13 @@ body.touring{overflow:hidden}
 .pvmq summary{cursor:pointer;color:var(--blue-d);font-weight:600;margin-top:4px}
 .pvmql li{flex-direction:column;align-items:flex-start;gap:2px}
 @media(max-width:600px){.mqpractice .btn.primary{width:100%}.mqfilters .fld{width:100%}.mqfilters select{flex:1}.mqi .mqhead{padding:9px 10px}.mqacts{padding:8px 10px}.mqacts .btn{flex:1 1 auto}.mqhome .btn{width:100%}.pvmql li{flex-direction:column;gap:2px}}
+/* Speed Round review */
+.sri .rv-h{gap:8px}.sri .srans{margin-left:auto}
+.sri.sri-bad{border-color:#f0b4b4}.sri.sri-ok{border-color:#b7e2c8}
+.sqd>summary{cursor:pointer;font-weight:700;color:var(--blue-d);min-height:36px;display:flex;align-items:center}
+.sqd[open]>summary{margin-bottom:6px}.sqd>summary{list-style:none}.sqd>summary::-webkit-details-marker{display:none}.sqd>summary::before{content:'\25B8';margin-right:8px}.sqd[open]>summary::before{content:'\25BE'}
+.score.srpb{background:var(--ok-l)}.sri .rv-b .row .btn{min-height:40px}
+@media(max-width:640px){.sri .srans{margin-left:0;width:100%}.sri .rv-b{padding:12px}#speed-sum .row .btn{flex:1 1 auto}}
 </style>
 </head>
 <body>
@@ -1897,11 +1904,14 @@ function aiSourceLabel(q){ return q && q.ai ? '✨ AI · ' + (PROVIDER_NAMES[q.s
 function isReported(id){ return !!(S.reported && S.reported[id]); }
 
 /* ---------- history / stats ---------- */
+/* Speed rounds queue ~20 questions but a student only reaches some of them in 60 seconds. Questions never
+   answered in a speed round were never attempted, so they don't count anywhere (not seen, not wrong). */
+function unattempted(s, id){ return !!s && s.mode === 'speed' && !(s.answers && s.answers[id]); }
 function seenInfo(){
   var info = {};
   Object.keys(S.sessions).forEach(function(sid){
     var s = S.sessions[sid];
-    flat(s).forEach(function(id){
+    flat(s).forEach(function(id){ if (unattempted(s, id)) return;
       var r = info[id] || (info[id] = {n:0, last:0});
       r.n++; r.last = Math.max(r.last, s.createdAt || 0);
     });
@@ -1916,7 +1926,7 @@ function conceptStats(){
   CONCEPTS.forEach(function(c){ st[c.id] = {seen:0, correct:0, unsure:0, hist:[], lastSeen:0, lastPracticed:0}; });
   finishedSessions().forEach(function(s){
     flat(s).forEach(function(id){
-      var q = Q[id]; if (!q || isReported(id)) return; var r = st[q.concept];
+      var q = Q[id]; if (!q || isReported(id) || unattempted(s, id)) return; var r = st[q.concept];
       var ok = isCorrect(q, s.answers[id]), un = !!s.unsure[id];
       r.seen++; if (ok) r.correct++; if (un) r.unsure++;
       r.hist.push(ok && !un ? 1 : 0);
@@ -2054,7 +2064,7 @@ function sessionResults(s){
   s.modules.forEach(function(m, mi){
     var mr = {total:0, correct:0, sec:modSec(s, mi), route:routeLabel(s, mi)};
     m.forEach(function(id, qi){
-      var q = Q[id]; if (!q) return;
+      var q = Q[id]; if (!q || unattempted(s, id)) return;
       if (isReported(id)) { res.reported++; res.reportedIds.push({id:id, mod:mi, num:qi+1}); return; }
       mr.total++;
       var ans = s.answers[id], ok = isCorrect(q, ans), un = !!s.unsure[id], sec = qSec(q);
@@ -2240,7 +2250,7 @@ function missedConcepts(section){
   var add = function(c){ if (!c || seen[c] || !CMAP[c] || st[c].archived || st[c].status === 'mastered') return; if (section && section !== 'all' && cSec(c) !== section) return; seen[c] = 1; out.push(c); };
   weakConcepts(st).forEach(add);
   var rest = [];
-  finishedSessions().forEach(function(s){ flat(s).forEach(function(id){ var q = Q[id]; if (!q || isReported(id)) return; if (!isCorrect(q, s.answers[id]) || s.unsure[id]) rest.push(q.concept); }); });
+  finishedSessions().forEach(function(s){ flat(s).forEach(function(id){ var q = Q[id]; if (!q || isReported(id) || unattempted(s, id)) return; if (!isCorrect(q, s.answers[id]) || s.unsure[id]) rest.push(q.concept); }); });
   var extra = []; rest.forEach(function(c){ if (!seen[c] && extra.indexOf(c) < 0 && CMAP[c] && !st[c].archived && st[c].status !== 'mastered' && (!section || section === 'all' || cSec(c) === section)) extra.push(c); });
   extra.sort(function(a, b){ return st[a].recentRate - st[b].recentRate; }).forEach(add);
   return out;
@@ -2913,6 +2923,7 @@ function fromSessionConcepts(s){
 function renderResults(){
   var s = S.sessions[view.sid];
   if (!s || !s.finishedAt) { go('home'); return; }
+  if (s.mode === 'speed') { renderSpeedResults(s); return; }
   var r = sessionResults(s), st = conceptStats(), isTest = s.kind === 'test';
   var sc = scoreSession(s, r), aiN = flat(s).filter(function(id){ return Q[id] && Q[id].ai; }).length;
   var h = nav() + '<div class="wrap">' + storageWarning() + gameResultsHTML(s) + '<div class="card"><div class="muted small">'+esc(MODE_LABEL[modeOf(s)])+(isTest?(instantExam(s)?' · ' + unscoredLabel(s).toLowerCase():''):' · practice set')+' · finished '+fmtDate(s.finishedAt)+'</div><h2 style="font-size:24px">'+esc(s.title)+'</h2>';
@@ -2959,6 +2970,49 @@ function renderResults(){
   h += '</div>';
   app.innerHTML = h;
 }
+/* ---------- Speed Round review (end of every round, and from Past Tests) ----------
+   The round itself is unchanged (no Check answer, auto-advance). Afterwards: every question reached, in order, with
+   the answer, the key (all accepted forms for typed answers), right/wrong, the short explanation and the thorough one. */
+function speedAttempts(s){
+  var mod = (s.modules && s.modules[0]) || [], last = -1;
+  mod.forEach(function(id, i){ if (s.answers[id]) last = i; });
+  return mod.slice(0, last + 1).map(function(id, i){ var q = Q[id]; if (!q) return null; var ans = s.answers[id] || null; return {id:id, q:q, num:i + 1, ans:ans, ok:!!ans && isCorrect(q, ans), skipped:!ans, rep:isReported(id)}; }).filter(Boolean);
+}
+function narrowScreen(){ try { return !!(window.matchMedia && window.matchMedia('(max-width: 640px)').matches); } catch(e){ return false; } }
+function speedItemHTML(s, x){
+  var q = x.q, sp = q.format === 'spr', math = qSec(q) === 'math', key = sp ? q.answers[0] : q.correct, mob = narrowScreen();
+  var st = x.skipped ? '<span class="badge b-new">Skipped</span>' : x.ok ? '<span class="badge b-ok">✓ Right</span>' : '<span class="badge b-wrong">✗ Wrong</span>';
+  var h = '<div class="rv sri ' + (x.ok ? 'sri-ok' : 'sri-bad') + (math ? ' rvm' : '') + '" data-qid="' + esc(x.id) + '"><div class="rv-h"><b>Q' + x.num + '</b>' + st + (x.rep ? ' <span class="badge b-new">⚑ Reported</span>' : '') +
+    '<span class="small srans">You: <b class="' + (x.ok ? 'okc' : 'bad') + '">' + (x.ans ? esc(x.ans) : '—') + '</b> · Correct: <b class="okc">' + esc(key) + '</b></span></div><div class="rv-b">';
+  h += '<details class="sqd"' + (mob ? '' : ' open') + '><summary>' + (mob ? 'Show the question' : 'Question') + '</summary>' + questionPartHTML(q, x.ans, !mob) + '</details>';
+  if (sp) h += '<div class="yours"><div><b>Your answer:</b> ' + ansText(q, x.ans) + '</div><div><b>Correct answer:</b> ' + esc(q.answers[0]) + '</div></div><div class="fb-acc"><b>Accepted answers:</b> ' + sprEquivalents(q.answers).map(function(a){ return '<code>' + esc(a) + '</code>'; }).join(' ') + ' <span class="small muted">and any other equivalent form that fits the box.</span></div>';
+  h += '<div class="why"><b>Why' + (sp ? '' : ' ' + q.correct + ' is right') + ':</b> ' + qh(q, q.explanation) + '</div>';
+  h += thoroughBtnHTML(q, x.ans);
+  if (!x.ok) h += '<div class="row" style="margin-top:8px"><button class="btn small' + (aiReady() ? ' ai' : '') + '" data-act="sr-practice" data-id="' + esc(x.id) + '">🔁 Practice this concept</button><button class="btn small ghost" data-act="nav" data-page="missed">❌ Missed tab</button></div>';
+  return h + '</div></div>';
+}
+function renderSpeedResults(s){
+  var cid = s.speed && s.speed.cid || (s.targets || [])[0], c = CMAP[cid] || {name:'Speed Round'}, all = speedAttempts(s);
+  var att = all.filter(function(x){ return !x.skipped; }), right = att.filter(function(x){ return x.ok; }).length, miss = all.filter(function(x){ return !x.ok; });
+  var g = G(), best = g.speed && g.speed[cid] ? +g.speed[cid].best || 0 : 0, pb = !!(s.speed && s.speed.pb);
+  var secs = att.map(function(x){ var a = s.qa && s.qa[x.id]; return a && +a.sec || 0; }).filter(Boolean), avg = secs.length ? Math.round(secs.reduce(function(a, b){ return a + b; }, 0) / secs.length) : 0;
+  var f = view.filter === 'missed' ? 'missed' : 'all', list = f === 'missed' ? miss : all;
+  var h = nav() + '<div class="wrap">' + storageWarning() + gameResultsHTML(s);
+  h += '<div class="card" id="speed-sum"><div class="muted small">⚡ Speed Round · ' + esc(SECTION_NAMES[cSec(cid)] || '') + ' · finished ' + fmtDate(s.finishedAt) + '</div><h2 style="font-size:24px">' + esc(c.name) + '</h2>' +
+    '<div class="scores"><div class="score">Correct<b>' + right + '</b>in 60 seconds</div><div class="score">Answered<b>' + att.length + '</b>' + (att.length ? pct(right, att.length) + '% right' : 'none') + (avg ? ' · ~' + avg + ' s each' : '') + '</div>' +
+    '<div class="score' + (pb ? ' srpb' : '') + '">Personal best<b>' + Math.max(best, right) + '</b>' + (pb ? '🏆 new record!' : right >= best && best ? 'tied your best' : 'for this skill') + '</div></div>' +
+    '<div class="row" style="margin-top:12px"><button class="btn primary" data-act="speed-again" data-c="' + esc(cid) + '">⚡ Another round</button>' +
+    '<button class="btn' + (aiReady() ? ' ai' : '') + '" data-act="sr-practice-all" data-sid="' + esc(s.id) + '">🔁 Practice this concept</button>' +
+    (missedCount() ? '<button class="btn ghost" data-act="nav" data-page="missed">❌ Missed tab (' + missedCount() + ')</button>' : '') + '</div>' +
+    (miss.length ? '<p class="small muted" style="margin-bottom:0">Questions you missed here are also on the <b>Missed</b> tab, so you can come back to them later.</p>' : '') + '</div>';
+  h += '<div class="card" id="speed-review"><h2>Review: every question in this round</h2>';
+  if (!all.length) h += '<p class="muted">No questions were answered in this round.</p>';
+  else {
+    h += '<div class="filters"><button data-act="sr-filter" data-f="all" class="' + (f === 'all' ? 'on' : '') + '" aria-pressed="' + (f === 'all') + '">All (' + all.length + ')</button><button data-act="sr-filter" data-f="missed" class="' + (f === 'missed' ? 'on' : '') + '" aria-pressed="' + (f === 'missed') + '">Show only missed (' + miss.length + ')</button></div>';
+    h += list.length ? list.map(function(x){ return speedItemHTML(s, x); }).join('') : '<p class="muted">Nothing missed in this round. 🎉</p>';
+  }
+  app.innerHTML = h + '</div></div>';
+}
 function statusBadge(o){ return o.archived ? '<span class="badge b-archived">Archived</span>' : '<span class="badge b-'+o.status+'">'+STATUS_LABEL[o.status]+'</span>'; }
 function reviewSection(s, r){
   var wrong = r.review.filter(function(x){ return !x.ok; }), cu = r.review.filter(function(x){ return x.ok && x.un; });
@@ -2989,21 +3043,30 @@ function reviewCard(s, x){
 /* The question (passage / figure / stem / choices), the student's answer, the key, the explanation, the concept lesson
    and the thorough explanation (relay /explain, cached). Shared by Review cards and Missed questions. */
 function reviewBodyHTML(q, ans){
-  var c = CMAP[q.concept] || {name:'', lesson:'', domain:''}, math = qSec(q) === 'math', x = {ans:ans || null}, h = '';
-  if (math) { var mb = mathBodyHTML(q); if (mb) h += '<div class="mreview">' + mb + '</div>'; h += '<div class="stem">' + renderMath(q.stem) + '</div>'; }
-  else { h += '<details class="pass" open><summary>Passage</summary><div class="passage">'+passageHTML(q)+'</div></details>'; h += '<div class="stem">'+q.stem+'</div>'; }
+  var c = CMAP[q.concept] || {name:'', lesson:'', domain:''}, x = {ans:ans || null}, h = questionPartHTML(q, ans, true);
   if (q.format === 'spr') {
     h += '<div class="yours"><div><b>Your answer:</b> ' + ansText(q, x.ans) + '</div><div><b>Correct answer:</b> ' + esc(q.answers[0]) + (q.answers.length > 1 ? ' <span class="small muted">(also accepted: ' + q.answers.slice(1).map(esc).join(', ') + ', and any equivalent form that fits the box)</span>' : '') + '</div></div>';
     h += '<div class="why"><b>Explanation:</b> ' + qh(q, q.explanation) + '</div>';
   } else {
-    q.choices.forEach(function(ch, i){ var L = LET(i), isC = L === q.correct, isP = L === x.ans;
-      h += '<div class="rchoice'+(isC?' correct':'')+(isP&&!isC?' picked':'')+'"><span class="L">'+L+')</span><span>'+qh(q, ch)+'</span>'+(isC?'<span class="tag" style="color:var(--ok)">✓ Correct answer</span>':'')+(isP&&!isC?'<span class="tag" style="color:var(--bad)">✗ Your answer</span>':'')+(isP&&isC?'<span class="tag" style="color:var(--ok)">(your answer)</span>':'')+'</div>'; });
     h += '<div class="yours"><div><b>Your answer:</b> '+ansText(q, x.ans)+'</div><div><b>Correct answer:</b> '+ansText(q, q.correct)+'</div></div>';
     h += '<div class="why"><b>Why '+q.correct+' is right:</b> '+qh(q, q.explanation)+'</div>';
   }
   h += '<div class="lesson"><b>Concept: '+esc(c.name)+'</b> <span class="small muted">('+DOMAINS[c.domain]+')</span><br>'+esc(c.lesson)+'</div>';
+  return h + thoroughBtnHTML(q, x.ans);
+}
+function thoroughBtnHTML(q, ans){
   var tOpen = !!(view.thx && view.thx[q.id]);
-  h += '<div class="fb-acts"><button class="btn small thbtn" data-act="thorough" data-id="' + esc(q.id) + '" data-ans="' + esc(x.ans || '') + '" aria-expanded="' + tOpen + '" aria-controls="thw-' + esc(q.id) + '">' + (tOpen ? '▾ Hide thorough explanation' : '📘 Show thorough explanation') + '</button></div><div class="thwrap" id="thw-' + esc(q.id) + '" data-q="' + esc(q.id) + '" data-ans="' + esc(x.ans || '') + '">' + (tOpen ? thoroughHTML(q, x.ans || null) : '') + '</div>';
+  return '<div class="fb-acts"><button class="btn small thbtn" data-act="thorough" data-id="' + esc(q.id) + '" data-ans="' + esc(ans || '') + '" aria-expanded="' + tOpen + '" aria-controls="thw-' + esc(q.id) + '">' + (tOpen ? '▾ Hide thorough explanation' : '📘 Show thorough explanation') + '</button></div><div class="thwrap" id="thw-' + esc(q.id) + '" data-q="' + esc(q.id) + '" data-ans="' + esc(ans || '') + '">' + (tOpen ? thoroughHTML(q, ans || null) : '') + '</div>';
+}
+/* Passage / figure / stem, then the choices marked (correct = green, the student's wrong pick = red). */
+function questionPartHTML(q, ans, passOpen){
+  var math = qSec(q) === 'math', x = {ans:ans || null}, h = '';
+  if (math) { var mb = mathBodyHTML(q); if (mb) h += '<div class="mreview">' + mb + '</div>'; h += '<div class="stem">' + renderMath(q.stem) + '</div>'; }
+  else { h += '<details class="pass"' + (passOpen === false ? '' : ' open') + '><summary>Passage</summary><div class="passage">'+passageHTML(q)+'</div></details>'; h += '<div class="stem">'+q.stem+'</div>'; }
+  if (q.format !== 'spr') {
+    q.choices.forEach(function(ch, i){ var L = LET(i), isC = L === q.correct, isP = L === x.ans;
+      h += '<div class="rchoice'+(isC?' correct':'')+(isP&&!isC?' picked':'')+'"><span class="L">'+L+')</span><span>'+qh(q, ch)+'</span>'+(isC?'<span class="tag" style="color:var(--ok)">✓ Correct answer</span>':'')+(isP&&!isC?'<span class="tag" style="color:var(--bad)">✗ Your answer</span>':'')+(isP&&isC?'<span class="tag" style="color:var(--ok)">(your answer)</span>':'')+'</div>'; });
+  }
   return h;
 }
 
@@ -4163,7 +4226,7 @@ function collectRecords(){
       var est = s.timed && Array.isArray(s.timeLeft) && mod.length && s.finishedAt && !hasQa ? Math.max(0, modSeconds(s, mi) - (+s.timeLeft[mi] || 0)) / mod.length : 0;
       var mr = {n:0, ok:0};
       mod.forEach(function(id){
-        var q = Q[id]; if (!q || isReported(id)) return;
+        var q = Q[id]; if (!q || isReported(id) || unattempted(s, id)) return;
         var a = qa[id] || {}, ans = s.answers[id];
         var rec = {t:a.a || a.t || s.finishedAt || s.updatedAt || s.createdAt || 0, fin:!!s.finishedAt, ok:isCorrect(q, ans), un:!!s.unsure[id], answered:!!ans, concept:q.concept, domain:q.domain, ai:!!q.ai, sec:+a.sec || est || 0, sect:qSec(q), fmt:q.format === 'spr' ? 'spr' : 'mc', mode:info.mode, chk:!!(s.checks && s.checks[id]), co:isCoached(s, id)};
         recs.push(rec);
@@ -5081,6 +5144,13 @@ var ACTIONS = {
   'sync-now': function(){ syncNow('manual').then(function(){ if (view.page === 'settings' || view.page === 'profiles') render(); }); },
   'sync-info': function(){ syncInfo(); },
   'dash-range': function(el){ DASH.range = el.getAttribute('data-r'); render(); },
+  'sr-filter': function(el){ view.filter = el.getAttribute('data-f'); render(); var rv = document.getElementById('speed-review'); if (rv && rv.scrollIntoView) rv.scrollIntoView(); },
+  'speed-again': function(el){ var c = el.getAttribute('data-c'); if (CMAP[c]) startSpeed(c); },
+  'sr-practice': function(el){ var id = el.getAttribute('data-id'), q = Q[id]; if (!q) return; var e = missedList().filter(function(x){ return x.id === id && !x.got; })[0];
+    if (e) practiceMissed([e], (CMAP[q.concept] || {}).name); else if (aiReady()) aiPractice([q.concept], (CMAP[q.concept] || {}).name); else startPractice([q.concept], (CMAP[q.concept] || {}).name); },
+  'sr-practice-all': function(el){ var s = S.sessions[el.getAttribute('data-sid')]; if (!s) return; var cid = s.speed && s.speed.cid || (s.targets || [])[0]; if (!CMAP[cid]) return;
+    var ids = {}; speedAttempts(s).forEach(function(x){ if (!x.ok) ids[x.id] = 1; }); var es = missedList().filter(function(e){ return ids[e.id] && !e.got; });
+    if (es.length) practiceMissed(es, CMAP[cid].name); else if (aiReady()) aiPractice([cid], CMAP[cid].name); else startPractice([cid], CMAP[cid].name); },
   'mq-open': function(el){ var id = el.getAttribute('data-id'); MQ.open[id] = !MQ.open[id]; render(); },
   'mq-sec': function(el){ MQ.sec = el.getAttribute('data-v'); render(); },
   'mq-got': function(el){ var id = el.getAttribute('data-id'); if (!S.missedGot || typeof S.missedGot !== 'object') S.missedGot = {}; S.missedGot[id] = {at:now(), on:1}; delete MQ.open[id]; S.updatedAt = now(); save(); render(); syncSoon(); },
@@ -5177,7 +5247,7 @@ else { S = blankState(); view = {page:'profiles', sid:null, filter:'all'}; rende
 if (relayUrl() && AIS.passcode && now() - (AIS.checkedAt || 0) > 6*3600e3 && navigator.onLine !== false) {
   refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); schedulePrefetch(6000); }, function(){});
 } else schedulePrefetch(6000);
-window.__SAT = {missedList:function(){ return missedList(); }, missedCount:function(){ return missedCount(); }, practiceMissed:function(e, l){ practiceMissed(e, l); }, MQ:MQ, sanitizeState:function(x){ return sanitizeState(x); }, submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
+window.__SAT = {speedAttempts:function(s){ return speedAttempts(s); }, missedList:function(){ return missedList(); }, missedCount:function(){ return missedCount(); }, practiceMissed:function(e, l){ practiceMissed(e, l); }, MQ:MQ, sanitizeState:function(x){ return sanitizeState(x); }, submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
   game:{G:G, recalc:gameRecalc, stats:gameStats, streakInfo:streakInfo, sessionXP:sessionXP, levelInfo:levelInfo, badgeStep:badgeStep, bossState:bossState, leaderboard:leaderboard, lbRows:lbRows, cleanGame:cleanGame, dayKeyOf:dayKeyOf, mondayKey:mondayKey, todayKey:todayKey, startBoss:startBoss, startSpeed:startSpeed, goalInfo:goalInfo, GAME:GAME, SKILL_BADGES:SKILL_BADGES, queue:function(){ return GUI.queue; }, flush:flushCelebrations},
   reg:function(){ return REG; }, active:function(){ return ACTIVE; }, sync:function(){ return SY; }, syncNow:syncNow, merge:mergeProfileData, sha256hex:sha256hex, records:collectRecords};
 })();
