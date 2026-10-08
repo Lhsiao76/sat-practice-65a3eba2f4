@@ -3116,7 +3116,7 @@ function refreshProviders(){
     return data;
   }, function(e){
     AIS.status = {ok:false, msg:e.message, at:now()};
-    if (e.status === 401) AIS.providers = [];
+    if (e.status === 401) { AIS.providers = []; AUTH_BAD = AIS.passcode; }
     saveAISettings();
     throw e;
   });
@@ -3231,7 +3231,7 @@ function queueCount(c, d, info){ info = info || seenInfo(); return aiList().filt
 function queueStatus(){ var info = seenInfo(); return hotList().map(function(c){ var d = queueDiff(c); return {concept:c, difficulty:d, ready:queueCount(c, d, info)}; }); }
 function schedulePrefetch(ms){ clearTimeout(PF.timer); PF.timer = setTimeout(prefetchTick, ms == null ? 4000 : ms); }
 function prefetchTick(){
-  if (PF.busy || !aiPrefetchOn() || !aiReady() || (typeof navigator !== 'undefined' && navigator.onLine === false) || (typeof document !== 'undefined' && document.hidden)) return null;
+  if (PF.busy || authBlocked() || !aiPrefetchOn() || !aiReady() || (typeof navigator !== 'undefined' && navigator.onLine === false) || (typeof document !== 'undefined' && document.hidden)) return null;
   var day = todayKey(); if (AIS.pf.day !== day) AIS.pf = {day:day, n:0};
   if (AIS.pf.n >= AI_PREFETCH_DAILY) return null;
   var list = hotList(), info = seenInfo(), pick = null;
@@ -3469,7 +3469,7 @@ function switchProfile(){
   try { window.sessionStorage.removeItem(ACTIVE_SESSION_KEY); } catch(e){}
   view = {page:'profiles', sid:null, filter:'all'};
   render(); window.scrollTo(0, 0);
-  if (canSync()) syncList().catch(function(){});
+  if (canSync() && !authBlocked()) syncList().catch(function(){});
 }
 function removeProfileLocal(id, why){
   try { window.localStorage.removeItem(pdKey(id)); window.localStorage.removeItem(SYNC_PREFIX + id); } catch(e){}
@@ -3759,7 +3759,7 @@ function connectSyncModal(){
   var url = AIS.relayUrl || DEFAULT_RELAY_URL || '';
   modal('Sync across devices', '<p class="small">Enter the <b>family passcode</b> (the same one used for AI questions). Profiles and progress then stay in sync on every device that has it.</p>' +
     '<label class="fld"><span>Relay address</span><input id="cs-url" type="url" autocapitalize="off" spellcheck="false" value="' + esc(url) + '" placeholder="https://sat-relay.your-name.workers.dev"></label>' +
-    '<label class="fld"><span>Family passcode</span><input id="cs-pass" type="password" autocapitalize="off" autocomplete="current-password" spellcheck="false"></label><p id="cs-err" class="errmsg small" role="alert"></p>',
+    '<label class="fld"><span>Family passcode</span><input id="cs-pass" type="password" autocapitalize="off" autocorrect="off" autocomplete="current-password" spellcheck="false"></label><p id="cs-err" class="errmsg small" role="alert"></p>',
     [{label:'Cancel'}, {label:'Connect', primary:true, validate:function(){
       var u = ((document.getElementById('cs-url') || {}).value || '').trim().replace(/\/+$/, ''), p = ((document.getElementById('cs-pass') || {}).value || '').trim();
       var er = document.getElementById('cs-err');
@@ -3768,7 +3768,11 @@ function connectSyncModal(){
       return {u:u, p:p}; }, onClick:function(v){
         AIS.relayUrl = v.u === DEFAULT_RELAY_URL ? '' : v.u; AIS.passcode = v.p; saveAISettings();
         setSync('syncing');
-        refreshProviders().then(function(){ return syncNow('list'); }).then(function(){ render(); }, function(e){ setSync('error', e.message); render(); modal('Couldn\'t connect', '<p>' + esc(e.message) + '</p>'); }); }}]);
+        AUTH_BAD = '';
+        var bad = function(msg){ AIS.passcode = ''; AIS.providers = []; saveAISettings(); setSync('off'); render();
+          modal('That passcode didn\u2019t work', '<p>' + esc(msg) + '</p><p class="small muted">Passcodes are case-sensitive. Ask a parent for the family passcode.</p>', [{label:'Close'}, {label:'Try again', primary:true, onClick:connectSyncModal}]); };
+        refreshProviders().then(function(){ return syncNow('retry'); }).then(function(r){ if (AUTH_BAD && AUTH_BAD === AIS.passcode) bad('The relay said the family passcode is wrong.'); else render(); },
+          function(e){ if (e && e.status === 401) bad('The relay said the family passcode is wrong.'); else { setSync('error', e.message); render(); modal('Couldn\'t connect', '<p>' + esc(e.message) + '</p>'); } }); }}]);
 }
 
 /* ====================================================================================
@@ -3780,6 +3784,10 @@ function connectSyncModal(){
 var SY = {status:'off', msg:'', at:0, busy:null, again:false, t1:null, t2:null, maxBytes:1500000, listAt:0};
 var SYNC_LABEL = {off:'Sync off', pending:'Not synced yet', syncing:'Syncing…', ok:'Synced', offline:'Offline', error:'Sync problem'};
 function canSync(){ return !!(relayUrl() && AIS.passcode && typeof fetch === 'function'); }
+/* After the relay rejects the saved passcode, stop all automatic relay calls (sync, prefetch) until the
+ * passcode is changed or the student taps Retry, so a typo never keeps hammering the relay. */
+var AUTH_BAD = '';
+function authBlocked(){ return !!AIS.passcode && AUTH_BAD === AIS.passcode; }
 function syncTitle(){ var st = canSync() ? SY.status : 'off';
   return st === 'ok' ? 'Synced ' + (SY.at ? new Date(SY.at).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}) : '') : st === 'off' ? 'Sync is off on this device' : (SY.msg || SYNC_LABEL[st]); }
 function syncPill(){ var st = canSync() ? SY.status : 'off';
@@ -3798,7 +3806,7 @@ function syncFetch(path, method, body, keepalive){
       clearTimeout(timer);
       var d = null; try { d = JSON.parse(t); } catch(e){}
       if (!d) throw syncErr('The relay sent an unreadable reply (HTTP ' + res.status + ').', res.status);
-      if (res.status === 401) throw syncErr('Wrong family passcode. Check it in Settings.', 401);
+      if (res.status === 401) { AUTH_BAD = AIS.passcode; throw syncErr('Wrong family passcode. Tap here to enter it again.', 401); }
       if (res.status === 413) throw syncErr('This profile has too much data to sync. Download a backup from the Backup page.', 413);
       if (!res.ok && res.status !== 409 && res.status !== 404) throw syncErr(d.error || ('Sync failed (HTTP ' + res.status + ').'), res.status);
       return {status:res.status, data:d};
@@ -3913,12 +3921,13 @@ function doSync(id, opts){
 function syncNow(reason, opts){
   clearTimeout(SY.t1); SY.t1 = null; clearTimeout(SY.t2); SY.t2 = null;
   if (!canSync()) { setSync('off'); return Promise.resolve('off'); }
+  if (authBlocked() && reason !== 'manual' && reason !== 'retry') { setSync('error', 'Wrong family passcode. Tap here to enter it again.'); return Promise.resolve('auth'); }
   if (SY.busy) { SY.again = true; return SY.busy; }
   if (navigator.onLine === false) { setSync('offline', 'Offline. Progress is saved on this device and will sync later.'); return Promise.resolve('offline'); }
   setSync('syncing');
   var p = flushDeletes().then(function(){ return ACTIVE ? doSync(ACTIVE, opts) : null; })
-    .then(function(){ if (reason === 'open' || reason === 'list' || reason === 'visible' || now() - SY.listAt > 5 * 60000) return syncList(); })
-    .then(function(){ setSync('ok'); return 'ok'; }, function(e){ setSync(e.offline ? 'offline' : 'error', e.message); return 'error'; })
+    .then(function(){ if (reason === 'open' || reason === 'list' || reason === 'retry' || reason === 'visible' || now() - SY.listAt > 5 * 60000) return syncList(); })
+    .then(function(){ AUTH_BAD = ''; setSync('ok'); return 'ok'; }, function(e){ setSync(e.offline ? 'offline' : 'error', e.message); return 'error'; })
     .then(function(r){ SY.busy = null; if (SY.again) { SY.again = false; syncSoon(400); } return r; });
   SY.busy = p; return p;
 }
@@ -3967,9 +3976,19 @@ function downloadProfile(id){
 function syncInfo(){
   var st = canSync() ? SY.status : 'off';
   var body = '<p>' + syncPill() + '</p>';
+  var auth = st === 'error' && authBlocked();
   if (st === 'off') body += '<p>Sync is off on this device. Turn it on with the family passcode to keep profiles and progress the same on every device.</p>';
-  else body += '<p class="small">' + esc(syncTitle()) + '</p><p class="small muted">Progress is always saved on this device first. It syncs a few seconds after each answer, at the end of each test, and when you leave the app. Offline? It catches up automatically later.</p>';
-  modal('Sync', body, st === 'off' ? [{label:'Close'}, {label:'Turn on sync', primary:true, onClick:connectSyncModal}] : [{label:'Close'}, {label:'Sync now', primary:true, onClick:function(){ syncNow('manual'); }}]);
+  else {
+    if (st === 'error' || st === 'offline') body += '<p class="errmsg sync-err" role="alert"><b>' + (st === 'offline' ? 'Offline' : 'Sync problem') + ':</b> ' + esc(SY.msg || 'Unknown error') + '</p>';
+    else body += '<p class="small">' + esc(syncTitle()) + '</p>';
+    if (SY.at) body += '<p class="small muted">Last synced ' + esc(new Date(SY.at).toLocaleString(undefined, {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'})) + '.</p>';
+    body += '<p class="small muted">Progress is always saved on this device first' + (st === 'error' || st === 'offline' ? ', so nothing is lost while sync is failing.' : '. It syncs a few seconds after each answer, at the end of each test, and when you leave the app. Offline? It catches up automatically later.') + '</p>';
+  }
+  var retry = function(){ setSync('syncing'); syncNow('retry').then(function(){ if (!modalOpen()) syncInfo(); }); };
+  modal('Sync', body, st === 'off' ? [{label:'Close'}, {label:'Turn on sync', primary:true, onClick:connectSyncModal}]
+    : auth ? [{label:'Close'}, {label:'Retry', onClick:retry}, {label:'Enter passcode', primary:true, onClick:connectSyncModal}]
+    : st === 'error' || st === 'offline' ? [{label:'Close'}, {label:'Retry', primary:true, onClick:retry}]
+    : [{label:'Close'}, {label:'Sync now', primary:true, onClick:function(){ syncNow('manual'); }}], 'sync-info');
 }
 
 /* ====================================================================================
