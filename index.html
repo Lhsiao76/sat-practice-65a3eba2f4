@@ -1626,17 +1626,21 @@ function save(){
   storageOK = writeProfileData(ACTIVE, S);
 }
 function qaRec(s, id){ var qa = s.qa || (s.qa = {}); return qa[id] || (qa[id] = {}); }
-/* Instant feedback ("Check answer"): on by default in practice sets, opt-in (start picker) for full exams.
-   s.instant: true = on, false = off, undefined = the default for the kind. s.checks[qid] = time it was checked (locks the answer). */
-function checkOn(s){ return !!s && (s.kind === 'test' ? s.instant === true : s.instant !== false); }
+/* Instant feedback ("Check answer") is available on every question in every mode (except 60-second speed
+   rounds, which jump ahead on their own). s.checks[qid] = time it was checked (locks the answer).
+   In an exam, checking ANY answer makes that attempt unscored ("Practice (instant feedback)"); an exam where
+   nothing was checked stays scored. s.instant === true = the exam was started as practice (start picker). */
+function checkOn(s){ return !!s && s.mode !== 'speed'; }
 function isChecked(s, id){ return !!(s && s.checks && s.checks[id]); }
-function instantExam(s){ return !!s && s.kind === 'test' && (s.instant === true || coachedExam(s)); }   // unscored exam (instant feedback OR coached)
+function checkedExam(s){ return !!s && s.kind === 'test' && !!s.checks && typeof s.checks === 'object' && Object.keys(s.checks).length > 0; }
+function scoredExamNow(s){ return !!s && s.kind === 'test' && !instantExam(s); }
+function instantExam(s){ return !!s && s.kind === 'test' && (s.instant === true || checkedExam(s) || coachedExam(s)); }   // unscored exam (instant feedback, checked answers OR coached)
 /* Coach mode: s.coached[qid] = time Coach was first opened on that question before it was answered/checked. In an exam,
    any coached question makes the attempt unscored like instant feedback (still counts toward skill accuracy). */
 function coachedExam(s){ return !!s && s.kind === 'test' && !!s.coached && Object.keys(s.coached).length > 0; }
 function isCoached(s, id){ return !!(s && s.coached && s.coached[id]); }
 function coachVisible(s, id){ if (s && (s.mode === 'boss' || s.mode === 'speed')) return false; return !!s && (s.coachQ && typeof s.coachQ[id] === 'boolean' ? s.coachQ[id] : !!s.coachAll); }
-function unscoredLabel(s){ return s.instant === true ? 'Practice (instant feedback)' : 'Coached (not scored)'; }
+function unscoredLabel(s){ return s.instant === true || (checkedExam(s) && !coachedExam(s)) ? 'Practice (instant feedback)' : 'Coached (not scored)'; }
 function modeTag(s){ return '<span class="mtag">' + esc(MODE_LABEL[modeOf(s)]) + '</span>' + (instantExam(s) ? ' <span class="mtag inst">' + unscoredLabel(s) + '</span>' : ''); }
 
 /* ---------- helpers ---------- */
@@ -2038,7 +2042,6 @@ function newSession(kind, title, modules, extra){
            mod:0, idx:0, stage:'q', answers:{}, marked:{}, unsure:{}};
   if (extra) for (var k in extra) s[k] = extra[k];
   if (kind === 'test' && prefs().instant) s.instant = true;            // exam with instant feedback (start picker toggle)
-  if (kind === 'practice' && !prefs().practiceCheck) s.instant = false; // practice: Check answer is on unless turned off
   if (kind === 'practice' && (prefs().coachAll || prefs().coach)) s.coachAll = true; // practice: Coach open on every question (picker / Settings default)
   S.sessions[s.id] = s; S.openIds.push(s.id); save(); syncSoon(4000);
   return s;
@@ -2397,13 +2400,13 @@ function aiToggle(path, on){
   return '<label class="ck aick' + (ready ? '' : ' dis') + '"><input type="checkbox" data-pref="' + path + '"' + (on && ready ? ' checked' : '') + (ready ? '' : ' disabled') + '> ✨ Include AI questions' + (ready ? ' <span class="small muted">(about a third of the set, new questions written and double-checked by ' + esc(providerLabel(AIS.provider)) + ')</span>' : ' <span class="small muted">(<a href="#" data-act="nav" data-page="settings">set up AI in Settings</a>)</span>') + '</label>';
 }
 function instantToggle(){ var on = prefs().instant;
-  return '<label class="ck instck"><input type="checkbox" data-pref="instant"' + (on ? ' checked' : '') + '> ⚡ <b>Instant feedback</b> <span class="small muted">(practice mode: a <b>Check answer</b> button on every question with explanations. Saved as \u201cPractice (instant feedback)\u201d and left out of estimated scores and score charts; still counts toward skill accuracy.)</span></label>'; }
+  return '<p class="small chkall">✅ <b>Check answer</b> is on every question: pick an answer, tap it, and see the right answer with the full explanation. In a test, checking any answer makes that attempt practice (no estimated score; still counts toward skill accuracy). Tests you don\u2019t check stay scored.</p>' +
+    '<label class="ck instck"><input type="checkbox" data-pref="instant"' + (on ? ' checked' : '') + '> ⚡ <b>Start as practice (instant feedback)</b> <span class="small muted">(saved as \u201cPractice (instant feedback)\u201d from the start, so Check answer never asks first)</span></label>'; }
 function adaptiveToggle(){ var on = prefs().adaptive;
   return '<label class="ck instck"><input type="checkbox" data-pref="adaptive"' + (on ? ' checked' : '') + '> 🎚️ <b>Adaptive difficulty</b> <span class="small muted">(each next question follows your level in that skill: harder after a streak, easier after misses)</span></label>'; }
 function coachAllToggle(){ var on = prefs().coachAll || prefs().coach;
   return '<label class="ck instck"><input type="checkbox" data-pref="coachAll"' + (on ? ' checked' : '') + '> 🧑‍🏫 <b>Coach all questions</b> <span class="small muted">(hints that teach the method before you answer, without giving it away. Coached correct answers count a bit less toward your skill level.)</span></label>'; }
-function practiceCheckToggle(){ var on = prefs().practiceCheck;
-  return '<label class="ck instck"><input type="checkbox" data-pref="practiceCheck"' + (on ? ' checked' : '') + '> ✅ <b>Check answer</b> button <span class="small muted">(see right away if you\u2019re right, with a short and a step-by-step explanation)</span></label>'; }
+function practiceCheckToggle(){ return '<p class="small chkall">✅ <b>Check answer</b> is on every question (right answer + step-by-step explanation).</p>'; }
 function renderPicker(unseen){
   var P = prefs(), mode = P.mode, st = conceptStats();
   var tiles = [['full', '🎓', 'Full SAT', 'Reading & Writing, 10-minute break, then Math · 400–1600 estimate'], ['math', '📐', 'Math only', 'Full adaptive section · 2 × 22 questions'], ['rw', '📖', 'Reading & Writing only', 'Full adaptive section · 2 × 27 questions'],
@@ -2468,7 +2471,7 @@ function renderRun(){
   var full = sessSecs(s).length > 1 && isTest;
   if (s.stage === 'q' && mod[s.idx] && coachVisible(s, mod[s.idx]) && !isCoached(s, mod[s.idx]) && !(checkOn(s) && isChecked(s, mod[s.idx]))) markCoached(s, mod[s.idx]);
   var titleTop = isTest ? (full ? 'Section ' + (sec === 'math' ? 2 : 1) + ', Module ' + modNum(s, s.mod) + ': ' + SECTION_NAMES[sec] : SECTION_NAMES[sec] + ': Module ' + modNum(s, s.mod) + ' of 2') : 'Practice' + (s.mode && s.mode !== 'practice' ? ' · ' + MODE_LABEL[s.mode] : '');
-  var head = '<div class="rhead"><div class="title">'+esc(titleTop)+'<small>'+esc(s.title)+(s.instant === true && s.kind === 'test' ? ' · ⚡ Instant feedback' : '')+(coachedExam(s) ? ' · 🧑‍🏫 Coached (not scored)' : '')+'</small></div><div class="timer">';
+  var head = '<div class="rhead"><div class="title">'+esc(titleTop)+'<small>'+esc(s.title)+(s.kind === 'test' && (s.instant === true || (checkedExam(s) && !coachedExam(s))) ? ' · ⚡ Practice (instant feedback)' : '')+(coachedExam(s) ? ' · 🧑‍🏫 Coached (not scored)' : '')+'</small></div><div class="timer">';
   if (s.timed){
     var left = s.timeLeft[s.mod], low = left <= 300;
     head += (s.timerHidden && !low) ? '<span class="clock" id="clock" style="visibility:hidden">'+fmtClock(left)+'</span><button data-act="timer">Show</button>'
@@ -2531,7 +2534,7 @@ function choicesHTML(s, id, q, checked){
       (s.elim ? '<button class="strike" data-act="strike" data-l="' + L + '" aria-pressed="' + x + '" aria-label="' + (x ? 'Undo cross-out of choice ' : 'Cross out choice ') + L + '">' + (x ? 'Undo' : '<span class="sx">' + L + '</span>') + '</button>' : '') + '</div>'; }).join('') + '</div>';
 }
 function checkBlockHTML(s, id, q, checked){
-  if (!checked) return '<div class="checkrow"><button class="btn primary checkbtn" data-act="check"' + (s.answers[id] ? '' : ' disabled') + '>Check answer</button><span class="small muted kbdhint">' + (q.format === 'spr' ? 'Type your answer, then check' : 'Pick an answer, then check') + '<span class="kb"> · Enter ↵</span></span></div>';
+  if (!checked) return '<div class="checkrow"><button class="btn primary checkbtn" data-act="check"' + (s.answers[id] ? '' : ' disabled') + '>Check answer</button><span class="small muted kbdhint">' + (q.format === 'spr' ? 'Type your answer, then check' : 'Pick an answer, then check') + (scoredExamNow(s) ? ' · checking makes this test practice (no score)' : '<span class="kb"> · Enter ↵</span>') + '</span></div>';
   return feedbackHTML(q, s.answers[id], !!s.unsure[id]);
 }
 /* Inline result after Check answer: right/wrong, the key (SPR: accepted forms), the short explanation, then the thorough one on demand. */
@@ -2750,9 +2753,14 @@ function toggleThorough(id, ans){
 }
 function lessonModal(cid){ var c = CMAP[cid]; if (!c) return;
   modal('Lesson: ' + c.name, '<p class="small muted">' + esc(SECTION_NAMES[cSec(cid)]) + ' · ' + esc(DOMAINS[c.domain]) + '</p><div class="lesson">' + esc(c.lesson) + '</div>', [{label:'Close', primary:true}]); }
-function doCheck(){
+function doCheck(confirmed){
   var s = curSession(); if (!s || s.stage !== 'q' || !checkOn(s)) return;
   var id = s.modules[s.mod][s.idx]; if (isChecked(s, id) || !s.answers[id]) return;
+  if (scoredExamNow(s) && confirmed !== true) {
+    modal('Check this answer?', '<p>You\u2019ll see the right answer and the full explanation right away, and this answer gets locked.</p><p>Checking any answer turns <b>' + esc(s.title) + '</b> into practice: saved as \u201cPractice (instant feedback)\u201d, with no estimated score and left out of the score charts. Every answer still counts toward your skill accuracy.</p>',
+      [{label:'Cancel'}, {label:'Check answer', primary:true, onClick:function(){ doCheck(true); }}], 'chk-confirm');
+    return;
+  }
   if (!s.checks || typeof s.checks !== 'object') s.checks = {};
   s.checks[id] = now(); s.updatedAt = now();
   if (s.kind === 'practice') { var dl = applyLevel(s, id); view.lvDelta = {id:id, d:dl}; }
@@ -2841,7 +2849,7 @@ function renderResults(){
   var r = sessionResults(s), st = conceptStats(), isTest = s.kind === 'test';
   var sc = scoreSession(s, r), aiN = flat(s).filter(function(id){ return Q[id] && Q[id].ai; }).length;
   var h = nav() + '<div class="wrap">' + storageWarning() + gameResultsHTML(s) + '<div class="card"><div class="muted small">'+esc(MODE_LABEL[modeOf(s)])+(isTest?(instantExam(s)?' · ' + unscoredLabel(s).toLowerCase():''):' · practice set')+' · finished '+fmtDate(s.finishedAt)+'</div><h2 style="font-size:24px">'+esc(s.title)+'</h2>';
-  if (instantExam(s)) h += s.instant === true ? '<p class="small instnote">⚡ <b>Practice (instant feedback)</b>: you checked answers as you went, so there is no estimated scaled score and this attempt is left out of the score charts. Every answer still counts toward your skill accuracy.</p>'
+  if (instantExam(s)) h += unscoredLabel(s) === 'Practice (instant feedback)' ? '<p class="small instnote">⚡ <b>Practice (instant feedback)</b>: ' + (s.instant === true ? 'you started it as practice' : 'you used Check answer on ' + Object.keys(s.checks || {}).length + ' question' + (Object.keys(s.checks || {}).length === 1 ? '' : 's')) + ', so there is no estimated scaled score and this attempt is left out of the score charts. Every answer still counts toward your skill accuracy.</p>'
     : '<p class="small instnote">🧑‍🏫 <b>Coached (not scored)</b>: you used Coach on ' + Object.keys(s.coached).length + ' question' + (Object.keys(s.coached).length === 1 ? '' : 's') + ', so there is no estimated scaled score and this attempt is left out of the score charts. Every answer still counts toward your skill accuracy.</p>';
   else if (s.coached && Object.keys(s.coached).length) h += '<p class="small instnote">🧑‍🏫 You used Coach on ' + Object.keys(s.coached).length + ' question' + (Object.keys(s.coached).length === 1 ? '' : 's') + ' (marked 🧑‍🏫 below). Coached correct answers count a bit less toward your skill level.</p>';
   if (sc) {
@@ -3673,7 +3681,7 @@ function renderParent(){
   var h = '<div class="wrap pvwrap"><div class="card"><div class="dhead"><h2 style="margin:0">👪 Parent view</h2><div class="row">' +
     '<button class="btn small ghost" data-act="pv-refresh">↻ Refresh</button><button class="btn small ghost" data-act="pv-pin">' + (parentPinSet() ? 'Parent PIN…' : 'Set parent PIN') + '</button>' +
     '<button class="btn small" data-act="pv-lock">🔒 Lock</button><button class="btn small primary" data-act="pv-back">Done</button></div></div>' +
-    '<p class="small muted" style="margin:0">Read-only. Scores are estimates from finished exams; exams taken with instant feedback are not scored. ' +
+    '<p class="small muted" style="margin:0">Read-only. Scores are estimates from finished exams; exams where Check answer or Coach was used are not scored. ' +
     (PV.at ? 'Updated ' + new Date(PV.at).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}) + '.' : '') + '</p>' + (PV.err ? '<p class="errmsg small">' + esc(PV.err) + '</p>' : '') +
     (function(){ var fam = null; PV.profiles.forEach(function(p){ var f = p.data && p.data.game && p.data.game.fam; if (f && (!fam || (+f.at || 0) > (+fam.at || 0))) fam = f; }); PV.famLbOff = !!(fam && fam.lbOff);
       var claimed = PV.profiles.reduce(function(a, p){ var r = p.data && p.data.game && p.data.game.rewards || {}; return a + Object.keys(r).filter(function(k){ return r[k] && r[k].claimed && !r[k].given && !r[k].del; }).length; }, 0);
@@ -4107,7 +4115,7 @@ function renderDashboard(){
     mcard('Latest est. score', latest ? scoreTxt(latest) : (latestAny ? pct(latestAny.ok, latestAny.n) + '%' : '—'), latest ? (latest.scores.total && secF === 'all' ? '400–1600 · ' : '200–800 · ') + fmtMD(latest.s.finishedAt) : (latestAny ? 'practice · ' + fmtMD(latestAny.s.finishedAt) : 'no tests yet')) +
     mcard('Best est. score' + (range === 'all' ? '' : ' (' + range + ' days)'), best ? scoreTxt(best) : '—', best ? esc(best.s.title) + ' · ' + fmtMD(best.s.finishedAt) : 'full tests only') +
     mcard('7-day accuracy', wkRecs.length ? pct(wkOk, wkRecs.length) + '%' : '—', wkRecs.length + ' question' + (wkRecs.length === 1 ? '' : 's')) +
-    (function(){ var x = checkedSplit(finRecs); return mcard('Checked vs unchecked', x.c ? pct(x.cOk, x.c) + '% · ' + (x.u ? pct(x.uOk, x.u) + '%' : '—') : '—', x.c ? x.c + ' checked · ' + x.u + ' unchecked (% correct)' : 'use Check answer in practice'); })() +
+    (function(){ var x = checkedSplit(finRecs); return mcard('Checked vs unchecked', x.c ? pct(x.cOk, x.c) + '% · ' + (x.u ? pct(x.uOk, x.u) + '%' : '—') : '—', x.c ? x.c + ' checked · ' + x.u + ' unchecked (% correct)' : 'use Check answer on any question'); })() +
     mcard('Mastered skills', mastered + '/' + concepts.length, 'last 5 tries all solid') +
     mcard('Streak', sk.cur + ' day' + (sk.cur === 1 ? '' : 's'), 'best ' + sk.best + ' · ' + sk.active + ' active day' + (sk.active === 1 ? '' : 's')) +
     '<div class="mcard wide"><span class="ml">Weakest skills</span>' + (weakest.length ? weakest.map(function(c){ return '<button class="wk" data-act="practice-one" data-c="' + c.id + '">' + esc(c.name) + ' <span class="muted">' + Math.round(st[c.id].recentRate * 100) + '%</span></button>'; }).join('') : '<b class="mv">—</b><span class="ms">practice a bit more to see these</span>') + '</div>' +
@@ -4252,9 +4260,9 @@ function tourSteps(){
     {title:'Hey ' + nm + '! Start with your profile', target:'.topnav .pchip', body:'<p>I\u2019m Pi, your study buddy. 👋 Everyone in the family gets their <b>own profile</b> with their own tests, scores and AI questions.</p><p>Tap your name up here to <b>switch or add</b> someone. On the profile screen, <b>✎ Edit</b> lets you set a 4-digit <b>PIN</b> so siblings can\u2019t mess with your stats.</p>'},
     {title:'Family passcode = sync + AI', target:'.topnav [data-page="settings"]', body:(synced || ai ? '<p class="okmsg">✅ This device already has the passcode. Nice.</p>' : '') + '<p>Open <b>Settings</b> and enter the <b>family passcode</b> (ask a parent). It unlocks two things:</p><ul class="tr-list"><li>☁️ <b>Sync</b>: your progress follows you between the iPad and other devices.</li><li>✨ <b>AI questions</b>: unlimited brand-new practice.</li></ul><p class="small muted">Everything else works without it, even offline.</p>'},
     {title:'Pick how you want to practice', target:'#picker .mtiles', before:openPicker, body:'<ul class="tr-list"><li>🎓 <b>Full SAT</b>: Reading &amp; Writing, a 10-min break, then Math. New test every time, 400–1600 estimate.</li><li>📐 <b>Math</b> or 📖 <b>RW</b> only: one full adaptive section.</li><li>🔁 <b>Missed concepts</b>: re-drill what you got wrong or weren\u2019t sure about.</li><li>🎯 <b>Specific types</b>: choose skills, difficulty and timing.</li></ul><p class="small muted">Your last settings are remembered.</p>'},
-    {title:'Your test-day toolkit', target:null, body:'<div class="tr-demo"><span class="tr-chip">🔖 Mark for Review</span><span class="tr-chip">🤔 Unsure</span><span class="tr-chip"><s>ABC</s> Strike out</span><span class="tr-chip">' + CALC_ICON + ' Calculator</span><span class="tr-chip">📐 Formulas</span></div>' +
+    {title:'Your test-day toolkit', target:null, body:'<div class="tr-demo"><span class="tr-chip">🔖 Mark for Review</span><span class="tr-chip">🤔 Unsure</span><span class="tr-chip"><s>ABC</s> Strike out</span><span class="tr-chip">' + CALC_ICON + ' Calculator</span><span class="tr-chip">📐 Formulas</span><span class="tr-chip">✅ Check answer</span></div>' +
       '<div class="tr-demo tr-choice"><span class="tr-opt struck">A&nbsp; 12</span><span class="tr-opt picked">B&nbsp; 18</span></div><div class="tr-demo"><span class="tr-type" aria-label="typed answer 3/4">3/4</span><span class="small muted">Typed-in answers: fractions, decimals, negatives</span></div>' +
-      '<p class="small">Same tools as Bluebook. <b>Unsure</b> is special: even a lucky guess shows up in your review so you actually learn it.</p>'},
+      '<p class="small">Same tools as Bluebook. <b>Unsure</b> is special: even a lucky guess shows up in your review so you actually learn it.</p><p class="small"><b>✅ Check answer</b> is on every question in every mode: see the right answer and the full explanation instantly. In a test, checking makes that attempt practice (no score).</p>'},
     {title:'Results that teach you something', target:document.getElementById('recent-card') ? '#recent-card' : null, body:'<div class="tr-demo tr-score"><span><b>RW</b> 620</span><span><b>Math</b> 640</span><span class="tot"><b>1260</b> est.</span></div><p>After each test you get <b>estimated scaled scores</b>, then a review of every miss and every 🤔 Unsure with a clear explanation.</p><p>Each review card comes with a short <b>concept lesson</b>, so you can fix the idea, not just the question, and then drill that skill.</p>'},
     {title:'Unlimited questions with AI', first:true, target:['#picker .mpanel:not([hidden]) .aick', '#picker .mpanel:not([hidden]) [data-act="ai-test"]', '#picker .aihint', '#picker [data-mode="types"]'], body:'<p>In <b>Missed concepts</b> and <b>Specific types</b>, turn on <b>✨ Include AI questions</b> for brand-new questions aimed at your weak skills. Each one is solved a second time by a separate check before you see it.</p><p>If a question ever looks off, tap <span class="tr-chip sm">⚑ Report</span>. It\u2019s pulled from your practice right away.</p>' + (ai ? '' : '<p class="small muted">Needs the family passcode (step 2).</p>')},
     {title:'Watch yourself level up', target:['.topnav [data-page="dashboard"]', '.topnav [data-page="tracker"]', '.topnav [data-page="archive"]'], body:'<ul class="tr-list"><li>📈 <b>Progress</b>: scores over time, accuracy by skill, a heat map, and more.</li><li>🧠 <b>Concept Tracker</b>: every skill marked weak, improving or mastered.</li><li>🗂️ <b>Past Tests</b>: reopen any test or set and review it again.</li></ul>'},
@@ -4355,7 +4363,7 @@ function streakInfo(days, today, need) {
 function sessionXP(s, h) {
   var out = {}; if (!s || !s.answers) return out;
   var qa = s.qa || {}, mode = s.mode || (s.kind === 'test' ? 'rw' : 'practice'), speed = mode === 'speed';
-  var reducedExam = s.kind === 'test' && (s.instant === true || (s.coached && Object.keys(s.coached).length > 0));
+  var reducedExam = s.kind === 'test' && (s.instant === true || (s.coached && Object.keys(s.coached).length > 0) || (s.checks && typeof s.checks === 'object' && Object.keys(s.checks).length > 0)); // unscored exams (instant feedback, checked or coached) earn reduced XP
   var ids = Object.keys(s.answers).filter(function (id) { var v = s.answers[id]; return v != null && v !== '' && qa[id] && gNum(qa[id].a) && h.q(id) && !h.reported(id); })
     .sort(function (a, b) { return gNum(qa[a].a) - gNum(qa[b].a) || (a < b ? -1 : 1); });
   var streak = 0, add = function (day, p) { if (!p) return; var k = 's:' + s.id + ':' + day; out[k] = out[k] || [0, day]; out[k][0] += p; };
@@ -4526,7 +4534,7 @@ function cleanGame(g){
 /* ---------- answer hooks ---------- */
 function gameOnAnswer(s){ clearTimeout(GUI.t); GUI.t = setTimeout(function(){ if (S && ACTIVE) { gameRecalc(); save(); } }, 300); }
 function sessXP(s){ var e = sessionXP(s, gHelper()), t = 0; Object.keys(e).forEach(function(k){ t += e[k][0]; }); return t; }
-/* After "Check answer" (the answer is now visible anyway): small +XP toast in untimed practice. */
+/* After "Check answer" (the answer is now visible anyway): small +XP toast in untimed sessions only (never during a timed module). */
 function gameOnCheck(s, id){
   gameRecalc(); save();
   if (!s || s.timed) return;
@@ -4939,7 +4947,7 @@ app.addEventListener('click', function(e){
   var el = e.target.closest('[data-act]'); if (!el) return;
   var fn = ACTIONS[el.getAttribute('data-act')]; if (fn) { e.preventDefault(); fn(el); }
 });
-app.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && (e.target.id === 'ai-url' || e.target.id === 'ai-pass')) { e.preventDefault(); aiConnect(); } if (e.key === 'Enter' && e.target && e.target.id === 'spr-in') { e.preventDefault(); var ks = curSession(); if (ks && checkOn(ks) && e.target.value && !isChecked(ks, ks.modules[ks.mod][ks.idx])) doCheck(); else e.target.blur(); } });
+app.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && (e.target.id === 'ai-url' || e.target.id === 'ai-pass')) { e.preventDefault(); aiConnect(); } if (e.key === 'Enter' && e.target && e.target.id === 'spr-in') { e.preventDefault(); var ks = curSession(); if (ks && checkOn(ks) && !scoredExamNow(ks) && e.target.value && !isChecked(ks, ks.modules[ks.mod][ks.idx])) doCheck(); else e.target.blur(); } });
 app.addEventListener('change', function(e){ var t = e.target; if (!t) return; if (t.id === 'ai-provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.id === 'ai-model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-review' || t.getAttribute('data-aiset') === 'review') { setPref('ai.review', !!t.checked); render(); return; } if (t.getAttribute('data-aiset') === 'provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.getAttribute('data-aiset') === 'model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-prefetch') { setPref('ai.prefetch', !!t.checked); if (t.checked) schedulePrefetch(500); else cancelPrefetch(); render(); return; } if (view.page === 'settings' && t.type === 'checkbox' && t.getAttribute('data-pref') === 'coach') { setPref('coach', !!t.checked); render(); return; } if (t.type === 'checkbox' && t.getAttribute('data-gpref')) { var gp = t.getAttribute('data-gpref'); if (gp === 'sound') { setPref('gameSound', !!t.checked); if (t.checked) chime(); } else if (gp === 'lb') { G().lbOpt = {off:!t.checked, at:now()}; updateLbLine(); save(); syncSoon(1500); } render(); return; } if (t.id === 'dash-concept') { DASH.concept = t.value; render(); return; } if (t.id === 'dash-mode') { DASH.mode = t.value; render(); return; } homeChange(t); });
 /* Student-produced response box: saved as you type (no re-render, so the keyboard stays up). */
 app.addEventListener('input', function(e){
@@ -4962,7 +4970,7 @@ document.addEventListener('keydown', function(e){
   var t = e.target; if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   var s = curSession(); if (!s || s.stage !== 'q') return;
-  if (e.key === 'Enter' && checkOn(s)) { // Enter: check the answer, then Enter again for the next question
+  if (e.key === 'Enter' && checkOn(s) && !scoredExamNow(s)) { // Enter: check the answer, then Enter again for the next question (not in a scored exam)
     if (t && /^(BUTTON|A|SUMMARY|SELECT)$/.test(t.tagName)) return;
     var eid = s.modules[s.mod][s.idx];
     if (!isChecked(s, eid)) { if (s.answers[eid]) { doCheck(); e.preventDefault(); } } else { move(1); e.preventDefault(); }
@@ -5021,7 +5029,7 @@ else { S = blankState(); view = {page:'profiles', sid:null, filter:'all'}; rende
 if (relayUrl() && AIS.passcode && now() - (AIS.checkedAt || 0) > 6*3600e3 && navigator.onLine !== false) {
   refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); schedulePrefetch(6000); }, function(){});
 } else schedulePrefetch(6000);
-window.__SAT = {content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
+window.__SAT = {submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
   game:{G:G, recalc:gameRecalc, stats:gameStats, streakInfo:streakInfo, sessionXP:sessionXP, levelInfo:levelInfo, badgeStep:badgeStep, bossState:bossState, leaderboard:leaderboard, lbRows:lbRows, cleanGame:cleanGame, dayKeyOf:dayKeyOf, mondayKey:mondayKey, todayKey:todayKey, startBoss:startBoss, startSpeed:startSpeed, goalInfo:goalInfo, GAME:GAME, SKILL_BADGES:SKILL_BADGES, queue:function(){ return GUI.queue; }, flush:flushCelebrations},
   reg:function(){ return REG; }, active:function(){ return ACTIVE; }, sync:function(){ return SY; }, syncNow:syncNow, merge:mergeProfileData, sha256hex:sha256hex, records:collectRecords};
 })();
