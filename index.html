@@ -525,6 +525,57 @@ body.touring{overflow:hidden}
 .adtag.off{color:#334155;background:#eef1f6}
 .tlvl{margin-top:4px}
 .adnote{line-height:1.35}
+
+/* ---- gamification ---- */
+.gtoday{background:linear-gradient(135deg,#eef4ff,#fff7ed);border-color:#dbe4f5}
+.gt-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+@media(min-width:1100px){.gt-grid{grid-template-columns:repeat(4,1fr)}}
+.gt-cell{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0}
+.gt-cell .flame{font-size:30px;line-height:1;flex:none}
+.gt-big{font-size:26px;line-height:1}
+.gt-streak.done{border-color:#f59e0b;box-shadow:0 0 0 2px #fde68a inset}
+.gtbar,.xpbar{height:8px;border-radius:99px;background:#e5e9f0;overflow:hidden;margin-top:6px}
+.gtbar i,.xpbar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#f59e0b,#ef4444)}
+.xpbar i{background:linear-gradient(90deg,#3b82f6,#8b5cf6)}
+.lvchip{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;font-weight:800;font-size:18px;flex:none}
+.lvchip.big{width:64px;height:64px;font-size:30px;border-radius:18px}.lvchip.sm{width:24px;height:24px;font-size:12px;border-radius:7px;vertical-align:middle}
+.gt-acts{margin-top:10px}
+.ggoal .goalbar{position:relative;height:12px;border-radius:99px;background:#e5e9f0;margin:12px 0 4px}
+.goalbar>i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#10b981,#059669)}
+.goalbar .gm{position:absolute;top:-3px;width:4px;height:18px;margin-left:-2px;border-radius:2px;background:#94a3b8}.goalbar .gm.on{background:#047857}
+.goalends{display:flex;justify-content:space-between}
+.lblist{list-style:none;margin:10px 0 0;padding:0}
+.lblist li{display:flex;align-items:center;gap:10px;padding:8px 6px;border-top:1px solid var(--line)}
+.lblist li.me{background:var(--blue-l);border-radius:10px}
+.lbpos{width:28px;text-align:center;font-weight:800}.lbname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lbxp{font-weight:700}.lbst{width:56px;text-align:right}
+.gtoast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,40px);opacity:0;background:#1f2937;color:#fff;padding:10px 16px;border-radius:999px;font-weight:700;z-index:90;pointer-events:none;transition:opacity .2s,transform .2s;max-width:92vw;text-align:center}
+.gtoast.on{opacity:1;transform:translate(-50%,0)}.gtoast.xp{background:#4338ca}.gtoast.win{background:#047857}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:95;overflow:hidden}
+.confetti i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation-name:cfall;animation-timing-function:ease-in;animation-fill-mode:forwards}
+@keyframes cfall{to{top:105%;transform:rotate(540deg) translateX(30px)}}
+.lvup{text-align:center}.lvbadge{width:96px;height:96px;margin:4px auto 8px;border-radius:28px;background:linear-gradient(135deg,#3b82f6,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:900;animation:lvpop .7s cubic-bezier(.2,1.6,.4,1)}
+.lvbadge.boss{background:linear-gradient(135deg,#f59e0b,#ef4444)}.lvname{font-size:22px;font-weight:800}
+@keyframes lvpop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+.cabhead{display:flex;gap:14px;align-items:center}
+.cabstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:12px}
+.cabstats div{background:var(--blue-l);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column}.cabstats b{font-size:20px}.cabstats span{font-size:13px;color:var(--muted)}
+.cabsec{margin:14px 0 8px;font-size:16px}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.bdg{border:1px solid var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;background:#fff;min-width:0}
+.bdg .bico{font-size:30px;line-height:1.2}.bdg b{font-size:14px}.bdg .bsk{font-size:12px;line-height:1.25}.bdg .bsub{font-size:12px;color:var(--ink)}
+.bdg.locked{background:#f6f7f9;color:#6b7280}.bdg.locked .bico{filter:grayscale(1);opacity:.6}
+.bdg.silver{background:linear-gradient(160deg,#fff,#eef2f7);border-color:#c7d0dc}
+.bdg.gold{background:linear-gradient(160deg,#fffbeb,#fde68a);border-color:#f59e0b}
+.rwlist{list-style:none;margin:0;padding:0}.rwlist li{display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid var(--line)}
+.rwlist li.unl{background:#ecfdf5;border-radius:10px}.rwlist li.given{opacity:.65}
+.rwe{font-size:28px;flex:none}.rwt{flex:1;min-width:0}.rws{font-size:13px;color:var(--muted);text-align:right}.rws.ok{color:var(--ok)}
+.bosshero{display:flex;gap:14px;align-items:center}.bossico{font-size:56px;line-height:1}
+.bossrules{margin:12px 0;padding-left:4px;list-style:none}.bossrules li{margin:4px 0}
+.tagc{display:inline-block;background:var(--blue-l);border-radius:99px;padding:3px 10px;font-size:13px;margin:2px}
+.gmuted{color:var(--muted)}.gres{background:linear-gradient(135deg,#eef2ff,#ecfdf5)}.gres-xp{font-size:24px;color:#4338ca}.gres-big{font-size:17px;margin:8px 0 0}
+.pvfam{margin-top:8px;gap:10px}
+@media(max-width:480px){.gt-grid{grid-template-columns:1fr}.gt-cell .flame{font-size:26px}.bgrid{grid-template-columns:1fr 1fr}.bossico{font-size:44px}}
+@media (prefers-reduced-motion:reduce){.lvbadge{animation:none}.gtoast{transition:none}.confetti{display:none}}
 </style>
 </head>
 <body>
@@ -555,6 +606,11 @@ body.touring{overflow:hidden}
  *  - thorough explanations cache (explain[qid]) and coach hints cache (coach[qid]): union by question, newest copy of an entry wins.
  *  - coach mode: s.coached[qid] = time Coach was first opened on that question (union, earliest kept).
  *  - aiStats (cross-AI review counts): the copy with the newest `at` wins.
+ *  - game (streaks / XP / badges / boss / speed / goal / rewards), see mergeGame: active days = max count per day (a day
+ *    is active at 10+ answers, so it is a union of active days); XP ledger = max per entry key; badges = earliest earn /
+ *    gold, newest hold check; boss = earliest scored attempt per week; speed bests = max; goal / opt-outs / family
+ *    switch = newest; rewards = newest definition, earliest claimed / given, deletes win; milestones = union.
+ *  - qa[qid].d = the answering device's local day of the first answer (kept with the earliest first-answer time).
  *  - top-level fields this version doesn't know (added by a newer app) are carried over, never dropped.
  *  - device-only fields (ui = current page) are never synced and always kept from the local copy.
  */
@@ -600,6 +656,7 @@ function mergeSession(x, y) {
     });
     var sec = Math.max(mNum(a.sec), mNum(b.sec)); if (sec) r.sec = Math.round(sec * 10) / 10;
     var fa = mNum(a.a), fb = mNum(b.a), first = fa && fb ? Math.min(fa, fb) : (fa || fb); if (first) r.a = first;
+    var dd = fa && fb ? (fa <= fb ? a.d || b.d : b.d || a.d) : (fa ? a.d || b.d : b.d || a.d); if (typeof dd === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dd)) r.d = dd;
     if (Object.keys(r).length) qa[id] = r;
   });
   m.qa = qa;
@@ -664,18 +721,47 @@ function mergeProfileData(local, remote) {
   if (a.aiStats || b.aiStats) { var xa = mObj(a.aiStats), xb = mObj(b.aiStats); out.aiStats = mCopy(mNum(xb.at) > mNum(xa.at) ? xb : xa); }
   var la = mObj(a.levels), lb = mObj(b.levels), lk = mKeys(la, lb);
   if (lk.length || a.levels || b.levels) { out.levels = {}; lk.forEach(function (c) { var p = la[c], q = lb[c]; var l = p && q ? (mNum(q.at) > mNum(p.at) ? q : p) : (p || q); if (l && typeof l === 'object') out.levels[c] = mCopy(l); }); }
+  if (a.game || b.game) out.game = mergeGame(a.game, b.game);
   out.updatedAt = Math.max(mNum(a.updatedAt), mNum(b.updatedAt));
   // fields added by a newer app version: keep them (prefer the copy that changed last)
-  var known = { app: 1, version: 1, deleted: 1, sessions: 1, openIds: 1, archiveIds: 1, aiBank: 1, reported: 1, unreported: 1, conceptArchived: 1, settingsAt: 1, prefs: 1, prefsAt: 1, counters: 1, updatedAt: 1, explain: 1, levels: 1, coach: 1, aiStats: 1 };
+  var known = { app: 1, version: 1, deleted: 1, sessions: 1, openIds: 1, archiveIds: 1, aiBank: 1, reported: 1, unreported: 1, conceptArchived: 1, settingsAt: 1, prefs: 1, prefsAt: 1, counters: 1, updatedAt: 1, explain: 1, levels: 1, coach: 1, game: 1, aiStats: 1 };
   mKeys(a, b).forEach(function (k) { if (known[k] || LOCAL_ONLY_FIELDS.indexOf(k) >= 0) return; var v = mNum(b.updatedAt) > mNum(a.updatedAt) ? (b[k] !== undefined ? b[k] : a[k]) : (a[k] !== undefined ? a[k] : b[k]); if (v !== undefined) out[k] = mCopy(v); });
   // device-only fields come from the local copy
   LOCAL_ONLY_FIELDS.forEach(function (k) { if (a[k] !== undefined) out[k] = mCopy(a[k]); });
   return out;
 }
-/* Profile card info (name, color, PIN hash): last write wins on updatedAt. */
+
+/* Gamification state (S.game). Every field is optional so older copies merge cleanly. */
+function mNewest(p, q, f) { if (!p) return mCopy(q); if (!q) return mCopy(p); return mCopy(mNum(q[f || 'at']) > mNum(p[f || 'at']) ? q : p); }
+function mMin(p, q) { p = mNum(p); q = mNum(q); return p && q ? Math.min(p, q) : (p || q); }
+function mergeGame(ga, gb) {
+  var a = mObj(ga), b = mObj(gb), o = { v: Math.max(mNum(a.v), mNum(b.v), 1) };
+  o.days = {}; mKeys(a.days, b.days).forEach(function (d) { var n = Math.max(mNum(mObj(a.days)[d]), mNum(mObj(b.days)[d])); if (n > 0) o.days[d] = n; });
+  o.xp = {}; mKeys(a.xp, b.xp).forEach(function (k) { var p = mObj(a.xp)[k], q = mObj(b.xp)[k];
+    p = Array.isArray(p) ? p : null; q = Array.isArray(q) ? q : null; var e = p && q ? (mNum(q[0]) > mNum(p[0]) ? q : p) : (p || q); if (e) o.xp[k] = mCopy(e); });
+  o.badges = {}; mKeys(a.badges, b.badges).forEach(function (c) { var p = mObj(a.badges)[c], q = mObj(b.badges)[c]; if (!p && !q) return;
+    var h = mNewest(p, q, 'ck'), r = { at: mMin(p && p.at, q && q.at) }; var gd = mMin(p && p.gold, q && q.gold); if (gd) r.gold = gd;
+    if (h && h.hs) { r.hs = mNum(h.hs); r.hn = mNum(h.hn); } if (h && h.ck) r.ck = mNum(h.ck); if (r.at) o.badges[c] = r; });
+  o.boss = {}; mKeys(a.boss, b.boss).forEach(function (w) { var p = mObj(a.boss)[w], q = mObj(b.boss)[w]; if (!p && !q) return; var e;
+    if (p && q && p.sid === q.sid) { e = mCopy(mNum(q.done) > mNum(p.done) || (mNum(q.done) === mNum(p.done) && mNum(q.n) > mNum(p.n)) ? q : p); }
+    else e = p && q ? mCopy(mNum(q.at) < mNum(p.at) ? q : p) : mCopy(p || q);
+    o.boss[w] = e; });
+  o.speed = {}; mKeys(a.speed, b.speed).forEach(function (c) { var p = mObj(a.speed)[c], q = mObj(b.speed)[c]; var e = p && q ? (mNum(q.best) > mNum(p.best) || (mNum(q.best) === mNum(p.best) && mNum(q.at) < mNum(p.at)) ? q : p) : (p || q); if (e) { e = mCopy(e); e.runs = Math.max(mNum(p && p.runs), mNum(q && q.runs)); o.speed[c] = e; } });
+  o.miles = {}; mKeys(a.miles, b.miles).forEach(function (m) { var t = mMin(mObj(a.miles)[m], mObj(b.miles)[m]); if (t) o.miles[m] = t; });
+  ['goal', 'lbOpt', 'fam', 'snd'].forEach(function (k) { var e = mNewest(a[k], b[k]); if (e) o[k] = e; });
+  o.rewards = {}; mKeys(a.rewards, b.rewards).forEach(function (id) { var p = mObj(a.rewards)[id], q = mObj(b.rewards)[id]; if (!p && !q) return;
+    var r = mNewest(p, q, 'up'); ['claimed', 'given'].forEach(function (f) { var t = mMin(p && p[f], q && q[f]); if (t) r[f] = t; else delete r[f]; });
+    var del = Math.max(mNum(p && p.del), mNum(q && q.del)); if (del) r.del = del; o.rewards[id] = r; });
+  o.lvSeen = Math.max(mNum(a.lvSeen), mNum(b.lvSeen));
+  o.mig = mMin(a.mig, b.mig);
+  return o;
+}
+/* Profile card info (name, color, PIN hash): last write wins on updatedAt. The family-leaderboard line (lb) has its own time. */
 function mergeProfileMeta(a, b) {
   if (!a) return mCopy(b); if (!b) return mCopy(a);
-  return mCopy(mNum(b.updatedAt) > mNum(a.updatedAt) ? b : a);
+  var m = mCopy(mNum(b.updatedAt) > mNum(a.updatedAt) ? b : a), lb = mNewest(a.lb, b.lb);
+  if (lb) m.lb = lb; else delete m.lb;
+  return m;
 }
 /* What gets uploaded: everything except device-only fields. */
 function syncView(state) {
@@ -1381,7 +1467,7 @@ var SCALE = {
   rw:{harder:[[0,200],[12,400],[20,470],[25,510],[30,550],[35,590],[40,640],[44,680],[48,720],[51,760],[54,800]],
       easier:[[0,200],[6,260],[12,320],[18,380],[24,430],[30,470],[36,510],[42,550],[48,590],[54,630]]}
 };
-var MODE_LABEL = {full:'Full SAT', math:'Math section', rw:'Reading & Writing section', missed:'Missed concepts', types:'Question types', practice:'Skill practice'};
+var MODE_LABEL = {full:'Full SAT', math:'Math section', rw:'Reading & Writing section', missed:'Missed concepts', types:'Question types', practice:'Skill practice', boss:'Boss Battle', speed:'Speed Round'};
 var PER_CONCEPT = 3, MAX_PRACTICE_CONCEPTS = 8;
 /* RW module blueprints (27 each), matched to the official per-module mix (calibration 2026-10-07). "a|b" slots rotate:
    each new module takes one of the listed skills at random. */
@@ -1435,6 +1521,7 @@ function normalize(){
   ['unreported','deleted','conceptArchived','counters','prefs','explain','levels'].forEach(function(k){ if (!S[k] || typeof S[k] !== 'object' || Array.isArray(S[k])) S[k] = blankState()[k]; });
   registerAIBank();
   seedLevels();
+  if (ACTIVE && REG && REG.profiles[ACTIVE]) gameRecalc(false);
 }
 /* AI questions live in S.aiBank (so they are saved, archived with sessions, and included in backups). */
 function registerAIBank(){
@@ -1466,7 +1553,7 @@ function instantExam(s){ return !!s && s.kind === 'test' && (s.instant === true 
    any coached question makes the attempt unscored like instant feedback (still counts toward skill accuracy). */
 function coachedExam(s){ return !!s && s.kind === 'test' && !!s.coached && Object.keys(s.coached).length > 0; }
 function isCoached(s, id){ return !!(s && s.coached && s.coached[id]); }
-function coachVisible(s, id){ return !!s && (s.coachQ && typeof s.coachQ[id] === 'boolean' ? s.coachQ[id] : !!s.coachAll); }
+function coachVisible(s, id){ if (s && (s.mode === 'boss' || s.mode === 'speed')) return false; return !!s && (s.coachQ && typeof s.coachQ[id] === 'boolean' ? s.coachQ[id] : !!s.coachAll); }
 function unscoredLabel(s){ return s.instant === true ? 'Practice (instant feedback)' : 'Coached (not scored)'; }
 function modeTag(s){ return '<span class="mtag">' + esc(MODE_LABEL[modeOf(s)]) + '</span>' + (instantExam(s) ? ' <span class="mtag inst">' + unscoredLabel(s) + '</span>' : ''); }
 
@@ -1775,7 +1862,9 @@ function applyLevel(s, id){
   if (!s || (s.lv && s.lv[id])) return 0;
   var q = Q[id], ans = s.answers[id]; if (!q || !ans || isReported(id)) return 0;
   var L = ensureLevel(q.concept), before = +L.r;
+  var st0 = L.streak;
   levelStep(L, q, isCorrect(q, ans), !!s.unsure[id], slowAnswer(s, id, q), isCoached(s, id)); L.at = now(); delete L.seeded;
+  if (s.mode === 'speed') { var lv0 = s.speed && isFinite(+s.speed.lv0) ? +s.speed.lv0 : before; L.r = Math.round(Math.max(lv0 - GAME.SPEED_LEVEL_CAP, Math.min(lv0 + GAME.SPEED_LEVEL_CAP, before + (L.r - before) * GAME.SPEED_LEVEL_WEIGHT)) * 100) / 100; L.streak = st0; }   // mild credit, capped per round
   (s.lv || (s.lv = {}))[id] = 1;
   return Math.round((L.r - before) * 100) / 100;
 }
@@ -2073,6 +2162,7 @@ function finishSession(s){
   S.openIds = S.openIds.filter(function(id){ return id !== s.id; });
   if (S.archiveIds.indexOf(s.id) < 0) S.archiveIds.push(s.id);
   s.updatedAt = now(); save();
+  gameOnFinish(s);
   go('results', s.id);
   syncNow('finish');
 }
@@ -2151,7 +2241,7 @@ function mathBodyHTML(q){ return (q.passage ? '<div class="mintro">' + renderMat
 
 /* ---------- top nav ---------- */
 function nav(){
-  var items = [['home','Home'],['dashboard','Progress'],['tracker','Concept Tracker'],['archive','Past Tests'],['backup','Backup'],['settings','Settings']];
+  var items = [['home','Home'],['dashboard','Progress'],['badges','🏅 Badges'],['tracker','Concept Tracker'],['archive','Past Tests'],['backup','Backup'],['settings','Settings']];
   var m = REG && REG.profiles[ACTIVE];
   return '<div class="topnav"><div class="in"><span class="brand">SAT Practice</span><span class="navr">' + syncPill() +
     (m ? '<button class="pchip" data-act="switch-profile" aria-label="Switch profile (now ' + esc(m.name) + ')">' + avatarHTML(m, 'sm') + '<span>' + esc(m.name) + '</span></button>' : '') + '</span><span class="navi">' + items.map(function(it){
@@ -2166,6 +2256,7 @@ function renderHome(){
   var info = seenInfo();
   var unseen = DATA.bank.concat(MATH.bank, aiList()).filter(function(q){ return !info[q.id] && !isReported(q.id); }).length;
   var h = nav() + '<div class="wrap">' + storageWarning();
+  h += todayCardHTML();
   h += '<div class="card hero"><h1>Digital SAT Practice</h1><p class="muted" style="margin:0">Practice like the real Bluebook test. <b>Reading and Writing</b>: 2 modules × 27 questions, 32 minutes each. <b>Math</b>: 2 modules × 22 questions, 35 minutes each, with a graphing calculator and reference sheet. Module 2 adapts to how you did on Module 1.</p>' +
     '<div class="flaghelp"><div class="fh-mark"><b>🔖 Mark for Review</b>: just a bookmark so you can find the question again before you submit the module. It does not change your score or review.</div>' +
     '<div class="fh-unsure"><b>🤔 Unsure</b>: tap this when you are guessing or not confident. Even if you get it right, the question shows up in your review, and its skill gets extra practice.</div></div>' +
@@ -2296,7 +2387,7 @@ function renderRun(){
     var qtop = '<div class="qtop"><span class="qnum">'+(s.idx+1)+'</span>' +
       '<button class="flag mark'+(s.marked[id]?' on':'')+'" data-act="mark" aria-pressed="'+!!s.marked[id]+'"><span class="ico">🔖</span>Mark for Review</button>' +
       '<button class="flag unsure'+(s.unsure[id]?' on':'')+'" data-act="unsure" aria-pressed="'+!!s.unsure[id]+'"><span class="ico">🤔</span>'+(s.unsure[id]?'Unsure ✓':'Unsure')+'</button>' +
-      '<button class="flag coach'+(coachVisible(s, id)?' on':'')+'" data-act="coach" aria-pressed="'+coachVisible(s, id)+'" aria-controls="coach-'+esc(id)+'"><span class="ico">🧑‍🏫</span>'+(coachVisible(s, id)?'Coach ✓':'Coach')+'</button>' +
+      (s.mode === 'boss' || s.mode === 'speed' ? '' : '<button class="flag coach'+(coachVisible(s, id)?' on':'')+'" data-act="coach" aria-pressed="'+coachVisible(s, id)+'" aria-controls="coach-'+esc(id)+'"><span class="ico">🧑‍🏫</span>'+(coachVisible(s, id)?'Coach ✓':'Coach')+'</button>') +
       (q.format === 'spr' || checked ? '' : '<button class="flag abc'+(s.elim?' on':'')+'" data-act="elim" aria-pressed="'+!!s.elim+'" aria-label="Answer eliminator (cross out choices)" title="Cross out answer choices"><span class="abcico">ABC</span></button>') +
       '<button class="flag report'+(isReported(id)?' on':'')+'" data-act="report" data-id="'+esc(id)+'" aria-label="'+(isReported(id)?'Reported. Tap to undo':'Report a problem with this question')+'"><span class="ico">⚑</span>'+(isReported(id)?'Reported':'Report')+'</button></div>' +
       (isTest ? '' : '<div class="ctag">Skill: '+esc(CMAP[q.concept].name)+' ' + levelHTML(q.concept, view.lvDelta && view.lvDelta.id === id ? view.lvDelta.d : 0) + (s.adaptive ? ' <span class="adtag" title="Questions follow your level in this skill">🎚️ Adaptive · ' + esc(q.difficulty || 'medium') + '</span>' : (q.difficulty ? ' <span class="adtag off">' + esc(q.difficulty) + '</span>' : '')) + '</div>' + (q.ai ? ' <span class="aitag">'+esc(aiSourceLabel(q))+'</span>' + panelBadge(q, false) : '')) +
@@ -2562,7 +2653,7 @@ function doCheck(){
   if (!s.checks || typeof s.checks !== 'object') s.checks = {};
   s.checks[id] = now(); s.updatedAt = now();
   if (s.kind === 'practice') { var dl = applyLevel(s, id); view.lvDelta = {id:id, d:dl}; }
-  save(); render(); syncSoon();
+  save(); render(); syncSoon(); gameOnCheck(s, id);
   var fb = document.getElementById('fb'); if (fb) { try { fb.scrollIntoView({block:'nearest'}); } catch(e){} try { fb.focus({preventScroll:true}); } catch(e){ fb.focus(); } }
 }
 function sprTipsHTML(){
@@ -2646,7 +2737,7 @@ function renderResults(){
   if (!s || !s.finishedAt) { go('home'); return; }
   var r = sessionResults(s), st = conceptStats(), isTest = s.kind === 'test';
   var sc = scoreSession(s, r), aiN = flat(s).filter(function(id){ return Q[id] && Q[id].ai; }).length;
-  var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card"><div class="muted small">'+esc(MODE_LABEL[modeOf(s)])+(isTest?(instantExam(s)?' · ' + unscoredLabel(s).toLowerCase():''):' · practice set')+' · finished '+fmtDate(s.finishedAt)+'</div><h2 style="font-size:24px">'+esc(s.title)+'</h2>';
+  var h = nav() + '<div class="wrap">' + storageWarning() + gameResultsHTML(s) + '<div class="card"><div class="muted small">'+esc(MODE_LABEL[modeOf(s)])+(isTest?(instantExam(s)?' · ' + unscoredLabel(s).toLowerCase():''):' · practice set')+' · finished '+fmtDate(s.finishedAt)+'</div><h2 style="font-size:24px">'+esc(s.title)+'</h2>';
   if (instantExam(s)) h += s.instant === true ? '<p class="small instnote">⚡ <b>Practice (instant feedback)</b>: you checked answers as you went, so there is no estimated scaled score and this attempt is left out of the score charts. Every answer still counts toward your skill accuracy.</p>'
     : '<p class="small instnote">🧑‍🏫 <b>Coached (not scored)</b>: you used Coach on ' + Object.keys(s.coached).length + ' question' + (Object.keys(s.coached).length === 1 ? '' : 's') + ', so there is no estimated scaled score and this attempt is left out of the score charts. Every answer still counts toward your skill accuracy.</p>';
   else if (s.coached && Object.keys(s.coached).length) h += '<p class="small instnote">🧑‍🏫 You used Coach on ' + Object.keys(s.coached).length + ' question' + (Object.keys(s.coached).length === 1 ? '' : 's') + ' (marked 🧑‍🏫 below). Coached correct answers count a bit less toward your skill level.</p>';
@@ -3096,6 +3187,7 @@ function renderSettings(){
       '<span class="okmsg">✅ Connected' + (st.mock ? ' (test mode)' : '') + '</span> · ' + AIS.providers.length + ' AI' + (AIS.providers.length === 1 ? '' : 's') + ' available' + (st.unlimited ? ' · Unlimited AI questions' : (typeof st.remaining === 'number' ? ' · ' + st.remaining + ' of ' + st.limit + ' AI questions left today (resets at midnight Pacific)' : '')) :
       '<span class="errmsg">⚠️ ' + esc(st.msg) + '</span>') + '</p>' +
     '<p class="small muted">The passcode is shared by every profile on this device. It is saved only in this browser and is never put in backup files or synced.</p></div>';
+  h += gameSettingsHTML();
   h += '<div class="card"><h2>🧑‍🏫 Coach</h2><label class="ck"><input type="checkbox" data-pref="coach"' + (prefs().coach ? ' checked' : '') + '> <b>Turn Coach on for every practice question</b> <span class="small muted">(default off). Coach teaches the idea, what to look for and how to test the choices <i>before</i> you answer, without giving the answer away. You can also turn it on for one question with the 🧑‍🏫 Coach button, or for one practice set in the picker. In an exam, opening Coach makes that attempt unscored, like instant feedback.</span></label></div>';
   h += '<div class="card"><h2>Which AI writes your questions?</h2>';
   if (!AIS.providers.length) h += '<p class="muted">Connect first. Only the AIs your relay has a key for can be chosen.</p>';
@@ -3388,7 +3480,7 @@ function profileSummary(data){
     var excluded = rec.sess.filter(function(x){ return x.s.kind === 'test' && instantExam(x.s); }).length;
     return {latest:latest ? Object.assign(scoreOf(latest.scores), {at:latest.s.finishedAt}) : null, best:best, testCount:tests.length, excluded:excluded,
       week:{n:wk.length, ok:wk.filter(function(r){ return r.ok; }).length}, sec:secAcc, last:last || +d.updatedAt || 0, weakest:weakest, trend:trend, recent:recent,
-      practiced:rec.sess.length, ai:aiStatsOf(d), coach:(function(){ var L = rec.recs.filter(function(r){ return r.fin && r.answered && r.co; }), W = L.filter(function(r){ return r.t >= weekAgo; }); return {n:L.length, ok:L.filter(function(r){ return r.ok; }).length, week:W.length}; })()};
+      practiced:rec.sess.length, ai:aiStatsOf(d), game:pvGameSummary(d), coach:(function(){ var L = rec.recs.filter(function(r){ return r.fin && r.answered && r.co; }), W = L.filter(function(r){ return r.t >= weekAgo; }); return {n:L.length, ok:L.filter(function(r){ return r.ok; }).length, week:W.length}; })()};
   });
 }
 function aiStatsOf(d){
@@ -3409,7 +3501,10 @@ function renderParent(){
     '<button class="btn small ghost" data-act="pv-refresh">↻ Refresh</button><button class="btn small ghost" data-act="pv-pin">' + (parentPinSet() ? 'Parent PIN…' : 'Set parent PIN') + '</button>' +
     '<button class="btn small" data-act="pv-lock">🔒 Lock</button><button class="btn small primary" data-act="pv-back">Done</button></div></div>' +
     '<p class="small muted" style="margin:0">Read-only. Scores are estimates from finished exams; exams taken with instant feedback are not scored. ' +
-    (PV.at ? 'Updated ' + new Date(PV.at).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}) + '.' : '') + '</p>' + (PV.err ? '<p class="errmsg small">' + esc(PV.err) + '</p>' : '') + '</div>';
+    (PV.at ? 'Updated ' + new Date(PV.at).toLocaleTimeString(undefined, {hour:'numeric', minute:'2-digit'}) + '.' : '') + '</p>' + (PV.err ? '<p class="errmsg small">' + esc(PV.err) + '</p>' : '') +
+    (function(){ var fam = null; PV.profiles.forEach(function(p){ var f = p.data && p.data.game && p.data.game.fam; if (f && (!fam || (+f.at || 0) > (+fam.at || 0))) fam = f; }); PV.famLbOff = !!(fam && fam.lbOff);
+      var claimed = PV.profiles.reduce(function(a, p){ var r = p.data && p.data.game && p.data.game.rewards || {}; return a + Object.keys(r).filter(function(k){ return r[k] && r[k].claimed && !r[k].given && !r[k].del; }).length; }, 0);
+      return '<div class="row pvfam"><span class="small">🏆 Family leaderboard (weekly XP &amp; streaks, never scores): <b>' + (PV.famLbOff ? 'off' : 'on') + '</b></span><button class="btn small ghost" data-act="pv-lb">' + (PV.famLbOff ? 'Turn on' : 'Turn off') + '</button>' + (claimed ? '<span class="small"><b>🎁 ' + claimed + ' reward' + (claimed === 1 ? '' : 's') + ' claimed</b>, waiting to be given</span>' : '') + '</div>'; })() + '</div>';
   if (PV.loading && !PV.profiles.length) { app.innerHTML = h + '<div class="card"><p class="muted">Loading profiles…</p></div></div>'; return; }
   h += '<div class="pvgrid">';
   PV.profiles.forEach(function(p){
@@ -3433,6 +3528,7 @@ function renderParent(){
       return '<div class="pvbar"><span>' + (sec === 'rw' ? 'Reading & Writing' : 'Math') + '</span><div class="bar"><i style="width:' + v + '%;background:' + (sec === 'rw' ? '#1d4ed8' : '#6d28d9') + '"></i></div><b>' + (a.n ? v + '%' : '—') + '</b><span class="small muted">' + a.n + '</span></div>'; }).join('') + '</div>';
     h += '<div class="pvrow"><span class="ml">Weakest skills</span>' + (x.weakest.length ? '<ul class="pvlist">' + x.weakest.map(function(w){ return '<li><span>' + esc(w.name) + '</span><span class="small muted">' + w.rate + '% recent · Lv ' + w.level.toFixed(1) + '</span></li>'; }).join('') + '</ul>' : '<span class="small muted">Not enough practice yet</span>') + '</div>';
     h += '<div class="pvrow pvcoach"><span class="ml">Coach usage</span><span class="small">' + (x.coach && x.coach.n ? x.coach.n + ' coached question' + (x.coach.n === 1 ? '' : 's') + ' (' + x.coach.week + ' this week) · ' + pct(x.coach.ok, x.coach.n) + '% correct with Coach' : 'Coach not used yet') + '</span></div>';
+    h += pvGameHTML(p, x);
     if (x.ai) h += '<div class="pvrow pvai"><span class="ml">AI questions</span><span class="small">' + x.ai.kept + ' AI question' + (x.ai.kept === 1 ? '' : 's') + ' from ' + x.ai.requests + ' request' + (x.ai.requests === 1 ? '' : 's') +
       (x.ai.panelReq ? ' · Cross-AI review pass rate <b>' + (x.ai.rate == null ? '—' : x.ai.rate + '%') + '</b> (' + (x.ai.firstRate == null ? '—' : x.ai.firstRate + '%') + ' on the first try' + (x.ai.revOk ? ', ' + x.ai.revOk + ' fixed after review' : '') + ')' : ' · Cross-AI review off') + '</span></div>';
     h += '<div class="pvrow"><span class="ml">Recent tests</span>' + (x.recent.length ? '<ul class="pvlist">' + x.recent.map(function(t){ return '<li><span>' + esc(t.title) + ' <span class="small muted">' + fmtMD(t.at) + '</span></span><b>' + (t.score !== null ? t.score : t.instant ? '<span class="small muted">instant feedback · ' + t.acc + '%</span>' : t.acc + '%') + '</b></li>'; }).join('') + '</ul>' : '<span class="small muted">No finished tests yet</span>') + '</div>';
@@ -3547,7 +3643,7 @@ function syncStateGet(id){ var o = null; try { o = JSON.parse(window.localStorag
 function syncStateSet(id, o){ try { window.localStorage.setItem(SYNC_PREFIX + id, JSON.stringify(o)); } catch(e){} }
 function getPState(id){ return id === ACTIVE ? S : (readProfileData(id) || blankState()); }
 function setPState(id, st){ if (id === ACTIVE) { S = st; normalize(); save(); } else writeProfileData(id, st); }
-function metaForSync(id){ var m = REG.profiles[id] || {}; var o = {name:m.name, letter:m.letter, color:m.color, createdAt:m.createdAt || 0, updatedAt:m.updatedAt || 0}; if (m.pinHash) { o.pinHash = m.pinHash; o.pinSalt = m.pinSalt; } return o; }
+function metaForSync(id){ var m = REG.profiles[id] || {}; var o = {name:m.name, letter:m.letter, color:m.color, createdAt:m.createdAt || 0, updatedAt:m.updatedAt || 0}; if (m.pinHash) { o.pinHash = m.pinHash; o.pinSalt = m.pinSalt; } var lb = cleanLb(m.lb); if (lb) o.lb = lb; return o; }
 function payloadHash(id, st){ return hashStr(JSON.stringify(syncView(st)) + '|' + JSON.stringify(metaForSync(id))); }
 /* If a profile outgrows the relay's per-profile cap, upload it without the oldest unused AI questions
  * (they stay on this device). Questions used in any test are always kept. */
@@ -3580,12 +3676,14 @@ function sanitizeState(st){
   st.aiBank = bank;
   var rp = {}; Object.keys(st.reported && typeof st.reported === 'object' ? st.reported : {}).forEach(function(id){ var x = st.reported[id]; if (x) rp[id] = {at:+x.at || now(), reason:String(x.reason || '').slice(0, 80)}; });
   st.reported = rp;
+  if (st.game !== undefined) { var cg = cleanGame(st.game); if (cg) st.game = cg; else delete st.game; }
   return st;
 }
 function cleanRemoteMeta(m, id){
   if (!m || typeof m !== 'object') return null;
   var o = {id:id, name:String(m.name || 'Profile').replace(/[<>\u0000-\u001f]/g, '').slice(0, 40), letter:String(m.letter || '').slice(0, 4) || initialOf(m.name), color:PROFILE_COLORS.indexOf(m.color) >= 0 || /^#[0-9a-fA-F]{6}$/.test(m.color || '') ? m.color : PROFILE_COLORS[0], createdAt:+m.createdAt || 0, updatedAt:+m.updatedAt || 0};
   if (/^[0-9a-f]{64}$/.test(m.pinHash || '') && /^[0-9a-f]{8,64}$/.test(m.pinSalt || '')) { o.pinHash = m.pinHash; o.pinSalt = m.pinSalt; }
+  var lb = cleanLb(m.lb); if (lb) o.lb = lb;
   return o;
 }
 function sessionSig(s){ return s ? JSON.stringify([s.answers, s.unsure, s.marked, s.mod, s.idx, s.stage, s.finishedAt, s.checks || null]) : ''; }
@@ -3821,7 +3919,7 @@ function renderDashboard(){
     mcard('Streak', sk.cur + ' day' + (sk.cur === 1 ? '' : 's'), 'best ' + sk.best + ' · ' + sk.active + ' active day' + (sk.active === 1 ? '' : 's')) +
     '<div class="mcard wide"><span class="ml">Weakest skills</span>' + (weakest.length ? weakest.map(function(c){ return '<button class="wk" data-act="practice-one" data-c="' + c.id + '">' + esc(c.name) + ' <span class="muted">' + Math.round(st[c.id].recentRate * 100) + '%</span></button>'; }).join('') : '<b class="mv">—</b><span class="ms">practice a bit more to see these</span>') + '</div>' +
     '</div></div>';
-  if (!allSess.length) { app.innerHTML = h + '<div class="card"><p class="muted">No finished tests or practice sets' + (secF !== 'all' || modeF !== 'all' ? ' match these filters' : '') + ' yet. Charts appear here as soon as you finish one.</p><button class="btn primary" data-act="nav" data-page="home">Go practice</button></div></div>'; return; }
+  if (!allSess.length) { app.innerHTML = h + gameDashHTML() + '<div class="card"><p class="muted">No finished tests or practice sets' + (secF !== 'all' || modeF !== 'all' ? ' match these filters' : '') + ' yet. Charts appear here as soon as you finish one.</p><button class="btn primary" data-act="nav" data-page="home">Go practice</button></div></div>'; return; }
   // 1. estimated scaled scores over time
   h += '<div class="card"><h3>Estimated scores over time</h3><p class="small muted" style="margin-top:0">Section scores (200–800) from finished tests. Estimates from a published-style conversion table.</p>';
   var secTests = tests.filter(function(x){ return (secF !== 'math' && x.scores.rw) || (secF !== 'rw' && x.scores.math); });
@@ -3911,7 +4009,7 @@ function renderDashboard(){
   h += '<div class="card"><h3>✨ AI questions vs. question bank</h3>' + barChart({w:Math.min(W, 520), h:200, labels:['Question bank', 'AI-written'], values:[bank.n ? pct(bank.ok, bank.n) : 0, ai.n ? pct(ai.ok, ai.n) : 0], colors:['#1d4ed8', '#6d28d9'], yMax:100, showVals:true,
       valLabels:[bank.n ? pct(bank.ok, bank.n) + '% (' + bank.n + ')' : 'none', ai.n ? pct(ai.ok, ai.n) + '% (' + ai.n + ')' : 'none'], fmt:pc, label:'Accuracy on AI questions vs question bank'}) +
     '<p class="small muted">Percent correct (number of questions in brackets).' + (ai.n ? '' : ' Try ✨ AI practice to compare.') + '</p></div>';
-  app.innerHTML = h + '</div>';
+  app.innerHTML = h + gameDashHTML() + '</div>';
 }
 function mcard(label, val, sub){ return '<div class="mcard"><span class="ml">' + esc(label) + '</span><b class="mv">' + esc(val) + '</b><span class="ms">' + esc(sub) + '</span></div>'; }
 
@@ -3926,6 +4024,7 @@ function render(){
   if (keep) { var els = document.querySelectorAll('#rbody, #rbody .pane'); for (var i = 0; i < els.length && i < keep.panes.length; i++) els[i].scrollTop = keep.panes[i]; if (keep.y) window.scrollTo(0, keep.y); }
   if (Tour.isOpen()) { if (view.page !== 'home') Tour.close(false); else Tour.relayout(); }
   else if (view.page === 'home') maybeTour();
+  if (ACTIVE && view.page !== 'run' && view.page !== 'profiles' && view.page !== 'parent' && !Tour.isOpen()) setTimeout(function(){ if (!Tour.isOpen()) flushCelebrations(false); }, 350);
 }
 function renderPage(p){
   if (p !== 'run' && Calc.isOpen()) Calc.hide();
@@ -3938,6 +4037,8 @@ function renderPage(p){
   else if (p === 'archive') renderArchive();
   else if (p === 'backup') renderBackup();
   else if (p === 'settings') renderSettings();
+  else if (p === 'badges') renderBadges();
+  else if (p === 'boss') renderBoss();
   else renderHome();
 }
 /* ---------- onboarding tour (first launch per profile; replay from Home or Settings) ---------- */
@@ -3982,6 +4083,553 @@ function startTour(first){
     onDone:function(done, info){ var p = prefs(); p.tourAt = now(); if (done) p.tourDone = 1; if (info && info.never) p.tourNever = 1; S.prefsAt = now(); save(); syncSoon(4000); }});
 }
 
+/* Gamification core: pure functions (no DOM, no app state), shared by the app (inlined at build time; `export` line is
+ * stripped) and by the Node tests. Plain ES5.
+ *  - Day keys are 'YYYY-MM-DD' in the ANSWERING device's local time (stored on each answer as qa[qid].d), so day
+ *    boundaries are device-local and two devices in different time zones simply union their active days.
+ *  - Streak: a day is active at GAME.DAY_NEED+ answers (any mode). One streak freeze is banked at the start of every
+ *    week (Monday), at most GAME.FREEZE_MAX banked; a missed day inside a streak spends one automatically.
+ *  - XP is a ledger of entries {key: [points, dayKey]}; session entries are recomputed from the (synced) answers, so two
+ *    devices always compute the same value and a merge just keeps the max per key. */
+var GAME = {
+  DAY_NEED: 10, FREEZE_MAX: 2,
+  XP_BASE: { easy: 10, medium: 15, hard: 20 }, XP_EFFORT: 1, XP_REDUCED: 0.5,
+  XP_STREAK: { 3: 5, 5: 10, 10: 20 }, XP_STREAK_EVERY: 10,
+  XP_MODULE: 30, XP_FULL: 150, XP_SECTION: 60, XP_MASTERY: 100, XP_BOSS_WIN: 250, XP_BOSS_TRY: 40,
+  XP_SPEED: 5, XP_SPEED_PB: 25,
+  BADGE_LEVEL: 4, BADGE_MIN_N: 8, GOLD_N: 30, GOLD_DAYS: 14,
+  BOSS_N: 10, BOSS_WIN: 8, SPEED_SECONDS: 60, SPEED_LEVEL_WEIGHT: 0.15, SPEED_LEVEL_CAP: 0.25, MILESTONE_STEP: 50,
+  LEVEL_NAMES: ['Rookie', 'Explorer', 'Apprentice', 'Scholar', 'Pathfinder', 'Strategist', 'Ace', 'Expert', 'Master', 'Grandmaster', 'Legend']
+};
+var SKILL_BADGES = {
+  wic: ['Word Wizard', '🪄'], structure: ['Blueprint Boss', '🏗️'], crosstext: ['Debate Detective', '🕵️'], central: ['Main Idea Mapper', '🧭'],
+  detail: ['Detail Hawk', '🦅'], 'coe-text': ['Evidence Ace', '🔎'], 'coe-quant': ['Graph Guru', '📊'], inference: ['Clue Connector', '🧩'],
+  boundaries: ['Comma Commander', '🫡'], colon: ['Colon Captain', '⚓'], supplement: ['Dash Dynamo', '➖'], sva: ['Agreement Ace', '🤝'],
+  pronoun: ['Pronoun Pro', '👉'], tense: ['Time Traveler', '⏳'], verbform: ['Verb Virtuoso', '🎻'], possessive: ['Apostrophe Ace', '✒️'],
+  modifier: ['Modifier Maestro', '🎼'], transition: ['Bridge Builder', '🌉'], synthesis: ['Note Ninja', '🥷'],
+  'lin-eq1': ['Equation Explorer', '🧪'], 'lin-fn': ['Slope Surfer', '🏄'], 'lin-eq2': ['Line Legend', '📏'], systems: ['System Solver', '🔗'],
+  'lin-ineq': ['Inequality Investigator', '⚖️'], equiv: ['Expression Expert', '🔁'], 'nonlin-eq': ['Quadratic Crusher', '💥'],
+  'nonlin-fn': ['Curve Commander', '📈'], ratios: ['Ratio Ranger', '🤠'], percent: ['Percent Pro', '💯'], data1: ['Data Detective', '🗂️'],
+  data2: ['Scatterplot Scout', '🔭'], prob: ['Probability Pilot', '🎲'], infer: ['Sample Sleuth', '🧫'], claims: ['Claim Checker', '✅'],
+  'area-vol': ['Volume Viking', '🛡️'], 'lines-angles': ['Angle Archer', '🏹'], triangles: ['Triangle Titan', '🔺'], 'right-trig': ['Trig Tamer', '🦁'],
+  circles: ['Circle Champion', '⭕']
+};
+var DAY_MS = 86400000;
+function gNum(v) { v = +v; return isFinite(v) ? v : 0; }
+function pad2(n) { return (n < 10 ? '0' : '') + n; }
+/* Local day key of time t. tz (IANA name) is only for tests; the app always uses the device's own zone. */
+function dayKeyOf(t, tz) {
+  if (tz) { var p = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date(t)), o = {};
+    p.forEach(function (x) { o[x.type] = x.value; }); return o.year + '-' + o.month + '-' + o.day; }
+  var d = new Date(t); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+}
+function isDayKey(k) { return typeof k === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(k); }
+function keyUTC(k) { return Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10)); }
+function addDaysKey(k, n) { var d = new Date(keyUTC(k) + n * DAY_MS); return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate()); }
+function keyDiff(a, b) { return Math.round((keyUTC(b) - keyUTC(a)) / DAY_MS); }          // days from a to b
+function mondayKey(k) { var wd = new Date(keyUTC(k)).getUTCDay(); return addDaysKey(k, -((wd + 6) % 7)); }   // week starts Monday
+
+/* Answers per local day, from session data (answered = has an answer and a first-answer time). */
+function dayCounts(sessions) {
+  var out = {};
+  Object.keys(sessions || {}).forEach(function (sid) { var s = sessions[sid]; if (!s || !s.answers) return; var qa = s.qa || {};
+    Object.keys(s.answers).forEach(function (id) { var v = s.answers[id], r = qa[id]; if (v == null || v === '' || !r || !gNum(r.a)) return;
+      var d = isDayKey(r.d) ? r.d : dayKeyOf(gNum(r.a)); out[d] = (out[d] || 0) + 1; }); });
+  return out;
+}
+/* Streak math over the union of active days. days = {dayKey: answers that day}; today = device-local day key. */
+function streakInfo(days, today, need) {
+  need = need || GAME.DAY_NEED; days = days || {};
+  var act = Object.keys(days).filter(function (d) { return isDayKey(d) && gNum(days[d]) >= need && d <= today; }).sort();
+  var res = { current: 0, best: 0, banked: 0, frozen: [], todayCount: gNum(days[today]), todayDone: gNum(days[today]) >= need, activeDays: act.length, need: need, lastActive: act.length ? act[act.length - 1] : null };
+  if (!act.length) { res.banked = 1; return res; }
+  var set = {}; act.forEach(function (d) { set[d] = 1; });
+  var run = 0, best = 0, banked = 0, week = null, frozen = [], n = keyDiff(act[0], today);
+  for (var i = 0; i <= n; i++) {
+    var d = addDaysKey(act[0], i), wk = mondayKey(d);
+    if (wk !== week) { week = wk; banked = Math.min(GAME.FREEZE_MAX, banked + 1); }
+    if (set[d]) { run++; if (run > best) best = run; }
+    else if (d === today) { /* today still in progress: doesn't break the streak */ }
+    else if (run > 0 && banked > 0) { banked--; frozen.push(d); }
+    else { run = 0; frozen = []; }
+  }
+  res.current = run; res.best = best; res.banked = banked; res.frozen = frozen;
+  res.atRisk = run > 0 && !res.todayDone;
+  return res;
+}
+/* XP ledger entries for one session: {key: [points, dayKey]}.
+ * h = {q(id) -> question|null, ok(q, ans) -> bool, reported(id) -> bool, finishedDay -> dayKey}. */
+function sessionXP(s, h) {
+  var out = {}; if (!s || !s.answers) return out;
+  var qa = s.qa || {}, mode = s.mode || (s.kind === 'test' ? 'rw' : 'practice'), speed = mode === 'speed';
+  var reducedExam = s.kind === 'test' && (s.instant === true || (s.coached && Object.keys(s.coached).length > 0));
+  var ids = Object.keys(s.answers).filter(function (id) { var v = s.answers[id]; return v != null && v !== '' && qa[id] && gNum(qa[id].a) && h.q(id) && !h.reported(id); })
+    .sort(function (a, b) { return gNum(qa[a].a) - gNum(qa[b].a) || (a < b ? -1 : 1); });
+  var streak = 0, add = function (day, p) { if (!p) return; var k = 's:' + s.id + ':' + day; out[k] = out[k] || [0, day]; out[k][0] += p; };
+  ids.forEach(function (id) {
+    var q = h.q(id), ok = h.ok(q, s.answers[id]), day = isDayKey(qa[id].d) ? qa[id].d : dayKeyOf(gNum(qa[id].a));
+    var co = !!(s.coached && s.coached[id]), mult = (co || reducedExam) ? GAME.XP_REDUCED : 1, p;
+    if (!ok) { p = GAME.XP_EFFORT; streak = 0; }
+    else if (speed) { p = GAME.XP_SPEED; }
+    else {
+      p = (GAME.XP_BASE[q.difficulty] || GAME.XP_BASE.medium) * mult;
+      if (!co) { streak++; p += (GAME.XP_STREAK[streak] || (streak > 10 && streak % GAME.XP_STREAK_EVERY === 0 ? GAME.XP_STREAK[10] : 0)) * mult; }
+    }
+    add(day, p);
+  });
+  if (s.kind === 'test') {
+    var mods = (s.modules || []).filter(function (m) { return m && m.length; }).length, done = s.finishedAt ? mods : Math.min(mods, gNum(s.mod) + (s.stage === 'break' ? 1 : 0));
+    var fd = s.finishedAt ? (h.finishedDay || dayKeyOf(gNum(s.finishedAt))) : null, mult2 = reducedExam ? GAME.XP_REDUCED : 1;
+    if (done > 0) { var k = 'm:' + s.id; out[k] = [Math.round(done * GAME.XP_MODULE * mult2), fd || h.today || dayKeyOf(Date.now())]; }
+    if (fd) out['f:' + s.id] = [Math.round((mode === 'full' ? GAME.XP_FULL : GAME.XP_SECTION) * mult2), fd];
+  }
+  Object.keys(out).forEach(function (k) { out[k][0] = Math.round(out[k][0]); if (!out[k][0]) delete out[k]; });
+  return out;
+}
+function xpTotal(xp) { var t = 0; Object.keys(xp || {}).forEach(function (k) { t += gNum(xp[k] && xp[k][0]); }); return t; }
+function xpForWeek(xp, wk) { var t = 0; Object.keys(xp || {}).forEach(function (k) { var e = xp[k]; if (e && isDayKey(e[1]) && mondayKey(e[1]) === wk) t += gNum(e[0]); }); return t; }
+/* Named level curve: level L starts at 75·(L−1)·L XP (0, 150, 450, 900, 1500, 2250, …). */
+function levelStart(L) { return 75 * (L - 1) * L; }
+function levelName(L) { var n = GAME.LEVEL_NAMES; return L <= n.length ? n[L - 1] : n[n.length - 1] + ' ' + romanOf(L - n.length + 1); }
+function romanOf(n) { var r = '', m = [[10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I']]; m.forEach(function (x) { while (n >= x[0]) { r += x[1]; n -= x[0]; } }); return r; }
+function levelInfo(xp) {
+  xp = Math.max(0, Math.floor(gNum(xp))); var L = 1; while (levelStart(L + 1) <= xp) L++;
+  var a = levelStart(L), b = levelStart(L + 1);
+  return { level: L, name: levelName(L), xp: xp, start: a, next: b, into: xp - a, need: b - xp, pct: Math.round(100 * (xp - a) / (b - a)) };
+}
+/* Skill badge state for one skill. L = adaptive level record {r, n}; rec = stored badge or null. Returns the new record (or null). */
+function badgeStep(rec, L, t) {
+  var r = gNum(L && L.r), n = gNum(L && L.n), out = rec ? JSON.parse(JSON.stringify(rec)) : null, hi = r >= GAME.BADGE_LEVEL;
+  if (!out) { if (hi && n >= GAME.BADGE_MIN_N) out = { at: t, hs: t, hn: n, ck: t }; return out; }
+  if (out.gold) return out;
+  if (!hi) { if (out.hs) { delete out.hs; delete out.hn; out.ck = t; } return out; }
+  if (!out.hs) { out.hs = t; out.hn = n; out.ck = t; return out; }
+  if (n - gNum(out.hn) >= GAME.GOLD_N && t - gNum(out.hs) >= GAME.GOLD_DAYS * DAY_MS) { out.gold = t; out.ck = t; }
+  return out;
+}
+function badgeCount(badges) { return Object.keys(badges || {}).filter(function (c) { return badges[c] && badges[c].at; }).length; }
+/* Weekly boss: one scored attempt per week (Monday-based, device-local). */
+function bossState(boss, today) {
+  var wk = mondayKey(today), b = boss && boss[wk];
+  return { week: wk, resetsIn: 7 - keyDiff(wk, today), attempt: b || null, status: !b ? 'ready' : b.done ? (b.win ? 'won' : 'tried') : 'progress',
+    wins: Object.keys(boss || {}).filter(function (w) { return boss[w] && boss[w].win; }).sort() };
+}
+/* Score goal milestones: every 50 points above the starting estimate, plus the goal itself. */
+function goalMilestones(base, goal) {
+  var out = [], step = GAME.MILESTONE_STEP; if (!goal || !base || goal <= base) return goal ? [goal] : [];
+  for (var m = Math.floor(base / step) * step + step; m < goal; m += step) out.push(m);
+  out.push(goal); return out;
+}
+/* Rewards a parent set: progress toward the unlock. stats = {xp, bestStreak, badges, bestScore}. */
+var REWARD_KINDS = { xp: 'XP total', streak: 'day streak', badges: 'skill badges', score: 'score' };
+function rewardProgress(r, stats) {
+  var have = r.k === 'xp' ? stats.xp : r.k === 'streak' ? stats.bestStreak : r.k === 'badges' ? stats.badges : r.k === 'score' ? stats.bestScore : 0;
+  have = gNum(have); var need = Math.max(1, gNum(r.n));
+  return { have: have, need: need, unlocked: have >= need, pct: Math.min(100, Math.round(100 * have / need)) };
+}
+function rewardList(rewards, stats) {
+  return Object.keys(rewards || {}).map(function (id) { var r = rewards[id]; return r && !r.del ? { id: id, r: r, p: rewardProgress(r, stats) } : null; })
+    .filter(Boolean).sort(function (a, b) { return (a.r.given ? 1 : 0) - (b.r.given ? 1 : 0) || (b.p.unlocked ? 1 : 0) - (a.p.unlocked ? 1 : 0) || (b.p.pct - a.p.pct) || (gNum(a.r.at) - gNum(b.r.at)); });
+}
+/* Family leaderboard: weekly XP + streaks only (never scores). rows = [{id, name, lb:{wk, xp, st, off}}]. */
+function leaderboard(rows, wk, familyOff) {
+  if (familyOff) return [];
+  return rows.filter(function (x) { return x && x.lb && !x.lb.off; })
+    .map(function (x) { return { id: x.id, name: x.name, color: x.color, letter: x.letter, xp: x.lb.wk === wk ? gNum(x.lb.xp) : 0, streak: gNum(x.lb.st), self: !!x.self }; })
+    .sort(function (a, b) { return b.xp - a.xp || b.streak - a.streak || (a.name < b.name ? -1 : 1); });
+}
+
+/* ---------- gamification: streaks, XP & levels, skill badges, weekly boss, speed rounds, score goal, family
+ * leaderboard, parent-set rewards. State lives in S.game (synced; merge rules in merge.js mergeGame). Pure rules are in
+ * game_core.js. Celebrations never interrupt a timed session: they queue and show on the results / home screen. ---------- */
+var GUI = {queue:[], shown:{}, t:0, toastT:0, migrated:false};
+var BOSS_NAMES = ['Grammar Gremlin', 'Comma Kraken', 'Algebra Ogre', 'Vocab Vampire', 'Graph Golem', 'Fraction Dragon', 'Syntax Sphinx', 'Inference Imp'];
+var BOSS_ICONS = ['👺', '🐙', '👹', '🧛', '🗿', '🐉', '🦁', '😈'];
+function G(){
+  var g = S.game; if (!g || typeof g !== 'object' || Array.isArray(g)) g = S.game = {v:1};
+  ['days','xp','badges','boss','speed','miles','rewards'].forEach(function(k){ if (!g[k] || typeof g[k] !== 'object' || Array.isArray(g[k])) g[k] = {}; });
+  if (!g.v) g.v = 1; return g;
+}
+function todayKey(){ return dayKeyOf(now()); }
+function gHelper(){ return {q:function(id){ return Q[id] || null; }, ok:isCorrect, reported:isReported, today:todayKey()}; }
+function reducedMotion(){ try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch(e){ return false; } }
+function gameSoundOn(){ return prefs().gameSound === true; }
+function famLbOff(g){ g = g || G(); return !!(g.fam && g.fam.lbOff); }
+function lbOptOut(g){ g = g || G(); return !!(g.lbOpt && g.lbOpt.off); }
+function bossName(wk){ var i = Math.abs(Math.round(keyUTC0(wk) / 864e5 / 7)) % BOSS_NAMES.length; return {name:BOSS_NAMES[i], icon:BOSS_ICONS[i]}; }
+function keyUTC0(k){ return Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10)); }
+/* Stats used by rewards, goal, Parent view. Works on the active profile (S). */
+function goalInfo(){
+  var g = G(), tests = finishedSessions().filter(function(s){ return s.kind === 'test'; }), pts = [], lastRW = null, lastM = null;
+  tests.forEach(function(s){ var sc = scoreSession(s); if (!sc) return;   // instant-feedback and coached exams have no scaled score
+    if (sc.total) pts.push({v:sc.total, at:s.finishedAt}); else { if (sc.rw) lastRW = sc.rw.scaled; if (sc.math) lastM = sc.math.scaled; if (lastRW && lastM) pts.push({v:lastRW + lastM, at:s.finishedAt, combo:true}); } });
+  var best = pts.reduce(function(a, p){ return Math.max(a, p.v); }, 0), latest = pts.length ? pts[pts.length - 1].v : 0, base = pts.length ? pts[0].v : 0;
+  var goal = g.goal && +g.goal.score ? +g.goal.score : 0, miles = goal ? goalMilestones(base || 400, goal) : [];
+  return {goal:goal, by:g.goal ? g.goal.by : '', best:best, latest:latest, base:base, n:pts.length, miles:miles, next:miles.filter(function(m){ return m > best; })[0] || null,
+    pct:goal && best ? Math.max(0, Math.min(100, Math.round(100 * (best - (base || 400)) / Math.max(1, goal - (base || 400))))) : 0, reached:goal && best >= goal};
+}
+function gameStats(){
+  var g = G(), total = xpTotal(g.xp), st = streakInfo(g.days, todayKey()), gi = goalInfo();
+  return {xp:total, lv:levelInfo(total), streak:st, bestStreak:st.best, badges:badgeCount(g.badges), gold:Object.keys(g.badges).filter(function(c){ return g.badges[c].gold; }).length,
+    week:xpForWeek(g.xp, mondayKey(todayKey())), boss:bossState(g.boss, todayKey()), goal:gi, bestScore:gi.best};
+}
+/* Recompute everything derivable from the synced data. quiet: no celebrations (first run / other profile). */
+function gameRecalc(quiet){
+  if (!S || !ACTIVE) return null;
+  var g = G(), h = gHelper(), t = now(), today = h.today, first = !g.mig, q = [];
+  var dc = dayCounts(S.sessions); Object.keys(dc).forEach(function(d){ if (dc[d] > (+g.days[d] || 0)) g.days[d] = dc[d]; });
+  Object.keys(S.sessions).forEach(function(sid){ var e = sessionXP(S.sessions[sid], h); Object.keys(e).forEach(function(k){ var cur = g.xp[k]; if (!cur || e[k][0] > +cur[0]) g.xp[k] = e[k]; }); });
+  // first-time mastery of a skill that had been missed
+  var cs = conceptStats();
+  CONCEPTS.forEach(function(c){ var r = cs[c.id]; if (r.status === 'mastered' && r.hist.indexOf(0) >= 0 && !g.xp['k:' + c.id]) { g.xp['k:' + c.id] = [GAME.XP_MASTERY, today]; q.push({type:'mastery', c:c.id}); } });
+  // skill badges from adaptive levels
+  Object.keys(S.levels || {}).forEach(function(c){ if (!CMAP[c]) return; var old = g.badges[c], nb = badgeStep(old, S.levels[c], t);
+    if (JSON.stringify(nb) !== JSON.stringify(old || null)) { if (nb) g.badges[c] = nb; if (nb && !old) q.push({type:'badge', c:c}); else if (nb && nb.gold && !(old && old.gold)) q.push({type:'gold', c:c}); } });
+  // boss attempts
+  Object.keys(g.boss).forEach(function(wk){ var b = g.boss[wk], s = S.sessions[b.sid]; if (b.done) return;
+    if (s && s.finishedAt) { var r = sessionResults(s); b.done = s.finishedAt; b.n = r.correct; b.of = r.total; b.win = r.correct >= GAME.BOSS_WIN;
+      if (b.win) { g.xp['b:' + wk] = [GAME.XP_BOSS_WIN, dayKeyOf(s.finishedAt)]; q.push({type:'boss', wk:wk, n:b.n}); } else q.push({type:'bosstry', wk:wk, n:b.n}); }
+    else if (!s && S.deleted[b.sid]) { b.done = S.deleted[b.sid]; b.n = 0; b.of = GAME.BOSS_N; b.win = false; } });
+  // score-goal milestones
+  var gi = goalInfo(); gi.miles.forEach(function(m){ if (gi.best >= m && !g.miles[m]) { g.miles[m] = t; q.push({type:'mile', m:m, goal:m === gi.goal}); } });
+  // level
+  var total = xpTotal(g.xp), li = levelInfo(total);
+  if (first) { g.mig = t; g.lvSeen = li.level; if (total > 0 && !quiet) q = [{type:'welcome', xp:total, lv:li}]; else q = []; }
+  else if (li.level > (+g.lvSeen || 0)) { q.push({type:'level', lv:li}); g.lvSeen = li.level; }
+  updateLbLine();
+  if (!quiet) q.forEach(function(x){ GUI.queue.push(x); });
+  return li;
+}
+/* This profile's line on the family leaderboard (rides along with the synced profile card, never scores). */
+function updateLbLine(){
+  var m = REG && REG.profiles[ACTIVE]; if (!m) return;
+  var g = G(), st = streakInfo(g.days, todayKey()), wk = mondayKey(todayKey()), li = levelInfo(xpTotal(g.xp));
+  var lb = {wk:wk, xp:xpForWeek(g.xp, wk), st:st.current, lv:li.level, at:0}; if (lbOptOut(g)) lb.off = true;
+  var o = m.lb || {}; if (o.wk === lb.wk && o.xp === lb.xp && o.st === lb.st && o.lv === lb.lv && !!o.off === !!lb.off) return;
+  lb.at = now(); m.lb = lb; saveReg();
+}
+function cleanLb(lb){
+  if (!lb || typeof lb !== 'object' || !isDayKey(lb.wk)) return null;
+  var o = {wk:lb.wk, xp:Math.max(0, Math.round(+lb.xp || 0)), st:Math.max(0, Math.round(+lb.st || 0)), at:+lb.at || 0}; if (lb.off === true) o.off = true; if (+lb.lv) o.lv = Math.max(1, Math.round(+lb.lv)); return o;
+}
+function cleanGame(g){
+  if (!g || typeof g !== 'object' || Array.isArray(g)) return undefined;
+  var o = {v:1}, obj = function(x){ return x && typeof x === 'object' && !Array.isArray(x) ? x : {}; }, str = function(v, n){ return String(v == null ? '' : v).replace(/[\u0000-\u001f<>]/g, '').slice(0, n); };
+  o.days = {}; Object.keys(obj(g.days)).slice(-4000).forEach(function(d){ if (isDayKey(d) && +g.days[d] > 0) o.days[d] = Math.min(100000, Math.round(+g.days[d])); });
+  o.xp = {}; Object.keys(obj(g.xp)).slice(0, 30000).forEach(function(k){ var e = g.xp[k]; if (/^[\w:.-]{1,90}$/.test(k) && Array.isArray(e) && isFinite(+e[0]) && isDayKey(e[1])) o.xp[k] = [Math.max(0, Math.min(5000, Math.round(+e[0]))), e[1]]; });
+  o.badges = {}; Object.keys(obj(g.badges)).forEach(function(c){ var b = g.badges[c]; if (!CMAP[c] || !b || !(+b.at)) return; var r = {at:+b.at}; ['gold','hs','hn','ck'].forEach(function(f){ if (+b[f]) r[f] = +b[f]; }); o.badges[c] = r; });
+  o.boss = {}; Object.keys(obj(g.boss)).forEach(function(w){ var b = g.boss[w]; if (!isDayKey(w) || !b || typeof b.sid !== 'string') return; o.boss[w] = {sid:str(b.sid, 40), at:+b.at || 0}; ['done','n','of'].forEach(function(f){ if (+b[f]) o.boss[w][f] = +b[f]; }); if (b.win === true) o.boss[w].win = true; if (Array.isArray(b.skills)) o.boss[w].skills = b.skills.filter(function(c){ return CMAP[c]; }).slice(0, 10); });
+  o.speed = {}; Object.keys(obj(g.speed)).forEach(function(c){ var x = g.speed[c]; if (CMAP[c] && x && isFinite(+x.best)) o.speed[c] = {best:Math.max(0, Math.round(+x.best)), at:+x.at || 0, runs:Math.max(0, Math.round(+x.runs || 0))}; });
+  o.miles = {}; Object.keys(obj(g.miles)).forEach(function(m){ if (/^\d{3,4}$/.test(m) && +g.miles[m]) o.miles[m] = +g.miles[m]; });
+  if (g.goal && +g.goal.score >= 400 && +g.goal.score <= 1600) o.goal = {score:Math.round(+g.goal.score / 10) * 10, at:+g.goal.at || 0, by:g.goal.by === 'parent' ? 'parent' : 'kid'};
+  ['lbOpt'].forEach(function(k){ if (g[k] && typeof g[k] === 'object') o[k] = {off:g[k].off === true, at:+g[k].at || 0}; });
+  if (g.fam && typeof g.fam === 'object') o.fam = {lbOff:g.fam.lbOff === true, at:+g.fam.at || 0};
+  o.rewards = {}; Object.keys(obj(g.rewards)).slice(0, 60).forEach(function(id){ var r = g.rewards[id]; if (!/^r[\w]{2,30}$/.test(id) || !r || typeof r !== 'object' || !REWARD_KINDS[r.k]) return;
+    var x = {e:str(r.e, 8) || '🎁', t:str(r.t, 60) || 'Reward', k:r.k, n:Math.max(1, Math.min(1e6, Math.round(+r.n || 1))), at:+r.at || 0, up:+r.up || +r.at || 0}; ['claimed','given','del'].forEach(function(f){ if (+r[f]) x[f] = +r[f]; }); o.rewards[id] = x; });
+  if (+g.lvSeen) o.lvSeen = Math.round(+g.lvSeen); if (+g.mig) o.mig = +g.mig;
+  return o;
+}
+/* ---------- answer hooks ---------- */
+function gameOnAnswer(s){ clearTimeout(GUI.t); GUI.t = setTimeout(function(){ if (S && ACTIVE) { gameRecalc(); save(); } }, 300); }
+function sessXP(s){ var e = sessionXP(s, gHelper()), t = 0; Object.keys(e).forEach(function(k){ t += e[k][0]; }); return t; }
+/* After "Check answer" (the answer is now visible anyway): small +XP toast in untimed practice. */
+function gameOnCheck(s, id){
+  gameRecalc(); save();
+  if (!s || s.timed) return;
+  var tot = sessXP(s), prev = GUI.shown[s.id] != null ? GUI.shown[s.id] : 0, d = tot - prev; GUI.shown[s.id] = tot;
+  if (d > 0) toast('+' + d + ' XP' + (d > (GAME.XP_BASE[(Q[id] || {}).difficulty] || 15) && isCorrect(Q[id], s.answers[id]) && !isCoached(s, id) ? ' · 🔥 streak bonus!' : '') + (isCoached(s, id) && isCorrect(Q[id], s.answers[id]) ? ' (coached)' : ''), 'xp');
+  flushCelebrations(true);
+}
+function gameOnFinish(s){
+  var g = G();
+  if (s.mode === 'speed' && s.speed && CMAP[s.speed.cid]) {
+    var r = sessionResults(s), cid = s.speed.cid, old = g.speed[cid] || {best:0, runs:0}, nb = r.correct > (+old.best || 0);
+    s.speed.n = r.correct;
+    g.speed[cid] = {best:Math.max(+old.best || 0, r.correct), at:nb ? now() : (+old.at || now()), runs:(+old.runs || 0) + 1};
+    if (nb && r.correct > 0) { g.xp['p:' + cid + ':' + r.correct] = [GAME.XP_SPEED_PB, todayKey()]; s.speed.pb = true; GUI.queue.push({type:'pb', c:cid, n:r.correct}); }
+  }
+  gameRecalc(); save();
+}
+/* ---------- celebrations ---------- */
+function toast(msg, cls){
+  var el = document.getElementById('gtoast'); if (!el) { el = document.createElement('div'); el.id = 'gtoast'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); document.body.appendChild(el); }
+  el.className = 'gtoast on ' + (cls || ''); el.textContent = msg; clearTimeout(GUI.toastT); GUI.toastT = setTimeout(function(){ el.className = 'gtoast'; }, 2600);
+}
+function confetti(){
+  if (reducedMotion()) return;
+  var box = document.createElement('div'); box.className = 'confetti'; box.setAttribute('aria-hidden', 'true');
+  var cols = ['#1d4ed8', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#ec4899'], h = '';
+  for (var i = 0; i < 46; i++) h += '<i style="left:' + Math.round(Math.random() * 100) + '%;background:' + cols[i % cols.length] + ';animation-delay:' + (Math.random() * 0.5).toFixed(2) + 's;animation-duration:' + (1.6 + Math.random() * 1.2).toFixed(2) + 's;transform:rotate(' + Math.round(Math.random() * 360) + 'deg)"></i>';
+  box.innerHTML = h; document.body.appendChild(box); setTimeout(function(){ if (box.parentNode) box.parentNode.removeChild(box); }, 3200);
+}
+function chime(){
+  if (!gameSoundOn()) return;
+  try { var C = window.AudioContext || window.webkitAudioContext; if (!C) return; var ac = GUI.ac || (GUI.ac = new C()), t = ac.currentTime;
+    [523.25, 659.25, 783.99].forEach(function(f, i){ var o = ac.createOscillator(), gn = ac.createGain(); o.frequency.value = f; o.type = 'sine'; gn.gain.setValueAtTime(0.0001, t + i * 0.09); gn.gain.exponentialRampToValueAtTime(0.12, t + i * 0.09 + 0.02); gn.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.09 + 0.25); o.connect(gn); gn.connect(ac.destination); o.start(t + i * 0.09); o.stop(t + i * 0.09 + 0.3); }); } catch(e){}
+}
+/* Show queued celebrations, never during a timed session (they wait for the results screen). small=true: toasts only. */
+function flushCelebrations(small){
+  if (!GUI.queue.length || modalOpen()) return;
+  var rs = view.page === 'run' ? curSession() : null; if (rs && !rs.finishedAt && (rs.timed || !small)) return;
+  var isBig = function(x){ return x.type === 'level' || x.type === 'welcome' || x.type === 'boss' || (x.type === 'mile' && x.goal); };
+  var rank = {boss:0, mile:1, level:2, welcome:3};
+  var bigs = GUI.queue.filter(isBig).sort(function(a, b){ return rank[a.type] - rank[b.type]; }), toasts = GUI.queue.filter(function(x){ return !isBig(x); });
+  var msg = toasts.map(function(x){ var b = SKILL_BADGES[x.c] || ['', '']; return x.type === 'badge' ? b[1] + ' New badge: ' + b[0] + '!' : x.type === 'gold' ? '🥇 Gold badge: ' + b[0] + '!' : x.type === 'mastery' ? '🌟 Mastered ' + CMAP[x.c].name + ' (+' + GAME.XP_MASTERY + ' XP)' :
+    x.type === 'mile' ? '🎯 Milestone: ' + x.m + '!' : x.type === 'pb' ? '⚡ New speed record: ' + x.n + '!' : x.type === 'bosstry' ? '👾 Boss Battle: ' + x.n + '/10. So close! Rematches count as practice.' : ''; }).filter(Boolean);
+  GUI.queue = small ? bigs : bigs.slice(1);   // big ones wait for a non-question screen; the rest show one after another
+  if (msg.length) { toast(msg.join(' · '), 'win'); if (!bigs.length || small) { confetti(); chime(); } }
+  if (!small && bigs.length) showBig(bigs[0]);
+}
+function nextBig(){ setTimeout(function(){ flushCelebrations(false); }, 250); }
+function showBig(x){
+  confetti(); chime();
+  if (x.type === 'level' || x.type === 'welcome') {
+    var li = x.lv;
+    modal(x.type === 'welcome' ? 'Welcome to levels & streaks!' : 'Level up! 🎉', '<div class="lvup"><div class="lvbadge" aria-hidden="true"><b>' + li.level + '</b></div><div class="lvname">' + esc(li.name) + '</div>' +
+      (x.type === 'welcome' ? '<p>Your past practice already earned <b>' + x.xp.toLocaleString() + ' XP</b>. You start at <b>Level ' + li.level + '</b>.</p><p class="small muted">Answer 10 questions a day to grow your 🔥 streak. Earn badges by reaching level 4 in a skill.</p>' : '<p>You reached <b>Level ' + li.level + '</b>. ' + li.need.toLocaleString() + ' XP to the next level.</p>') + '</div>',
+      [{label:'Awesome!', primary:true, onClick:nextBig}], 'lvupbox');
+  } else if (x.type === 'boss') {
+    var bn = bossName(x.wk); modal('Boss defeated! ' + bn.icon, '<div class="lvup"><div class="lvbadge boss" aria-hidden="true">' + bn.icon + '</div><div class="lvname">' + esc(bn.name) + '</div><p>You scored <b>' + x.n + '/10</b> and earned <b>+' + GAME.XP_BOSS_WIN + ' XP</b> and this week\u2019s boss badge.</p></div>', [{label:'Yes!', primary:true, onClick:nextBig}], 'lvupbox');
+  } else if (x.type === 'mile') {
+    modal('Goal reached! 🎯', '<div class="lvup"><div class="lvbadge" aria-hidden="true">🎯</div><div class="lvname">' + x.m + '</div><p>Your best scored exam reached your goal of <b>' + x.m + '</b>. Amazing work!</p></div>', [{label:'Woohoo!', primary:true, onClick:nextBig}], 'lvupbox');
+  }
+}
+/* ---------- home: today card, goal, leaderboard ---------- */
+function todayCardHTML(){
+  var x = gameStats(), st = x.streak, li = x.lv, b = x.boss, bn = bossName(b.week), rw = rewardList(G().rewards, x).filter(function(r){ return !r.r.given; });
+  var nextR = rw.filter(function(r){ return !r.r.claimed; })[0], claimable = rw.filter(function(r){ return r.p.unlocked && !r.r.claimed; }).length;
+  var bossTxt = b.status === 'ready' ? '<b>Ready!</b> ' + esc(bn.name) + ' awaits' : b.status === 'progress' ? '<b>In progress</b>, finish it!' : b.status === 'won' ? '<b>Defeated ✓</b> ' + b.attempt.n + '/10 · new boss in ' + b.resetsIn + ' day' + (b.resetsIn === 1 ? '' : 's') : '<b>' + b.attempt.n + '/10</b> this week · new boss in ' + b.resetsIn + ' day' + (b.resetsIn === 1 ? '' : 's');
+  var h = '<div class="card gtoday" id="today-card"><div class="gt-grid">' +
+    '<div class="gt-cell gt-streak' + (st.todayDone ? ' done' : '') + '"><span class="flame" aria-hidden="true">' + (st.current ? '🔥' : '🪵') + '</span><div><b class="gt-big">' + st.current + '</b> <span>day streak</span>' +
+      '<div class="small muted">' + (st.todayDone ? 'Today done ✓' : 'Today ' + Math.min(st.todayCount, GAME.DAY_NEED) + '/' + GAME.DAY_NEED + ' answers') + ' · ❄️ ' + st.banked + ' freeze' + (st.banked === 1 ? '' : 's') + '</div>' +
+      '<div class="gtbar" aria-hidden="true"><i style="width:' + Math.min(100, Math.round(100 * st.todayCount / GAME.DAY_NEED)) + '%"></i></div></div></div>' +
+    '<div class="gt-cell gt-level"><span class="lvchip" aria-hidden="true">' + li.level + '</span><div style="flex:1;min-width:0"><b>Level ' + li.level + ' · ' + esc(li.name) + '</b><div class="xpbar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + li.pct + '"><i style="width:' + li.pct + '%"></i></div>' +
+      '<div class="small muted">' + li.xp.toLocaleString() + ' XP · ' + li.need.toLocaleString() + ' to ' + esc(levelName(li.level + 1)) + '</div></div></div>' +
+    '<div class="gt-cell gt-boss"><span class="flame" aria-hidden="true">' + bn.icon + '</span><div><b>Boss Battle</b><div class="small">' + bossTxt + '</div></div></div>' +
+    '<div class="gt-cell gt-reward"><span class="flame" aria-hidden="true">' + (nextR ? esc(nextR.r.e) : '🎁') + '</span><div style="min-width:0"><b>' + (claimable ? claimable + ' reward' + (claimable === 1 ? '' : 's') + ' to claim!' : 'Next reward') + '</b><div class="small muted">' +
+      (nextR ? esc(nextR.r.t) + ' · ' + rewardNeedText(nextR) : 'A parent can add rewards in Parent view') + '</div></div></div></div>' +
+    '<div class="row gt-acts"><button class="btn small" data-act="nav" data-page="badges">🏅 Badges (' + x.badges + ')</button><button class="btn small" data-act="nav" data-page="boss">' + bn.icon + ' Boss Battle</button><button class="btn small" data-act="speed-pick">⚡ Speed round</button></div></div>';
+  return h + goalCardHTML(x.goal) + leaderboardHTML();
+}
+function rewardNeedText(r){ var p = r.p, k = r.r.k; if (p.unlocked) return r.r.claimed ? 'claimed' : 'unlocked!';
+  return k === 'xp' ? (p.need - p.have).toLocaleString() + ' XP to go' : k === 'streak' ? p.need + '-day streak (best ' + p.have + ')' : k === 'badges' ? (p.need - p.have) + ' more badge' + (p.need - p.have === 1 ? '' : 's') : 'score ' + p.need + (p.have ? ' (best ' + p.have + ')' : ''); }
+function goalCardHTML(gi){
+  if (!gi.goal) return '<div class="card ggoal" id="goal-card"><div class="row" style="justify-content:space-between"><div><b>🎯 Score goal</b> <span class="small muted">Pick a target total score. Progress comes from scored exams only.</span></div><button class="btn small" data-act="goal-set">Set a goal</button></div></div>';
+  var marks = !gi.n ? '' : gi.miles.map(function(m){ var pos = Math.max(0, Math.min(100, Math.round(100 * (m - (gi.base || 400)) / Math.max(1, gi.goal - (gi.base || 400))))); return '<span class="gm' + (gi.best >= m ? ' on' : '') + '" style="left:' + pos + '%" title="' + m + '"></span>'; }).join('');
+  return '<div class="card ggoal" id="goal-card"><div class="row" style="justify-content:space-between"><div><b>🎯 Goal: ' + gi.goal + '</b>' + (gi.by === 'parent' ? ' <span class="small muted">(set by a parent)</span>' : '') +
+    ' <span class="small muted">' + (gi.n ? 'Best ' + gi.best + ' · latest ' + gi.latest + (gi.reached ? ' · goal reached! 🎉' : gi.next ? ' · next milestone ' + gi.next : '') : 'Take a scored exam (no instant feedback or Coach) to start tracking') + '</span></div><button class="btn small ghost" data-act="goal-set">Change</button></div>' +
+    '<div class="goalbar" aria-label="Progress to goal ' + gi.pct + '%"><i style="width:' + gi.pct + '%"></i>' + marks + '</div><div class="small muted goalends"><span>' + (gi.base || 400) + '</span><span>' + gi.goal + '</span></div></div>';
+}
+function lbRows(){
+  var wk = mondayKey(todayKey()), rows = [], seen = {};
+  REG.order.forEach(function(id){ var m = REG.profiles[id]; if (!m) return; seen[id] = 1; var lb = null;
+    if (id === ACTIVE) { var g = G(), st = streakInfo(g.days, todayKey()); lb = {wk:wk, xp:xpForWeek(g.xp, wk), st:st.current, off:lbOptOut(g)}; }
+    else { var d = readProfileData(id), gg = d && d.game ? d.game : null, loc = gg ? {wk:wk, xp:xpForWeek(gg.xp, wk), st:streakInfo(gg.days || {}, todayKey()).current, off:!!(gg.lbOpt && gg.lbOpt.off)} : null;
+      var rm = REG.remote[id] && REG.remote[id].meta && REG.remote[id].meta.lb; lb = rm && (!loc || (+rm.at || 0) > (+(m.lb && m.lb.at) || 0)) ? rm : (loc || m.lb || null); }
+    rows.push({id:id, name:m.name, color:m.color, letter:m.letter, lb:lb, self:id === ACTIVE}); });
+  Object.keys(REG.remote || {}).forEach(function(id){ var r = REG.remote[id]; if (seen[id] || !r || r.deletedAt || !r.meta || REG.pendingDeletes[id]) return; rows.push({id:id, name:r.meta.name, color:r.meta.color, letter:r.meta.letter, lb:r.meta.lb || null}); });
+  return rows;
+}
+function leaderboardHTML(){
+  var g = G(); if (famLbOff(g)) return '';
+  var rows = leaderboard(lbRows().map(function(r){ if (!r.lb) r.lb = {wk:mondayKey(todayKey()), xp:0, st:0}; return r; }), mondayKey(todayKey()), false), wd = keyDiff(mondayKey(todayKey()), todayKey());
+  var h = '<div class="card glb" id="lb-card"><div class="row" style="justify-content:space-between"><h2 style="margin:0">🏆 Family leaderboard</h2><span class="small muted">This week · XP &amp; streaks only · resets Monday (' + (7 - wd) + ' day' + (7 - wd === 1 ? '' : 's') + ')</span></div>';
+  if (lbOptOut(g)) h += '<p class="small muted">You\u2019re hidden from the leaderboard. You can change this in Settings.</p>';
+  if (!rows.length) h += '<p class="small muted">No one on the board yet.</p>';
+  else h += '<ol class="lblist">' + rows.map(function(r, i){ return '<li class="' + (r.self ? 'me' : '') + '" data-id="' + esc(r.id) + '"><span class="lbpos">' + (i === 0 && r.xp > 0 ? '🥇' : i === 1 && r.xp > 0 ? '🥈' : i === 2 && r.xp > 0 ? '🥉' : (i + 1)) + '</span>' + avatarHTML({name:r.name, color:r.color, letter:r.letter}, 'sm') + '<b class="lbname">' + esc(r.name) + (r.self ? ' <span class="small muted">(you)</span>' : '') + '</b><span class="lbxp">' + r.xp.toLocaleString() + ' XP</span><span class="lbst" title="Day streak">🔥 ' + r.streak + '</span></li>'; }).join('') + '</ol>';
+  return h + (rows.length < 2 ? '<p class="small muted" style="margin-bottom:0">Family members show up here once their profiles sync.</p>' : '') + '</div>';
+}
+/* ---------- badge cabinet ---------- */
+function renderBadges(){
+  var g = G(), x = gameStats(), li = x.lv, st = x.streak, h = nav() + '<div class="wrap gcab">' + storageWarning();
+  h += '<div class="card"><div class="cabhead"><span class="lvchip big" aria-hidden="true">' + li.level + '</span><div style="flex:1;min-width:0"><h2 style="margin:0">' + esc(li.name) + ' · Level ' + li.level + '</h2><div class="xpbar"><i style="width:' + li.pct + '%"></i></div>' +
+    '<div class="small muted">' + li.xp.toLocaleString() + ' XP total · ' + x.week.toLocaleString() + ' this week · ' + li.need.toLocaleString() + ' XP to ' + esc(levelName(li.level + 1)) + '</div></div></div>' +
+    '<div class="cabstats"><div><b>🔥 ' + st.current + '</b><span>day streak</span></div><div><b>🏔️ ' + st.best + '</b><span>best streak</span></div><div><b>❄️ ' + st.banked + '</b><span>freezes banked</span></div><div><b>🏅 ' + x.badges + '</b><span>skill badges</span></div><div><b>🥇 ' + x.gold + '</b><span>gold</span></div><div><b>👾 ' + x.boss.wins.length + '</b><span>bosses beaten</span></div></div></div>';
+  var rl = rewardList(g.rewards, x);
+  h += '<div class="card" id="rewards-card"><h2>🎁 Rewards</h2>' + (rl.length ? '<ul class="rwlist">' + rl.map(function(r){ var p = r.p;
+    return '<li class="' + (r.r.given ? 'given' : p.unlocked ? 'unl' : '') + '"><span class="rwe" aria-hidden="true">' + esc(r.r.e) + '</span><div class="rwt"><b>' + esc(r.r.t) + '</b><div class="small muted">' + rewardLabel(r.r) + '</div>' + (p.unlocked ? '' : '<div class="gtbar"><i style="width:' + p.pct + '%"></i></div>') + '</div>' +
+      (r.r.given ? '<span class="rws ok">Given ✓</span>' : r.r.claimed ? '<span class="rws">Claimed · waiting for a parent</span>' : p.unlocked ? '<button class="btn small primary" data-act="reward-claim" data-id="' + esc(r.id) + '">Claim</button>' : '<span class="rws">' + esc(rewardNeedText(r)) + '</span>') + '</li>'; }).join('') + '</ul>'
+    : '<p class="small muted">No rewards yet. A parent can add some in 👪 Parent view (Progress page).</p>') + '</div>';
+  h += '<div class="card"><h2>🏅 Skill badges</h2><p class="small muted" style="margin-top:0">Earn a skill\u2019s badge by reaching <b>level ' + GAME.BADGE_LEVEL + '</b> (after at least ' + GAME.BADGE_MIN_N + ' answers). Keep it at level ' + GAME.BADGE_LEVEL + '+ for ' + GAME.GOLD_N + ' more answers and ' + GAME.GOLD_DAYS + ' days to turn it <b>gold</b>.</p>';
+  ['rw', 'math'].forEach(function(sec){
+    h += '<h3 class="cabsec">' + SECTION_NAMES[sec] + '</h3><div class="bgrid">';
+    CONCEPTS.filter(function(c){ return cSec(c.id) === sec; }).forEach(function(c){
+      var b = g.badges[c.id], nm = SKILL_BADGES[c.id] || [c.name, '🏅'], L = S.levels && S.levels[c.id], r = L ? +L.r : LEVEL_START, n = L ? +L.n : 0, cls = b ? (b.gold ? 'gold' : 'silver') : 'locked', sub;
+      if (!b) sub = 'Level ' + r.toFixed(1) + '/' + GAME.BADGE_LEVEL + (n < GAME.BADGE_MIN_N ? ' · ' + n + '/' + GAME.BADGE_MIN_N + ' answers' : '');
+      else if (b.gold) sub = 'Gold since ' + fmtMD(b.gold);
+      else if (b.hs) { var moreN = Math.max(0, GAME.GOLD_N - (n - (+b.hn || 0))), moreD = Math.max(0, Math.ceil(GAME.GOLD_DAYS - (now() - b.hs) / 864e5)); sub = 'Gold in ' + moreN + ' answer' + (moreN === 1 ? '' : 's') + (moreD ? ' & ' + moreD + ' day' + (moreD === 1 ? '' : 's') : ''); }
+      else sub = 'Get back to level ' + GAME.BADGE_LEVEL + ' to keep going for gold';
+      h += '<div class="bdg ' + cls + '" title="' + esc(c.name) + '"><span class="bico" aria-hidden="true">' + (b ? nm[1] : '🔒') + '</span><b>' + esc(nm[0]) + '</b><span class="small muted bsk">' + esc(c.name) + '</span><span class="small bsub">' + esc(sub) + '</span></div>';
+    });
+    h += '</div>';
+  });
+  h += '</div>';
+  var wins = x.boss.wins;
+  h += '<div class="card"><h2>👾 Boss badges</h2>' + (wins.length ? '<div class="bgrid">' + wins.slice().reverse().map(function(w){ var bn = bossName(w); return '<div class="bdg silver boss"><span class="bico" aria-hidden="true">' + bn.icon + '</span><b>' + esc(bn.name) + '</b><span class="small muted">Week of ' + fmtMD(keyUTC0(w) + 12 * 3600e3) + ' · ' + (g.boss[w].n || 0) + '/10</span></div>'; }).join('') + '</div>' : '<p class="small muted">Beat a weekly Boss Battle (8/10 or better) to earn one.</p>') + '</div>';
+  var sp = Object.keys(g.speed).filter(function(c){ return CMAP[c]; });
+  h += '<div class="card"><h2>⚡ Speed records</h2>' + (sp.length ? '<ul class="pvlist">' + sp.sort(function(a, b){ return g.speed[b].best - g.speed[a].best; }).map(function(c){ return '<li><span>' + esc(CMAP[c].name) + '</span><b>' + g.speed[c].best + ' in 60 s</b></li>'; }).join('') + '</ul>' : '<p class="small muted">Try a 60-second speed round from Home.</p>') + '<button class="btn small" data-act="speed-pick">⚡ Start a speed round</button></div>';
+  app.innerHTML = h + '</div>';
+}
+function rewardLabel(r){ return 'Unlocks at ' + (r.k === 'xp' ? (+r.n).toLocaleString() + ' XP' : r.k === 'streak' ? 'a ' + r.n + '-day streak' : r.k === 'badges' ? r.n + ' skill badge' + (+r.n === 1 ? '' : 's') : 'a ' + r.n + ' scored exam'); }
+/* ---------- weekly boss ---------- */
+function bossSkills(){
+  var st = conceptStats(), live = CONCEPTS.filter(function(c){ return !st[c.id].archived; });
+  var seen = live.filter(function(c){ return st[c.id].seen > 0; }).sort(function(a, b){ return levelOf(a.id) - levelOf(b.id) || st[a.id].recentRate - st[b.id].recentRate; });
+  var weak = seen.filter(function(c){ return levelOf(c.id) < GAME.BADGE_LEVEL; }), strong = seen.filter(function(c){ return levelOf(c.id) >= GAME.BADGE_LEVEL; });
+  var fresh = shuffle(live.filter(function(c){ return !st[c.id].seen; }));
+  return weak.concat(fresh, strong).slice(0, 5).map(function(c){ return c.id; });   // weakest practiced skills first, then untried ones
+}
+function renderBoss(){
+  var g = G(), b = bossState(g.boss, todayKey()), bn = bossName(b.week), skills = b.attempt && b.attempt.skills ? b.attempt.skills : bossSkills();
+  var secs = skills.length ? Math.round(GAME.BOSS_N * skills.reduce(function(a, c){ return a + PER_Q_SECONDS[cSec(c)]; }, 0) / skills.length) : 600;
+  var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card bosscard"><div class="bosshero"><span class="bossico" aria-hidden="true">' + bn.icon + '</span><div><div class="small muted">Weekly Boss Battle · week of ' + fmtMD(keyUTC0(b.week) + 12 * 3600e3) + '</div><h2 style="margin:2px 0">' + esc(bn.name) + '</h2>' +
+    '<div class="small">' + (b.status === 'ready' ? '⚔️ Ready to fight!' : b.status === 'progress' ? '⏳ Battle in progress' : b.status === 'won' ? '🏆 Defeated with ' + b.attempt.n + '/10!' : '💪 You scored ' + b.attempt.n + '/10 this week') + ' · new boss in ' + b.resetsIn + ' day' + (b.resetsIn === 1 ? '' : 's') + ' (Monday)</div></div></div>' +
+    '<ul class="bossrules"><li>⏱️ <b>' + GAME.BOSS_N + ' timed questions</b> (' + fmtClock(secs) + ') from your weakest skills, at your level.</li><li>🎯 Score <b>' + GAME.BOSS_WIN + '/10 or better</b> to win <b>+' + GAME.XP_BOSS_WIN + ' XP</b> and the boss badge.</li><li>1️⃣ One scored attempt per week. Rematches count as practice.</li><li>🙈 No checking answers or Coach during the battle.</li></ul>' +
+    '<div class="bossskills"><span class="small muted">This week\u2019s targets:</span> ' + skills.map(function(c){ return '<span class="tagc">' + esc(CMAP[c].name) + ' · Lv ' + levelOf(c).toFixed(1) + '</span>'; }).join(' ') + '</div><div class="row" style="margin-top:12px">';
+  if (b.status === 'ready') h += '<button class="btn primary big" data-act="boss-start">⚔️ Start the Boss Battle</button>';
+  else if (b.status === 'progress' && S.sessions[b.attempt.sid]) h += '<button class="btn primary big" data-act="resume" data-sid="' + esc(b.attempt.sid) + '">Resume the battle</button>';
+  else h += '<button class="btn big" data-act="boss-start">🔁 Rematch (practice)</button>';
+  h += '</div></div>';
+  var hist = Object.keys(g.boss).sort().reverse().slice(0, 8);
+  if (hist.length) h += '<div class="card"><h2>Past battles</h2><ul class="pvlist">' + hist.map(function(w){ var x = g.boss[w], n = bossName(w); return '<li><span>' + n.icon + ' ' + esc(n.name) + ' <span class="small muted">week of ' + fmtMD(keyUTC0(w) + 12 * 3600e3) + '</span></span><b>' + (x.done ? (x.n || 0) + '/10' + (x.win ? ' 🏆' : '') : 'in progress') + '</b></li>'; }).join('') + '</ul></div>';
+  app.innerHTML = h + '</div>';
+}
+function startBoss(){
+  var g = G(), b = bossState(g.boss, todayKey()), scored = b.status === 'ready', skills = scored ? bossSkills() : (b.attempt && b.attempt.skills) || bossSkills();
+  if (!skills.length) return;
+  var info = seenInfo(), exclude = {}, ids = [], k = 0, guard = 0;
+  while (ids.length < GAME.BOSS_N && guard++ < 60) { var c = skills[k++ % skills.length], got = pickForConcept(c, 1, exclude, info, diffForLevel(levelOf(c), c), {noAI:true, adaptive:true, noOriginal:true}); if (got.length) { exclude[got[0]] = 1; ids.push(got[0]); } }
+  if (!ids.length) { modal('No questions left', '<p>There are no questions left for these skills.</p>'); return; }
+  ids = ids.filter(function(id){ return qSec(Q[id]) === 'rw'; }).concat(ids.filter(function(id){ return qSec(Q[id]) === 'math'; }));
+  var total = ids.reduce(function(a, id){ return a + PER_Q_SECONDS[qSec(Q[id])]; }, 0), sec = practiceSection(ids), bn = bossName(b.week);
+  var s = newSession('practice', 'Boss Battle: ' + bn.name + (scored ? '' : ' (rematch)'), [ids], {source:'boss', mode:'boss', section:sec, modSec:[sec], timed:true, secs:[total], instant:false, adaptive:false, targets:skills.slice(), boss:{wk:b.week, scored:scored}});
+  s.coachAll = false; s.instant = false;
+  if (scored) { g.boss[b.week] = {sid:s.id, at:now(), skills:skills.slice()}; save(); syncSoon(1500); }
+  go('run', s.id);
+}
+function bossScored(s){ var g = G(); return !!(s && s.boss && g.boss[s.boss.wk] && g.boss[s.boss.wk].sid === s.id); }
+/* ---------- speed rounds ---------- */
+function speedPick(){
+  var g = G(), opts = CONCEPTS.map(function(c){ var pb = g.speed[c.id]; return '<option value="' + esc(c.id) + '">' + esc((cSec(c.id) === 'math' ? 'Math · ' : 'RW · ') + c.name) + (pb ? ' (best ' + pb.best + ')' : '') + '</option>'; }).join('');
+  var last = prefs().speedLast && CMAP[prefs().speedLast] ? prefs().speedLast : (bossSkills()[0] || CONCEPTS[0].id);
+  modal('⚡ Speed round', '<p class="small" style="margin-top:0">60 seconds, one skill, as many as you can. Short questions at your level. Multiple-choice answers jump to the next question automatically.</p>' +
+    '<label class="fld"><span>Skill</span><select id="speed-skill">' + opts.replace('value="' + last + '"', 'value="' + last + '" selected') + '</select></label><p class="small muted">Speed rounds give a little XP per correct answer and only nudge your skill level.</p>',
+    [{label:'Cancel'}, {label:'Go! ⚡', primary:true, validate:function(){ var v = (document.getElementById('speed-skill') || {}).value; return CMAP[v] ? v : false; }, onClick:function(cid){ setPref('speedLast', cid); startSpeed(cid); }}]);
+}
+function qLen(q){ return strip((q.passage || '') + ' ' + (q.stem || '') + ' ' + (q.choices || []).join(' ')).length + (q.fig ? 400 : 0) + (q.table ? 300 : 0) + (q.chart ? 300 : 0); }
+function startSpeed(cid){
+  var want = diffForLevel(levelOf(cid), cid), info = seenInfo(), pool = bankFor(cid).filter(function(q){ return q.concept === cid && !isReported(q.id); });
+  if (cSec(cid) === 'math') { var nc = pool.filter(function(q){ return !q.fig && !q.table && !/\d+\.\d{3,}/.test(q.stem || ''); }); if (nc.length >= 8) pool = nc; }   // no-calculator friendly
+  pool = shuffle(pool).sort(function(a, b){ var da = diffDist(a.difficulty, want), db = diffDist(b.difficulty, want); if (da !== db) return da - db; var sa = info[a.id] ? 1 : 0, sb = info[b.id] ? 1 : 0; if (sa !== sb) return sa - sb; return qLen(a) - qLen(b); });
+  var near = pool.filter(function(q){ return diffDist(q.difficulty, want) <= 1; }), list = (near.length >= 10 ? near : pool).slice(0, 30);
+  list.sort(function(a, b){ return qLen(a) - qLen(b); });
+  var ids = list.slice(0, 20).map(function(q){ return q.id; }); ids = shuffle(ids);
+  if (!ids.length) { modal('No questions', '<p>There are no questions for this skill yet.</p>'); return; }
+  var sec = cSec(cid), s = newSession('practice', 'Speed Round: ' + CMAP[cid].name, [ids], {source:'speed', mode:'speed', section:sec, modSec:[sec], timed:true, secs:[GAME.SPEED_SECONDS], instant:false, adaptive:false, targets:[cid], speed:{cid:cid, lv0:levelOf(cid)}});
+  s.coachAll = false; s.instant = false;
+  save(); go('run', s.id);
+}
+/* ---------- results, dashboard, settings ---------- */
+function gameResultsHTML(s){
+  var e = sessionXP(s, gHelper()), t = 0; Object.keys(e).forEach(function(k){ t += e[k][0]; });
+  var g = G(), extra = '', li = levelInfo(xpTotal(g.xp));
+  if (s.mode === 'speed' && s.speed) { var sp = g.speed[s.speed.cid] || {}; extra = '<p class="gres-big">⚡ <b>' + (s.speed.n != null ? s.speed.n : sessionResults(s).correct) + '</b> correct in 60 seconds' + (s.speed.pb ? ' · <b>new personal best!</b>' : ' · best ' + (sp.best || 0)) + '</p>'; if (s.speed.pb) t += GAME.XP_SPEED_PB; }
+  if (s.mode === 'boss' && s.boss) { var sc = bossScored(s), r = sessionResults(s), bn = bossName(s.boss.wk), win = r.correct >= GAME.BOSS_WIN;
+    extra = '<p class="gres-big">' + bn.icon + ' <b>' + r.correct + '/' + r.total + '</b> vs ' + esc(bn.name) + ' · ' + (sc ? (win ? '<b>Boss defeated!</b> +' + GAME.XP_BOSS_WIN + ' XP and the boss badge' : 'Not this time. Need ' + GAME.BOSS_WIN + '/10. A new boss arrives Monday.') : 'Rematch (practice, not scored)') + '</p>'; if (sc && win) t += GAME.XP_BOSS_WIN; }
+  var red = (s.kind === 'test' && instantExam(s)) || (s.coached && Object.keys(s.coached).length);
+  return '<div class="card gres" id="xp-card"><div class="row" style="justify-content:space-between"><div><b class="gres-xp">+' + t.toLocaleString() + ' XP</b> <span class="small gmuted">earned in this ' + (s.kind === 'test' ? 'test' : 'session') + (red ? ' (coached / instant-feedback answers earn half)' : '') + '</span></div><span class="small"><span class="lvchip sm">' + li.level + '</span> ' + esc(li.name) + ' · ' + li.need.toLocaleString() + ' XP to next level</span></div>' + extra + '</div>';
+}
+function gameDashHTML(){
+  var x = gameStats(), g = G();
+  return '<div class="card" id="game-dash"><h2>🎮 Streaks &amp; levels</h2><div class="mgrid">' + mcard('Level', x.lv.level + ' · ' + x.lv.name, x.lv.xp.toLocaleString() + ' XP') + mcard('Streak', x.streak.current + ' 🔥', 'best ' + x.streak.best + ' · ' + x.streak.activeDays + ' active days') +
+    mcard('This week', x.week.toLocaleString() + ' XP', x.boss.status === 'won' ? 'boss defeated' : x.boss.status === 'tried' ? 'boss ' + x.boss.attempt.n + '/10' : 'boss ' + (x.boss.status === 'ready' ? 'ready' : 'in progress')) +
+    mcard('Badges', x.badges + ' 🏅', x.gold + ' gold · ' + x.boss.wins.length + ' boss') + mcard('Goal', x.goal.goal ? String(x.goal.goal) : '—', x.goal.goal ? (x.goal.best ? 'best ' + x.goal.best : 'no scored exam yet') : 'set one on Home') + '</div>' +
+    '<div class="row"><button class="btn small" data-act="nav" data-page="badges">Open badge cabinet</button></div></div>';
+}
+function gameSettingsHTML(){
+  var g = G(), gi = goalInfo();
+  return '<div class="card" id="game-settings"><h2>🎮 Streaks, XP &amp; rewards</h2>' +
+    '<label class="ck"><input type="checkbox" data-gpref="sound"' + (gameSoundOn() ? ' checked' : '') + '> <b>Sounds</b> <span class="small muted">(off by default) a short chime for level-ups and badges.</span></label>' +
+    '<label class="ck"><input type="checkbox" data-gpref="lb"' + (lbOptOut(g) ? '' : ' checked') + '> <b>Show me on the family leaderboard</b> <span class="small muted">(weekly XP and streaks only, never scores)' + (famLbOff(g) ? '. A parent turned the leaderboard off for the family.' : '') + '</span></label>' +
+    '<div class="row" style="margin-top:8px"><span><b>🎯 Score goal:</b> ' + (gi.goal ? gi.goal + (gi.by === 'parent' ? ' (set by a parent)' : '') : 'not set') + '</span><button class="btn small" data-act="goal-set">' + (gi.goal ? 'Change' : 'Set a goal') + '</button></div>' +
+    '<p class="small muted">Animations follow your device\u2019s Reduce Motion setting. There are no vibrations.</p></div>';
+}
+function goalModal(cur, onSave, who){
+  modal('🎯 Score goal', '<p class="small" style="margin-top:0">Target total score (400–1600). Progress uses scored exams only (not instant-feedback or coached ones). Milestones every 50 points.</p>' +
+    '<input id="goal-in" class="pinsm" style="width:120px" type="number" inputmode="numeric" min="400" max="1600" step="10" value="' + (cur || '') + '" aria-label="Goal score"><p id="goal-err" class="errmsg small" role="alert"></p>',
+    [{label:'Cancel'}].concat(cur ? [{label:'Remove goal', validate:function(){ return {off:true}; }, onClick:function(v){ onSave(null); }}] : []).concat([{label:'Save', primary:true, validate:function(){ var v = Math.round((+((document.getElementById('goal-in') || {}).value) || 0) / 10) * 10, er = document.getElementById('goal-err');
+      if (v < 400 || v > 1600) { if (er) er.textContent = 'Pick a score from 400 to 1600.'; return false; } return v; }, onClick:function(v){ onSave(v); }}]));
+  setTimeout(function(){ var i = document.getElementById('goal-in'); if (i) i.focus(); }, 30);
+}
+/* ---------- Parent view: rewards, goal, family leaderboard switch ---------- */
+function pvGameHTML(p, x){
+  var d = p.data || {}, gm = d.game || {}, rewards = gm.rewards || {}, canEdit = PV.parentOk;
+  var h = '<div class="pvrow pvgame"><span class="ml">Streak &amp; XP</span><span class="small">' + (x.game ? '🔥 ' + x.game.streak + '-day streak (best ' + x.game.best + ') · Level ' + x.game.level + ' ' + esc(x.game.name) + ' · ' + x.game.xp.toLocaleString() + ' XP (' + x.game.week.toLocaleString() + ' this week) · 🏅 ' + x.game.badges + ' badge' + (x.game.badges === 1 ? '' : 's') + (x.game.gold ? ' (' + x.game.gold + ' gold)' : '') + ' · 👾 ' + x.game.bosses + ' boss' + (x.game.bosses === 1 ? '' : 'es') : 'No XP yet') + '</span></div>';
+  h += '<div class="pvrow pvgoal"><span class="ml">Score goal</span><span class="small">' + (x.game && x.game.goal ? '🎯 ' + x.game.goal + (x.game.goalBy === 'parent' ? ' (set by you)' : ' (set by ' + esc((p.meta || {}).name || 'them') + ')') + ' · best scored ' + (x.game.goalBest || '—') + (x.game.goalBest >= x.game.goal ? ' · reached 🎉' : '') : 'No goal set') + '</span> <button class="btn small ghost" data-act="pv-goal" data-id="' + esc(p.id) + '">' + (x.game && x.game.goal ? 'Change' : 'Set goal') + '</button></div>';
+  var list = Object.keys(rewards).filter(function(id){ return rewards[id] && !rewards[id].del; }).sort(function(a, b){ return (rewards[a].at || 0) - (rewards[b].at || 0); });
+  h += '<div class="pvrow pvrewards"><span class="ml">Rewards' + (canEdit ? '' : ' 🔒') + '</span>' + (list.length ? '<ul class="pvlist">' + list.map(function(id){ var r = rewards[id];
+    return '<li><span>' + esc(r.e || '🎁') + ' ' + esc(r.t) + ' <span class="small muted">' + esc(rewardLabel(r)) + '</span></span><span>' + (r.given ? '<span class="small okmsg">Given ✓</span>' : r.claimed ? '<b class="small">Claimed!</b> ' + (canEdit ? '<button class="btn small primary" data-act="pv-given" data-id="' + esc(p.id) + '" data-r="' + esc(id) + '">Mark given</button>' : '') : '<span class="small muted">not yet claimed</span>') +
+      (canEdit ? ' <button class="btn small ghost" data-act="pv-rdel" data-id="' + esc(p.id) + '" data-r="' + esc(id) + '" aria-label="Delete reward ' + esc(r.t) + '">✕</button>' : '') + '</span></li>'; }).join('') + '</ul>' : '<span class="small muted">No rewards yet.</span>') +
+    '<div><button class="btn small" data-act="pv-reward" data-id="' + esc(p.id) + '">＋ Add reward</button>' + (canEdit ? '' : ' <span class="small muted">needs the parent PIN</span>') + '</div></div>';
+  return h;
+}
+function pvGameSummary(d){
+  var gm = d.game || {}, days = gm.days || {}, xp = gm.xp || {}, st = streakInfo(days, todayKey()), total = xpTotal(xp), li = levelInfo(total), b = gm.badges || {};
+  return {streak:st.current, best:st.best, xp:total, week:xpForWeek(xp, mondayKey(todayKey())), level:li.level, name:li.name, badges:badgeCount(b), gold:Object.keys(b).filter(function(c){ return b[c] && b[c].gold; }).length,
+    bosses:Object.keys(gm.boss || {}).filter(function(w){ return gm.boss[w] && gm.boss[w].win; }).length, goal:gm.goal && +gm.goal.score || 0, goalBy:gm.goal ? gm.goal.by : '', goalBest:goalInfo().best,
+    rewards:Object.keys(gm.rewards || {}).filter(function(id){ return !gm.rewards[id].del; }).length, claimed:Object.keys(gm.rewards || {}).filter(function(id){ var r = gm.rewards[id]; return !r.del && r.claimed && !r.given; }).length};
+}
+/* Change another profile's game data from Parent view: local profiles directly (then sync), remote-only ones through the relay. */
+function pvEditProfile(id, fn){
+  if (REG.profiles[id]) {
+    var st = getPState(id); fn(st.game || (st.game = {v:1})); st.game = cleanGame(st.game); st.updatedAt = now();
+    if (id === ACTIVE) { S = st; save(); } else writeProfileData(id, st);
+    var done = function(){ loadParent(); }; if (canSync()) doSync(id).then(done, done); else done();
+    return;
+  }
+  var tries = 0;
+  (function attempt(){
+    syncFetch('/sync/profiles/' + id, 'GET').then(function(x){
+      var row = x.data || {}, d = row.data && row.data.sessions ? row.data : null; if (!d) throw new Error('Couldn\u2019t load that profile.');
+      d.game = d.game || {v:1}; fn(d.game); d.game = cleanGame(d.game); d.updatedAt = now();
+      return syncFetch('/sync/profiles/' + id, 'PUT', JSON.stringify({baseVersion:row.version, meta:row.meta, data:d}));
+    }).then(function(r){ if (r.status === 409 && ++tries < 4) return attempt(); if (r.status !== 200) throw new Error((r.data && r.data.error) || 'Sync failed.'); loadParent(); },
+      function(e){ PV.err = e.message || 'Couldn\u2019t save the change.'; render(); });
+  })();
+}
+function pvNeedParentPin(fn){
+  if (!parentPinSet()) { modal('Set a parent PIN first', '<p>Rewards are protected by a parent PIN, so kids can\u2019t add their own. Set a 4-digit parent PIN for this device, then add rewards.</p>', [{label:'Cancel'}, {label:'Set parent PIN', primary:true, onClick:function(){ parentPinModal(); }}]); return; }
+  if (PV.parentOk) { fn(); return; }
+  modal('Parent PIN', '<p class="small" style="margin-top:0">Enter the parent PIN to manage rewards.</p><input id="pp-in" class="pinbox" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" aria-label="Parent PIN"><p id="pp-er" class="errmsg small" role="alert"></p>',
+    [{label:'Cancel'}, {label:'OK', primary:true, validate:function(){ var v = ((document.getElementById('pp-in') || {}).value || '').trim(); if (pinHashOf(v, REG.parentPin.salt) === REG.parentPin.hash) return true; var er = document.getElementById('pp-er'); if (er) er.textContent = 'That parent PIN isn\u2019t right.'; return false; }, onClick:function(){ PV.parentOk = true; render(); fn(); }}]);
+  setTimeout(function(){ var i = document.getElementById('pp-in'); if (i) i.focus(); }, 30);
+}
+function pvRewardModal(pid){
+  var nm = (PV.profiles.filter(function(p){ return p.id === pid; })[0] || {meta:{name:'them'}}).meta.name;
+  modal('Add a reward for ' + nm, '<div class="row"><label class="fld" style="width:90px"><span>Emoji</span><input id="rw-e" value="🎁" maxlength="8" aria-label="Emoji"></label><label class="fld" style="flex:1"><span>Reward</span><input id="rw-t" maxlength="60" placeholder="e.g. Pizza night" aria-label="Reward"></label></div>' +
+    '<div class="row"><label class="fld"><span>Unlocks at</span><select id="rw-k"><option value="xp">XP total</option><option value="streak">Day streak</option><option value="badges">Skill badges earned</option><option value="score">Scored exam total</option></select></label><label class="fld" style="width:120px"><span>Amount</span><input id="rw-n" type="number" inputmode="numeric" min="1" value="1000" aria-label="Amount"></label></div><p id="rw-err" class="errmsg small" role="alert"></p>',
+    [{label:'Cancel'}, {label:'Add reward', primary:true, validate:function(){ var t = ((document.getElementById('rw-t') || {}).value || '').trim(), e = ((document.getElementById('rw-e') || {}).value || '').trim() || '🎁', k = (document.getElementById('rw-k') || {}).value, n = Math.round(+((document.getElementById('rw-n') || {}).value) || 0), er = document.getElementById('rw-err');
+      if (!t) { if (er) er.textContent = 'Describe the reward.'; return false; } if (!REWARD_KINDS[k] || n < 1 || (k === 'score' && (n < 400 || n > 1600))) { if (er) er.textContent = k === 'score' ? 'A score from 400 to 1600.' : 'Pick an amount of 1 or more.'; return false; } return {t:t, e:e, k:k, n:n}; },
+      onClick:function(v){ var t = now(), rid = 'r' + t.toString(36) + Math.random().toString(36).slice(2, 6); pvEditProfile(pid, function(g){ g.rewards = g.rewards || {}; g.rewards[rid] = {e:v.e, t:v.t, k:v.k, n:v.n, at:t, up:t}; }); }}]);
+}
+function pvLbToggle(){
+  var off = !PV.famLbOff;
+  confirmBox(off ? 'Turn off the family leaderboard?' : 'Turn on the family leaderboard?', '<p>' + (off ? 'The weekly leaderboard will be hidden on every profile\u2019s Home screen.' : 'Every profile will see weekly XP and streaks (never scores). Each kid can still hide themselves in Settings.') + '</p>', off ? 'Turn off' : 'Turn on', function(){
+    var t = now(); PV.famLbOff = off; PV.profiles.forEach(function(p){ if (p.data) pvEditProfile(p.id, function(g){ g.fam = {lbOff:off, at:t}; }); }); render(); });
+}
+var GAME_ACTIONS = {
+  'speed-pick': function(){ speedPick(); },
+  'boss-start': function(){ var g = G(), b = bossState(g.boss, todayKey()); if (b.status === 'ready') confirmBox('Start the Boss Battle?', '<p>This is your <b>one scored attempt</b> this week: ' + GAME.BOSS_N + ' timed questions. Make sure you have about ' + Math.round(GAME.BOSS_N * 1.4) + ' minutes.</p>', '⚔️ Start', startBoss); else startBoss(); },
+  'goal-set': function(){ var g = G(); goalModal(g.goal && g.goal.score, function(v){ g.goal = v ? {score:v, at:now(), by:'kid'} : {score:0, at:now(), by:'kid'}; gameRecalc(true); save(); syncSoon(1500); render(); }); },
+  'reward-claim': function(el){ var g = G(), r = g.rewards[el.getAttribute('data-id')]; if (!r || r.claimed) return; r.claimed = now(); save(); syncSoon(1000); confetti(); chime(); toast('🎁 Claimed! A parent will see it in Parent view.', 'win'); render(); },
+  'pv-goal': function(el){ var id = el.getAttribute('data-id'), p = PV.profiles.filter(function(x){ return x.id === id; })[0], cur = p && p.data && p.data.game && p.data.game.goal ? p.data.game.goal.score : 0;
+    goalModal(cur, function(v){ pvEditProfile(id, function(g){ g.goal = v ? {score:v, at:now(), by:'parent'} : {score:0, at:now(), by:'parent'}; }); }); },
+  'pv-reward': function(el){ var id = el.getAttribute('data-id'); pvNeedParentPin(function(){ pvRewardModal(id); }); },
+  'pv-given': function(el){ var id = el.getAttribute('data-id'), rid = el.getAttribute('data-r'); pvNeedParentPin(function(){ pvEditProfile(id, function(g){ var r = g.rewards && g.rewards[rid]; if (r) { r.given = now(); } }); }); },
+  'pv-rdel': function(el){ var id = el.getAttribute('data-id'), rid = el.getAttribute('data-r'); pvNeedParentPin(function(){ confirmBox('Delete this reward?', '<p>It disappears from their reward list.</p>', 'Delete', function(){ pvEditProfile(id, function(g){ var r = g.rewards && g.rewards[rid]; if (r) { r.del = now(); r.up = now(); } }); }, true); }); },
+  'pv-lb': function(){ pvLbToggle(); }
+};
+
 /* ---------- actions ---------- */
 function choose(L){
   var s = curSession(), id = s.modules[s.mod][s.idx];
@@ -3989,14 +4637,15 @@ function choose(L){
   if (isChecked(s, id)) return; // checked answers are locked
   if (s.struck && s.struck[id] && s.struck[id][L]) delete s.struck[id][L]; // choosing a crossed-out answer un-crosses it (like Bluebook)
   if (s.answers[id] === L) delete s.answers[id]; else s.answers[id] = L;
-  var r = qaRec(s, id); r.t = now(); if (s.answers[id] && !r.a) r.a = r.t;
-  save(); render(); syncSoon();
+  var r = qaRec(s, id); r.t = now(); if (s.answers[id] && !r.a) { r.a = r.t; r.d = dayKeyOf(r.a); }
+  save(); render(); syncSoon(); gameOnAnswer(s);
+  if (s.mode === 'speed' && s.answers[id]) setTimeout(function(){ var cs = curSession(); if (cs === s && !s.finishedAt && s.stage === 'q' && s.modules[s.mod][s.idx] === id) move(1); }, 220);   // speed rounds: auto-advance
 }
 function move(d){
   var s = curSession(), n = s.modules[s.mod].length;
   if (d > 0 && s.stage === 'q') leaveQuestion(s, s.idx < n - 1 ? s.idx + 1 : null); else if (s.stage === 'q') leaveQuestion(s, null);
   if (s.stage === 'check'){ if (d < 0){ s.stage = 'q'; s.idx = n-1; } }
-  else if (d > 0){ if (s.idx < n-1) s.idx++; else s.stage = 'check'; }
+  else if (d > 0){ if (s.idx < n-1) s.idx++; else if (s.mode === 'speed') { save(); submitModule(); return; } else s.stage = 'check'; }
   else if (s.idx > 0) s.idx--;
   save(); render();
   var rb = document.getElementById('rbody'); if (rb) rb.scrollTop = 0;
@@ -4089,6 +4738,7 @@ var ACTIONS = {
   'sync-info': function(){ syncInfo(); },
   'dash-range': function(el){ DASH.range = el.getAttribute('data-r'); render(); }
 };
+Object.keys(GAME_ACTIONS).forEach(function(k){ ACTIONS[k] = GAME_ACTIONS[k]; });
 app.addEventListener('click', function(e){
   var g = e.target.closest('[data-goto]');
   if (g && view.page === 'run') { var gs = curSession(); leaveQuestion(gs, +g.getAttribute('data-goto')); gs.idx = +g.getAttribute('data-goto'); gs.stage = 'q'; save(); render(); return; }
@@ -4096,7 +4746,7 @@ app.addEventListener('click', function(e){
   var fn = ACTIONS[el.getAttribute('data-act')]; if (fn) { e.preventDefault(); fn(el); }
 });
 app.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && (e.target.id === 'ai-url' || e.target.id === 'ai-pass')) { e.preventDefault(); aiConnect(); } if (e.key === 'Enter' && e.target && e.target.id === 'spr-in') { e.preventDefault(); var ks = curSession(); if (ks && checkOn(ks) && e.target.value && !isChecked(ks, ks.modules[ks.mod][ks.idx])) doCheck(); else e.target.blur(); } });
-app.addEventListener('change', function(e){ var t = e.target; if (!t) return; if (t.id === 'ai-provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.id === 'ai-model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-review') { setPref('ai.review', !!t.checked); render(); return; } if (view.page === 'settings' && t.type === 'checkbox' && t.getAttribute('data-pref') === 'coach') { setPref('coach', !!t.checked); render(); return; } if (t.id === 'dash-concept') { DASH.concept = t.value; render(); return; } if (t.id === 'dash-mode') { DASH.mode = t.value; render(); return; } homeChange(t); });
+app.addEventListener('change', function(e){ var t = e.target; if (!t) return; if (t.id === 'ai-provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.id === 'ai-model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-review') { setPref('ai.review', !!t.checked); render(); return; } if (view.page === 'settings' && t.type === 'checkbox' && t.getAttribute('data-pref') === 'coach') { setPref('coach', !!t.checked); render(); return; } if (t.type === 'checkbox' && t.getAttribute('data-gpref')) { var gp = t.getAttribute('data-gpref'); if (gp === 'sound') { setPref('gameSound', !!t.checked); if (t.checked) chime(); } else if (gp === 'lb') { G().lbOpt = {off:!t.checked, at:now()}; updateLbLine(); save(); syncSoon(1500); } render(); return; } if (t.id === 'dash-concept') { DASH.concept = t.value; render(); return; } if (t.id === 'dash-mode') { DASH.mode = t.value; render(); return; } homeChange(t); });
 /* Student-produced response box: saved as you type (no re-render, so the keyboard stays up). */
 app.addEventListener('input', function(e){
   var t = e.target; if (!t || t.id !== 'spr-in' || view.page !== 'run') return;
@@ -4106,7 +4756,8 @@ app.addEventListener('input', function(e){
   if (v.length > sprMax(v)) v = v.slice(0, sprMax(v));
   if (v !== t.value) t.value = v;
   if (v) s.answers[id] = v; else delete s.answers[id];
-  var r = qaRec(s, id); r.t = now(); if (v && !r.a) r.a = r.t;
+  var r = qaRec(s, id); r.t = now(); if (v && !r.a) { r.a = r.t; r.d = dayKeyOf(r.a); }
+  gameOnAnswer(s);
   var pv = document.getElementById('spr-prev'); if (pv) pv.innerHTML = sprPreviewHTML(v);
   var cb = document.querySelector('[data-act="check"]'); if (cb) cb.disabled = !v;
   save(); syncSoon();
@@ -4147,7 +4798,8 @@ function tick(){
   if (++saveCounter % 5 === 0) save();
   if (left <= 0 && before > 0){
     save();
-    modal('Time\'s up', '<p>Module '+modNum(s, s.mod)+' has ended, and your answers have been submitted.</p>', [{label:'Continue', primary:true}]);
+    var tu = s.mode === 'speed' ? '<p>⏱️ Time! Let\'s see how many you got.</p>' : s.mode === 'boss' ? '<p>⏱️ Time\'s up! Your Boss Battle answers were submitted.</p>' : '<p>Module '+modNum(s, s.mod)+' has ended, and your answers have been submitted.</p>';
+    modal(s.mode === 'speed' ? 'Time!' : 'Time\'s up', tu, [{label:'Continue', primary:true}]);
     submitModule();
   }
 }
@@ -4175,6 +4827,7 @@ if (relayUrl() && AIS.passcode && now() - (AIS.checkedAt || 0) > 6*3600e3 && nav
   refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); }, function(){});
 }
 window.__SAT = {state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
+  game:{G:G, recalc:gameRecalc, stats:gameStats, streakInfo:streakInfo, sessionXP:sessionXP, levelInfo:levelInfo, badgeStep:badgeStep, bossState:bossState, leaderboard:leaderboard, lbRows:lbRows, cleanGame:cleanGame, dayKeyOf:dayKeyOf, mondayKey:mondayKey, todayKey:todayKey, startBoss:startBoss, startSpeed:startSpeed, goalInfo:goalInfo, GAME:GAME, SKILL_BADGES:SKILL_BADGES, queue:function(){ return GUI.queue; }, flush:flushCelebrations},
   reg:function(){ return REG; }, active:function(){ return ACTIVE; }, sync:function(){ return SY; }, syncNow:syncNow, merge:mergeProfileData, sha256hex:sha256hex, records:collectRecords};
 })();
 
