@@ -576,6 +576,30 @@ body.touring{overflow:hidden}
 .pvfam{margin-top:8px;gap:10px}
 @media(max-width:480px){.gt-grid{grid-template-columns:1fr}.gt-cell .flame{font-size:26px}.bgrid{grid-template-columns:1fr 1fr}.bossico{font-size:44px}}
 @media (prefers-reduced-motion:reduce){.lvbadge{animation:none}.gtoast{transition:none}.confetti{display:none}}
+/* Missed questions */
+.nbadge{display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--bad);color:#fff;font-size:12px;font-weight:800;line-height:20px;margin-left:4px;text-align:center;vertical-align:1px}
+.nbadge.big{font-size:15px;line-height:26px;min-width:28px;padding:0 9px}
+.b-rw{background:#e8efff;color:#1d4ed8}.b-math{background:#f1ebff;color:#6d28d9}
+.okc{color:var(--ok)}b.bad,.bad{color:var(--bad)}.nowrap{white-space:nowrap}
+.mqfilters{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin:10px 0}
+.mqfilters .fld{display:flex;align-items:center;gap:8px;margin:0}.mqfilters .fld span{font-weight:600;font-size:14px}
+.mqfilters select{max-width:min(100%,320px);min-height:40px;padding:6px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fff;font:inherit;font-size:15px;color:var(--ink)}
+.mqpractice .btn.primary{display:inline-block;text-align:center;line-height:1.3}
+.mqpractice{border-top:1px solid var(--line);padding-top:12px;margin-top:6px}
+.mqlist{padding-top:4px}
+.mqi{margin:10px 0}
+.mqi .mqhead{display:flex;gap:10px;width:100%;text-align:left;background:#f7f8fb;border:0;border-bottom:1px solid var(--line);padding:10px 14px;cursor:pointer;color:var(--ink);font:inherit;min-height:44px}
+.mqi .mqhead:hover{background:#eef2f9}
+.mqchev{flex:none;font-size:16px;color:var(--muted);width:14px;padding-top:2px}
+.mqmain{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
+.mqtop{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.mqsub{display:block}.mqstem{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mqacts{display:flex;flex-wrap:wrap;gap:8px;padding:8px 14px}.mqacts .btn{min-height:40px}
+.mqgot{opacity:.75}.mqgot .mqhead{background:#f3faf6}
+.mqhome .btn{flex:none}
+.pvmq summary{cursor:pointer;color:var(--blue-d);font-weight:600;margin-top:4px}
+.pvmql li{flex-direction:column;align-items:flex-start;gap:2px}
+@media(max-width:600px){.mqpractice .btn.primary{width:100%}.mqfilters .fld{width:100%}.mqfilters select{flex:1}.mqi .mqhead{padding:9px 10px}.mqacts{padding:8px 10px}.mqacts .btn{flex:1 1 auto}.mqhome .btn{width:100%}.pvmql li{flex-direction:column;gap:2px}}
 </style>
 </head>
 <body>
@@ -603,6 +627,7 @@ body.touring{overflow:hidden}
  *  - instant feedback: s.checks[qid] = time the answer was checked (union, earliest time kept; a checked
  *    answer is locked, so it never conflicts).
  *  - adaptive skill levels (levels[cid] = {r, n, streak, at}): last write wins per skill on `at`.
+ *  - Missed questions "Got it" marks (missedGot[qid] = {at, on}): last write wins per question on `at`.
  *  - thorough explanations cache (explain[qid]) and coach hints cache (coach[qid]): union by question, newest copy of an entry wins.
  *  - coach mode: s.coached[qid] = time Coach was first opened on that question (union, earliest kept).
  *  - aiStats (cross-AI review counts): the copy with the newest `at` wins.
@@ -728,6 +753,9 @@ function mergeProfileData(local, remote) {
   var la = mObj(a.levels), lb = mObj(b.levels), lk = mKeys(la, lb);
   if (lk.length || a.levels || b.levels) { out.levels = {}; lk.forEach(function (c) { var p = la[c], q = lb[c]; var l = p && q ? (mNum(q.at) > mNum(p.at) ? q : p) : (p || q); if (l && typeof l === 'object') out.levels[c] = mCopy(l); }); }
   if (a.game || b.game) out.game = mergeGame(a.game, b.game);
+  // Missed questions: "Got it" (mastered) marks, newest per question wins
+  var ga = mObj(a.missedGot), gb = mObj(b.missedGot), gk = mKeys(ga, gb);
+  if (gk.length || a.missedGot || b.missedGot) { out.missedGot = {}; gk.forEach(function (id) { var p = mObj(ga[id]), q = mObj(gb[id]); var e = ga[id] && gb[id] ? (mNum(q.at) > mNum(p.at) ? q : p) : (ga[id] ? p : q); if (mNum(e.at) > 0) out.missedGot[id] = { at: mNum(e.at), on: e.on ? 1 : 0 }; }); }
   // content migrations: highest version wins; the fresh-test flags only move forward
   ['contentVersion', 'freshPending', 'freshMade'].forEach(function (k) { var v = Math.max(mNum(a[k]), mNum(b[k])); if (v) out[k] = v; });
   if (a.migrations || b.migrations) { var mg = {}; [].concat(Array.isArray(a.migrations) ? a.migrations : [], Array.isArray(b.migrations) ? b.migrations : []).forEach(function (m) {
@@ -735,7 +763,7 @@ function mergeProfileData(local, remote) {
     out.migrations = Object.keys(mg).sort(function (x, y) { return x - y; }).map(function (v) { return mg[v]; }).slice(-10); }
   out.updatedAt = Math.max(mNum(a.updatedAt), mNum(b.updatedAt));
   // fields added by a newer app version: keep them (prefer the copy that changed last)
-  var known = { app: 1, version: 1, deleted: 1, sessions: 1, openIds: 1, archiveIds: 1, aiBank: 1, reported: 1, unreported: 1, conceptArchived: 1, settingsAt: 1, prefs: 1, prefsAt: 1, counters: 1, updatedAt: 1, explain: 1, levels: 1, coach: 1, game: 1, aiStats: 1, cleared: 1, contentVersion: 1, freshPending: 1, freshMade: 1, migrations: 1 };
+  var known = { app: 1, version: 1, deleted: 1, sessions: 1, openIds: 1, archiveIds: 1, aiBank: 1, reported: 1, unreported: 1, conceptArchived: 1, settingsAt: 1, prefs: 1, prefsAt: 1, counters: 1, updatedAt: 1, explain: 1, levels: 1, coach: 1, game: 1, aiStats: 1, cleared: 1, contentVersion: 1, freshPending: 1, freshMade: 1, migrations: 1, missedGot: 1 };
   mKeys(a, b).forEach(function (k) { if (known[k] || LOCAL_ONLY_FIELDS.indexOf(k) >= 0) return; var v = mNum(b.updatedAt) > mNum(a.updatedAt) ? (b[k] !== undefined ? b[k] : a[k]) : (a[k] !== undefined ? a[k] : b[k]); if (v !== undefined) out[k] = mCopy(v); });
   // device-only fields come from the local copy
   LOCAL_ONLY_FIELDS.forEach(function (k) { if (a[k] !== undefined) out[k] = mCopy(a[k]); });
@@ -1548,7 +1576,7 @@ var PROVIDER_NAMES = {openai:'OpenAI', anthropic:'Claude', xai:'Grok'};
 
 /* ---------- storage ---------- */
 var S, storageOK = true;
-function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, openIds:[], archiveIds:[], conceptArchived:{}, counters:{test:0, practice:0}, lastExport:null, ui:{page:'home'}, aiBank:{}, reported:{}, unreported:{}, deleted:{}, settingsAt:0, prefs:{}, prefsAt:0, explain:{}, levels:{}, updatedAt:0}; }
+function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, openIds:[], archiveIds:[], conceptArchived:{}, counters:{test:0, practice:0}, lastExport:null, ui:{page:'home'}, aiBank:{}, reported:{}, unreported:{}, deleted:{}, settingsAt:0, prefs:{}, prefsAt:0, explain:{}, levels:{}, missedGot:{}, updatedAt:0}; }
 function normalize(){
   var b = blankState();
   for (var k in b) if (S[k] === undefined) S[k] = b[k];
@@ -1557,7 +1585,7 @@ function normalize(){
   S.archiveIds = S.archiveIds.filter(function(id){ return S.sessions[id] && S.sessions[id].finishedAt; });
   if (!S.aiBank || typeof S.aiBank !== 'object') S.aiBank = {};
   if (!S.reported || typeof S.reported !== 'object') S.reported = {};
-  ['unreported','deleted','conceptArchived','counters','prefs','explain','levels'].forEach(function(k){ if (!S[k] || typeof S[k] !== 'object' || Array.isArray(S[k])) S[k] = blankState()[k]; });
+  ['unreported','deleted','conceptArchived','counters','prefs','explain','levels','missedGot'].forEach(function(k){ if (!S[k] || typeof S[k] !== 'object' || Array.isArray(S[k])) S[k] = blankState()[k]; });
   if (ACTIVE) dedupeFresh();
   registerAIBank();
   seedLevels();
@@ -1987,6 +2015,40 @@ function weakConcepts(st){
     .sort(function(a,b){ return st[a.id].recentRate - st[b.id].recentRate; })
     .map(function(c){ return c.id; });
 }
+/* ---------- Missed questions (per profile) ----------
+   Built from every session's answers (tests, practice sets, AI questions, boss battles, speed rounds). A question
+   counts once it was answered wrong AND its session is finished or the answer was checked (an unfinished, unchecked
+   test never reveals answers early). One entry per question, newest miss first. Blank answers are not listed.
+   S.missedGot[qid] = {at, on:1|0}: "Got it" (mastered, hidden unless "Show mastered"); synced, newest `at` wins per
+   question. A new miss after "Got it" brings the question back. */
+function missedGotOn(id, lastMiss){ var g = S.missedGot && S.missedGot[id]; return !!(g && g.on && (+g.at || 0) >= lastMiss); }
+function missedList(){
+  var tries = {};
+  Object.keys(S.sessions || {}).forEach(function(sid){ var s = S.sessions[sid]; if (!s || !Array.isArray(s.modules) || !s.answers) return;
+    s.modules.forEach(function(m, mi){ (Array.isArray(m) ? m : []).forEach(function(id, qi){
+      var q = Q[id], ans = s.answers[id]; if (!q || !ans || isReported(id)) return;
+      if (!s.finishedAt && !isChecked(s, id)) return;
+      var qa = s.qa && s.qa[id], t = (qa && (+qa.t || +qa.a)) || (s.checks && +s.checks[id]) || +s.finishedAt || +s.updatedAt || +s.createdAt || 0;
+      (tries[id] || (tries[id] = [])).push({t:t, ok:isCorrect(q, ans), ans:ans, sid:sid, mod:mi, num:qi + 1});
+    }); });
+  });
+  var out = [];
+  Object.keys(tries).forEach(function(id){ var L = tries[id], wrong = L.filter(function(x){ return !x.ok; }); if (!wrong.length) return;
+    var w = wrong.reduce(function(a, b){ return b.t > a.t ? b : a; });
+    out.push({id:id, q:Q[id], at:w.t, ans:w.ans, sid:w.sid, mod:w.mod, num:w.num, n:wrong.length, fixed:L.some(function(x){ return x.ok && x.t > w.t; }), got:missedGotOn(id, w.t)});
+  });
+  return out.sort(function(a, b){ return b.at - a.at || (a.id < b.id ? -1 : 1); });
+}
+/* One-line plain text of a question stem (math TeX made readable) for list rows and Parent view. */
+function stemLine(q, n){ return plainText(q.stem || '').replace(/\\\(|\\\)|\\\[|\\\]/g, '').replace(/\\(left|right|text|mathrm|,|;|!)/g, '').replace(/\\d?frac\{([^{}]*)\}\{([^{}]*)\}/g, '($1)/($2)').replace(/\\sqrt\{([^{}]*)\}/g, '√($1)').replace(/\\(cdot|times)/g, '×').replace(/\\leq?/g, '≤').replace(/\\geq?/g, '≥').replace(/\\neq/g, '≠').replace(/\\pi/g, 'π').replace(/\^\{([^{}]*)\}/g, '^$1').replace(/[{}]/g, '').replace(/\s+/g, ' ').trim().slice(0, n || 140); }
+function missedCount(){ try { return missedList().filter(function(e){ return !e.got; }).length; } catch(e){ return 0; } }
+function missedSummary(max){
+  var all = missedList(), act = all.filter(function(e){ return !e.got; });
+  return {n:act.length, got:all.length - act.length, rw:act.filter(function(e){ return qSec(e.q) === 'rw'; }).length, math:act.filter(function(e){ return qSec(e.q) === 'math'; }).length,
+    items:act.slice(0, max || 8).map(function(e){ var q = e.q, sp = q.format === 'spr';
+      return {id:e.id, concept:(CMAP[q.concept] || {}).name || q.concept, sec:qSec(q), at:e.at, n:e.n, ans:String(e.ans), correct:sp ? String(q.answers[0]) : q.correct, ai:!!q.ai,
+        stem:stemLine(q, 160)}; })};
+}
 function sessionResults(s){
   var res = {total:0, correct:0, unsure:0, reported:0, reportedIds:[], modules:[], byDomain:{}, byConcept:{}, review:[], sections:{}, byFormat:{mc:{total:0, correct:0}, spr:{total:0, correct:0}}};
   s.modules.forEach(function(m, mi){
@@ -2230,16 +2292,18 @@ function buildModeSession(o, aiIds){
     {source:aiCount ? 'ai-practice' : 'practice', mode:o.mode, section:section, modSec:[section], timed:!!o.timed, secs:[o.timed ? total : MODULE_SECONDS], targets:o.concepts.slice(0, 60), difficulty:o.difficulty, adaptive:adaptive, aiCount:aiCount, aiProvider:aiCount ? AIS.provider : null});
   go('run', s.id);
 }
-function startPractice(conceptIds, label){
-  conceptIds = conceptIds.slice(0, MAX_PRACTICE_CONCEPTS);
+/* opts (optional): {exclude:{qid:1} never picked, mode, title, counter, fromMissed} (used by "Practice these concepts" on Missed questions) */
+function startPractice(conceptIds, label, opts, perConcept){
+  conceptIds = conceptIds.slice(0, MAX_PRACTICE_CONCEPTS); opts = opts || {};
   if (!conceptIds.length) return;
-  var info = seenInfo(), exclude = {}, ids = [], adaptive = prefs().adaptive;
+  var info = seenInfo(), exclude = Object.assign({}, opts.exclude || {}), ids = [], adaptive = prefs().adaptive;
   conceptIds.forEach(function(cid){
-    pickForConcept(cid, PER_CONCEPT, exclude, info, adaptive ? diffForLevel(levelOf(cid), cid) : null, {adaptive:adaptive}).forEach(function(id){ exclude[id] = 1; ids.push(id); });
+    pickForConcept(cid, perConcept || PER_CONCEPT, exclude, info, adaptive ? diffForLevel(levelOf(cid), cid) : null, {adaptive:adaptive}).forEach(function(id){ exclude[id] = 1; ids.push(id); });
   });
-  S.counters.practice = (S.counters.practice || 0) + 1;
+  if (!ids.length) { modal('No new questions left', '<p>There are no other questions left in the question bank for ' + (conceptIds.length === 1 ? 'this skill' : 'these skills') + '.' + (aiReady() ? '' : ' Set up AI in Settings for unlimited new ones.') + '</p>'); return; }
+  var ck = opts.counter || 'practice'; S.counters[ck] = (S.counters[ck] || 0) + 1;
   var sec = practiceSection(ids);
-  var s = newSession('practice', 'Practice Set #' + S.counters.practice + (label ? ' (' + label + ')' : ''), [ids], {source:'practice', targets:conceptIds, mode:'practice', section:sec, modSec:[sec], adaptive:adaptive});
+  var s = newSession('practice', (opts.title || 'Practice Set') + ' #' + S.counters[ck] + (label ? ' (' + label + ')' : ''), [ids], {source:'practice', targets:conceptIds, mode:opts.mode || 'practice', section:sec, modSec:[sec], adaptive:adaptive, fromMissed:opts.fromMissed || undefined});
   go('run', s.id);
 }
 function practiceSection(ids){ var o = {}; ids.forEach(function(id){ if (Q[id]) o[qSec(Q[id])] = 1; }); var k = Object.keys(o); return k.length > 1 ? 'mixed' : (k[0] || 'rw'); }
@@ -2328,7 +2392,8 @@ function mathBodyHTML(q){ return (q.passage ? '<div class="mintro">' + renderMat
 
 /* ---------- top nav ---------- */
 function nav(){
-  var items = [['home','Home'],['dashboard','Progress'],['badges','🏅 Badges'],['tracker','Concept Tracker'],['archive','Past Tests'],['backup','Backup'],['settings','Settings']];
+  var mc = ACTIVE && S ? missedCount() : 0;
+  var items = [['home','Home'],['missed','❌ Missed' + (mc ? ' <span class="nbadge" aria-label="' + mc + ' to review">' + mc + '</span>' : '')],['dashboard','Progress'],['badges','🏅 Badges'],['tracker','Concept Tracker'],['archive','Past Tests'],['backup','Backup'],['settings','Settings']];
   var m = REG && REG.profiles[ACTIVE];
   return '<div class="topnav"><div class="in"><span class="brand">SAT Practice</span><span class="navr">' + syncPill() +
     (m ? '<button class="pchip" data-act="switch-profile" aria-label="Switch profile (now ' + esc(m.name) + ')">' + avatarHTML(m, 'sm') + '<span>' + esc(m.name) + '</span></button>' : '') + '</span><span class="navi">' + items.map(function(it){
@@ -2358,6 +2423,8 @@ function renderHome(){
     });
     h += '</div>';
   }
+  var mqn = missedCount();
+  if (mqn) h += '<div class="card mqhome" id="missed-home"><div class="row" style="justify-content:space-between;flex-wrap:wrap"><div style="min-width:0;flex:1"><h2 style="margin:0 0 4px">❌ Missed questions <span class="nbadge big">' + mqn + '</span></h2><div class="small muted">Every question you got wrong, with your answer, the right answer and the full explanation. Then practice those skills with new questions.</div></div><button class="btn primary" data-act="nav" data-page="missed">Review missed questions</button></div></div>';
   h += renderPicker(unseen);
   var recent = S.archiveIds.slice(-3).reverse();
   if (recent.length){
@@ -2425,7 +2492,7 @@ function renderPicker(unseen){
     '<div class="prow"><span class="pl">Questions</span>' + countPicker('missed.count', P.missed.count) + '</div>' +
     '<div class="prow">' + aiToggle('missed.ai', P.missed.ai) + aiChoiceRow() + '</div>' + '<div class="prow">' + adaptiveToggle() + '</div>' + '<div class="prow">' + practiceCheckToggle() + '</div>' + '<div class="prow">' + coachAllToggle() + '</div>' +
     (mc.length ? '<p class="small">' + mc.length + ' skill' + (mc.length === 1 ? '' : 's') + ': ' + mc.slice(0, 14).map(function(c){ return '<span class="badge b-' + st[c].status + '" style="margin:2px">' + esc(CMAP[c].name) + '</span>'; }).join(' ') + (mc.length > 14 ? ' …' : '') + '</p>' : '<p class="muted small">' + (S.archiveIds.length ? 'Nothing missed or flagged unsure here yet. 🎉' : 'Finish a test or practice set first, and the skills you miss will show up here.') + '</p>') +
-    '<div class="row"><button class="btn primary" data-act="start-missed"' + (mc.length ? '' : ' disabled') + '>Start practice set</button>' + (weakConcepts(st).length ? '<button class="btn small" data-act="practice-weak">Quick set: ' + PER_CONCEPT + ' per weak skill</button>' : '') + '</div>');
+    '<div class="row"><button class="btn primary" data-act="start-missed"' + (mc.length ? '' : ' disabled') + '>Start practice set</button>' + (weakConcepts(st).length ? '<button class="btn small" data-act="practice-weak">Quick set: ' + PER_CONCEPT + ' per weak skill</button>' : '') + (missedCount() ? '<button class="btn small ghost" data-act="nav" data-page="missed">📋 See the ' + missedCount() + ' missed question' + (missedCount() === 1 ? '' : 's') + '</button>' : '') + '</div>');
   var sel = {}; P.types.concepts.forEach(function(c){ sel[c] = 1; });
   var tl = '<div class="typelist">';
   [['rw', RW_DOMAINS], ['math', MATH_DOMAINS]].forEach(function(g){
@@ -2912,7 +2979,17 @@ function reviewCard(s, x){
   if (math && q.format === 'spr') status += ' <span class="badge b-new">Student-produced response</span>';
   if (isChecked(s, x.id)) status += ' <span class="badge b-chk">✓ Checked during practice</span>';
   var label = isTest ? modLabel(s, x.mod) + ' · Question '+x.num : 'Question '+x.num;
-  var h = '<div class="rv' + (math ? ' rvm' : '') + '"><div class="rv-h"><b>'+esc(label)+'</b>'+status+'<span class="badge b-new" style="margin-left:auto">'+esc(c.name)+'</span></div><div class="rv-b">';
+  var h = '<div class="rv' + (math ? ' rvm' : '') + '"><div class="rv-h"><b>'+esc(label)+'</b>'+status+'<span class="badge b-new" style="margin-left:auto">'+esc(c.name)+'</span></div><div class="rv-b">' + reviewBodyHTML(q, x.ans);
+  var rep = S.reported[x.id];
+  h += '<div class="row" style="margin-top:10px">' + (aiReady() ? '<button class="btn small ai" data-act="ai-practice-one" data-c="'+q.concept+'">✨ More AI questions on this skill</button>' + aiReviewToggle(true) : '') +
+    (rep ? '<span class="small muted">⚑ Reported'+(rep.reason?' ('+esc(rep.reason)+')':'')+'. Not scored, not reused.</span><button class="btn small" data-act="unreport" data-id="'+esc(x.id)+'">Undo report</button>'
+         : '<button class="btn small ghost" data-act="report" data-id="'+esc(x.id)+'">⚑ Report question</button>') + '</div>';
+  return h + '</div></div>';
+}
+/* The question (passage / figure / stem / choices), the student's answer, the key, the explanation, the concept lesson
+   and the thorough explanation (relay /explain, cached). Shared by Review cards and Missed questions. */
+function reviewBodyHTML(q, ans){
+  var c = CMAP[q.concept] || {name:'', lesson:'', domain:''}, math = qSec(q) === 'math', x = {ans:ans || null}, h = '';
   if (math) { var mb = mathBodyHTML(q); if (mb) h += '<div class="mreview">' + mb + '</div>'; h += '<div class="stem">' + renderMath(q.stem) + '</div>'; }
   else { h += '<details class="pass" open><summary>Passage</summary><div class="passage">'+passageHTML(q)+'</div></details>'; h += '<div class="stem">'+q.stem+'</div>'; }
   if (q.format === 'spr') {
@@ -2927,11 +3004,63 @@ function reviewCard(s, x){
   h += '<div class="lesson"><b>Concept: '+esc(c.name)+'</b> <span class="small muted">('+DOMAINS[c.domain]+')</span><br>'+esc(c.lesson)+'</div>';
   var tOpen = !!(view.thx && view.thx[q.id]);
   h += '<div class="fb-acts"><button class="btn small thbtn" data-act="thorough" data-id="' + esc(q.id) + '" data-ans="' + esc(x.ans || '') + '" aria-expanded="' + tOpen + '" aria-controls="thw-' + esc(q.id) + '">' + (tOpen ? '▾ Hide thorough explanation' : '📘 Show thorough explanation') + '</button></div><div class="thwrap" id="thw-' + esc(q.id) + '" data-q="' + esc(q.id) + '" data-ans="' + esc(x.ans || '') + '">' + (tOpen ? thoroughHTML(q, x.ans || null) : '') + '</div>';
-  var rep = S.reported[x.id];
-  h += '<div class="row" style="margin-top:10px">' + (aiReady() ? '<button class="btn small ai" data-act="ai-practice-one" data-c="'+q.concept+'">✨ More AI questions on this skill</button>' + aiReviewToggle(true) : '') +
-    (rep ? '<span class="small muted">⚑ Reported'+(rep.reason?' ('+esc(rep.reason)+')':'')+'. Not scored, not reused.</span><button class="btn small" data-act="unreport" data-id="'+esc(x.id)+'">Undo report</button>'
-         : '<button class="btn small ghost" data-act="report" data-id="'+esc(x.id)+'">⚑ Report question</button>') + '</div>';
-  return h + '</div></div>';
+  return h;
+}
+
+/* ---------- Missed questions page ---------- */
+var MQ = {sec:'all', skill:'', got:false, open:{}};   // filters + expanded items (this page load only)
+function missedFiltered(all){ return all.filter(function(e){ return (MQ.got || !e.got) && (MQ.sec === 'all' || qSec(e.q) === MQ.sec) && (!MQ.skill || e.q.concept === MQ.skill); }); }
+function practiceMissed(entries, label){
+  entries = (entries || []).filter(function(e){ return e && e.q && !e.got; }); if (!entries.length) return;
+  var cnt = {}, last = {};
+  entries.forEach(function(e){ var c = e.q.concept; if (!CMAP[c]) return; cnt[c] = (cnt[c] || 0) + 1; last[c] = Math.max(last[c] || 0, e.at); });
+  var cids = Object.keys(cnt).sort(function(a, b){ return cnt[b] - cnt[a] || last[b] - last[a]; }).slice(0, MAX_PRACTICE_CONCEPTS);
+  if (!cids.length) return;
+  var exclude = {}; missedList().forEach(function(e){ exclude[e.id] = 1; });   // never serve a missed question again as a "new" one
+  var opts = {exclude:exclude, mode:'missed', title:'Missed Questions Practice', counter:'missedq', fromMissed:entries.length};
+  var per = cids.length === 1 ? AI_MORE_COUNT : AI_PER_SKILL;
+  if (aiReady()) aiPractice(cids, label, per, opts); else startPractice(cids, label, opts, per);
+}
+function missedItemHTML(e){
+  var q = e.q, c = CMAP[q.concept] || {name:q.concept}, s = S.sessions[e.sid], open = !!MQ.open[e.id], math = qSec(q) === 'math';
+  var where = s ? esc(s.title) + (s.kind === 'test' ? ' · ' + esc(modLabel(s, e.mod)) : '') + ' · Q' + e.num : '';
+  var key = q.format === 'spr' ? q.answers[0] : q.correct;
+  var h = '<div class="rv mqi' + (e.got ? ' mqgot' : '') + (math ? ' rvm' : '') + '" data-qid="' + esc(e.id) + '">';
+  h += '<button class="mqhead" data-act="mq-open" data-id="' + esc(e.id) + '" aria-expanded="' + open + '" aria-controls="mqb-' + esc(e.id) + '">' +
+    '<span class="mqchev" aria-hidden="true">' + (open ? '▾' : '▸') + '</span><span class="mqmain"><span class="mqtop"><b>' + esc(c.name) + '</b> <span class="badge ' + (math ? 'b-math' : 'b-rw') + '">' + (math ? 'Math' : 'RW') + '</span>' +
+    (q.ai ? ' <span class="aitag">✨ AI</span>' : '') + (e.n > 1 ? ' <span class="badge b-wrong">missed ×' + e.n + '</span>' : '') + (e.fixed ? ' <span class="badge b-ok">✓ right on a later try</span>' : '') + (e.got ? ' <span class="badge b-mastered">✓ Got it</span>' : '') + '</span>' +
+    '<span class="mqsub small"><span class="mqans">You: <b class="bad">' + esc(e.ans) + '</b> · Correct: <b class="okc">' + esc(key) + '</b></span><span class="muted"> · ' + fmtMD(e.at) + (where ? ' · ' + where : '') + '</span></span>' +
+    '<span class="mqstem small muted">' + esc(stemLine(q, 140)) + '</span></span></button>';
+  h += '<div class="mqacts">' + (e.got ? '<button class="btn small" data-act="mq-ungot" data-id="' + esc(e.id) + '">↩ Not yet (show again)</button>' : '<button class="btn small mqgotbtn" data-act="mq-got" data-id="' + esc(e.id) + '">✓ Got it</button>') +
+    '<button class="btn small ' + (aiReady() ? 'ai' : '') + '" data-act="mq-practice-one" data-id="' + esc(e.id) + '">🔁 Practice this concept</button></div>';
+  if (open) h += '<div class="rv-b" id="mqb-' + esc(e.id) + '">' + reviewBodyHTML(q, e.ans) + '<div class="row" style="margin-top:10px"><button class="btn small ghost" data-act="report" data-id="' + esc(e.id) + '">⚑ Report question</button></div></div>';
+  return h + '</div>';
+}
+function renderMissed(){
+  var all = missedList(), act = all.filter(function(e){ return !e.got; }), gotN = all.length - act.length;
+  var base = all.filter(function(e){ return (MQ.got || !e.got) && (MQ.sec === 'all' || qSec(e.q) === MQ.sec); }), sk = {};
+  base.forEach(function(e){ sk[e.q.concept] = (sk[e.q.concept] || 0) + 1; });
+  if (MQ.skill && !sk[MQ.skill]) MQ.skill = '';
+  var list = missedFiltered(all), todo = list.filter(function(e){ return !e.got; });
+  var secN = function(x){ return all.filter(function(e){ return (MQ.got || !e.got) && (x === 'all' || qSec(e.q) === x); }).length; };
+  var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card" id="missed-card"><h2 style="margin-bottom:4px">❌ Missed questions <span class="nbadge big" id="mq-count">' + act.length + '</span></h2>' +
+    '<p class="small muted" style="margin-top:0">Every question you answered wrong, from tests, practice sets, AI questions, boss battles and speed rounds, newest first. Tap one to see the question, your answer, the correct answer and the full explanation. Mark it <b>✓ Got it</b> once it makes sense (it hides, and comes back if you miss it again).</p>';
+  h += '<div class="mqfilters"><div class="seg" role="group" aria-label="Section">' + [['all', 'All'], ['rw', 'Reading & Writing'], ['math', 'Math']].map(function(o){ var on = MQ.sec === o[0];
+      return '<button type="button" data-act="mq-sec" data-v="' + o[0] + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '">' + o[1] + ' (' + secN(o[0]) + ')</button>'; }).join('') + '</div>' +
+    '<label class="fld inline"><span>Skill</span><select id="mq-skill" aria-label="Filter by skill"><option value="">All skills</option>' + Object.keys(sk).sort(function(a, b){ return sk[b] - sk[a] || ((CMAP[a] || {}).name < (CMAP[b] || {}).name ? -1 : 1); }).map(function(c){
+      return '<option value="' + esc(c) + '"' + (MQ.skill === c ? ' selected' : '') + '>' + esc((CMAP[c] || {}).name || c) + ' (' + sk[c] + ')</option>'; }).join('') + '</select></label>' +
+    '<label class="ck"><input type="checkbox" id="mq-got"' + (MQ.got ? ' checked' : '') + '> Show mastered <span class="small muted">(' + gotN + ' marked Got it)</span></label></div>';
+  if (todo.length) {
+    var nsk = {}; todo.forEach(function(e){ nsk[e.q.concept] = 1; }); var k = Object.keys(nsk).length, filtered = MQ.sec !== 'all' || !!MQ.skill;
+    h += '<div class="mqpractice"><button class="btn primary' + (aiReady() ? ' ai' : '') + '" data-act="mq-practice">🔁 Practice these concepts <span class="small">(' + (filtered ? 'filtered: ' : '') + todo.length + ' question' + (todo.length === 1 ? '' : 's') + ', ' + Math.min(k, MAX_PRACTICE_CONCEPTS) + ' skill' + (k === 1 ? '' : 's') + ')</span></button>' +
+      '<p class="small muted" style="margin:6px 0 0">' + (aiReady() ? '✨ New questions written by <b>' + esc(providerLabel(AIS.provider)) + '</b> on the same skills at your current level' + (k > MAX_PRACTICE_CONCEPTS ? ' (the ' + MAX_PRACTICE_CONCEPTS + ' skills you missed most)' : '') + ', with built-in bank questions filling any gap. You never get the exact questions you missed again as \u201cnew\u201d ones.' :
+        'New questions from the built-in bank on the same skills at your current level' + (k > MAX_PRACTICE_CONCEPTS ? ' (the ' + MAX_PRACTICE_CONCEPTS + ' skills you missed most)' : '') + '. You never get the exact questions you missed again. <a href="#" data-act="nav" data-page="settings">Set up AI</a> for unlimited new questions.') + '</p>' + aiChoiceRow() + '</div>';
+  }
+  h += '</div>';
+  if (!all.length) h += '<div class="card"><p class="muted" style="margin:0">' + (S.archiveIds.length ? 'No missed questions yet. 🎉 Wrong answers from tests and practice will show up here.' : 'Finish a test or practice set (or check an answer), and any question you get wrong shows up here.') + '</p></div>';
+  else if (!list.length) h += '<div class="card"><p class="muted" style="margin:0">' + (act.length ? 'Nothing matches these filters.' : 'All caught up: every missed question is marked ✓ Got it. 🎉') + '</p></div>';
+  else h += '<div class="card mqlist">' + list.map(missedItemHTML).join('') + '</div>';
+  app.innerHTML = h + '</div>';
 }
 
 /* ---------- tracker ---------- */
@@ -3284,8 +3413,8 @@ function aiNotice(errors, filled){
   if (!errors.length && !filled) return;
   gentleNote(filled ? '📚 ' + filled + ' question' + (filled === 1 ? '' : 's') + ' came from the built-in bank (same skill and level) while more AI questions are prepared.' : 'Some AI questions weren\'t ready; more are being prepared in the background.');
 }
-function aiPractice(conceptIds, label, perSkill){
-  conceptIds = (conceptIds || []).slice(0, MAX_PRACTICE_CONCEPTS);
+function aiPractice(conceptIds, label, perSkill, opts){
+  conceptIds = (conceptIds || []).slice(0, MAX_PRACTICE_CONCEPTS); opts = opts || {};
   if (!conceptIds.length) return;
   if (!aiReady()) { go('settings'); return; }
   perSkill = perSkill || (conceptIds.length === 1 ? AI_MORE_COUNT : AI_PER_SKILL);
@@ -3295,24 +3424,24 @@ function aiPractice(conceptIds, label, perSkill){
   ensureAIQuestions(conceptIds.map(function(c){ return {concept:c, need:perSkill, difficulty:adaptive ? diffForLevel(levelOf(c), c) : st[c].status === 'weak' ? 'medium' : 'mixed'}; }), job, aiProgress).then(function(r){
     if (job.cancelled) return;
     closeModal();
-    var ids = [], exclude = {}, info = seenInfo(), filled = 0, aiCount = 0;
+    var ids = [], exclude = Object.assign({}, opts.exclude || {}), info = seenInfo(), filled = 0, aiCount = 0;
     conceptIds.forEach(function(c){ aiCount += (r.ids[c] || []).length; });
     noteHot(conceptIds);
     if (!aiCount) {   // never an empty screen: same skills and level from the built-in bank, with a gentle note
-      startPractice(conceptIds, label);
+      startPractice(conceptIds, label, opts, opts.mode === 'missed' ? perSkill : null);
       var e0 = r.errors[0];
       gentleNote(e0 && e0.status === 401 ? 'AI questions need the family passcode (Settings). Here are built-in questions on the same skills.' : '📚 The AI questions weren\'t ready yet, so these are built-in questions at the same skill and level. New AI questions are being prepared in the background.');
       schedulePrefetch(3000);
       return;
     }
     conceptIds.forEach(function(c){
-      var got = r.ids[c] || [];
+      var got = (r.ids[c] || []).filter(function(id){ return !exclude[id]; });
       got.forEach(function(id){ exclude[id] = 1; ids.push(id); });
       if (got.length < perSkill) pickForConcept(c, perSkill - got.length, exclude, info, adaptive ? diffForLevel(levelOf(c), c) : null, {adaptive:adaptive}).forEach(function(id){ exclude[id] = 1; ids.push(id); filled++; });
     });
-    S.counters.practice = (S.counters.practice || 0) + 1;
+    var ck = opts.counter || 'practice'; S.counters[ck] = (S.counters[ck] || 0) + 1;
     var psec = practiceSection(ids);
-    var s = newSession('practice', 'AI Practice Set #' + S.counters.practice + (label ? ' (' + label + ')' : ''), [ids], {source:'ai-practice', targets:conceptIds, aiCount:aiCount, aiProvider:AIS.provider, mode:'practice', section:psec, modSec:[psec], adaptive:adaptive});
+    var s = newSession('practice', (opts.title ? '✨ ' + opts.title : 'AI Practice Set') + ' #' + S.counters[ck] + (label ? ' (' + label + ')' : ''), [ids], {source:'ai-practice', targets:conceptIds, aiCount:aiCount, aiProvider:AIS.provider, mode:opts.mode || 'practice', section:psec, modSec:[psec], adaptive:adaptive, fromMissed:opts.fromMissed || undefined});
     go('run', s.id);
     aiNotice(r.errors, filled);
     schedulePrefetch(2000);   // get the next batch ready while the student works
@@ -3446,7 +3575,7 @@ function avatarHTML(m, cls){ return '<span class="avatar' + (cls ? ' ' + cls : '
 function restoreView(){
   if (S.ui && S.ui.page === 'run' && S.sessions[S.ui.sid] && !S.sessions[S.ui.sid].finishedAt) return {page:'run', sid:S.ui.sid, filter:'all'};
   if (S.ui && S.ui.page === 'results' && S.sessions[S.ui.sid]) return {page:'results', sid:S.ui.sid, filter:'all'};
-  if (S.ui && ['tracker','archive','backup','settings','dashboard'].indexOf(S.ui.page) >= 0) return {page:S.ui.page, sid:null, filter:'all'};
+  if (S.ui && ['tracker','archive','backup','settings','dashboard','missed'].indexOf(S.ui.page) >= 0) return {page:S.ui.page, sid:null, filter:'all'};
   return {page:'home', sid:null, filter:'all'};
 }
 function openProfile(id, opts){
@@ -3661,8 +3790,17 @@ function profileSummary(data){
     var excluded = rec.sess.filter(function(x){ return x.s.kind === 'test' && instantExam(x.s); }).length;
     return {latest:latest ? Object.assign(scoreOf(latest.scores), {at:latest.s.finishedAt}) : null, best:best, testCount:tests.length, excluded:excluded,
       week:{n:wk.length, ok:wk.filter(function(r){ return r.ok; }).length}, sec:secAcc, last:last || +d.updatedAt || 0, weakest:weakest, trend:trend, recent:recent,
-      practiced:rec.sess.length, ai:aiStatsOf(d), game:pvGameSummary(d), coach:(function(){ var L = rec.recs.filter(function(r){ return r.fin && r.answered && r.co; }), W = L.filter(function(r){ return r.t >= weekAgo; }); return {n:L.length, ok:L.filter(function(r){ return r.ok; }).length, week:W.length}; })()};
+      practiced:rec.sess.length, missed:missedSummary(8), ai:aiStatsOf(d), game:pvGameSummary(d), coach:(function(){ var L = rec.recs.filter(function(r){ return r.fin && r.answered && r.co; }), W = L.filter(function(r){ return r.t >= weekAgo; }); return {n:L.length, ok:L.filter(function(r){ return r.ok; }).length, week:W.length}; })()};
   });
+}
+function pvMissedHTML(m){
+  if (!m) return '';
+  var h = '<div class="pvrow pvmissed"><span class="ml">Missed questions</span>';
+  if (!m.n) return h + '<span class="small muted">' + (m.got ? 'None left to review (' + m.got + ' marked “Got it”)' : 'None yet') + '</span></div>';
+  h += '<span class="small"><b>' + m.n + ' to review</b> · RW ' + m.rw + ' · Math ' + m.math + (m.got ? ' · ' + m.got + ' marked “Got it”' : '') + '</span>';
+  h += '<details class="pvmq"><summary class="small">Latest ' + m.items.length + '</summary><ul class="pvlist pvmql">' + m.items.map(function(it){
+    return '<li><span><b>' + esc(it.concept) + '</b> <span class="small muted">' + (it.sec === 'math' ? 'Math' : 'RW') + ' · ' + fmtMD(it.at) + (it.ai ? ' · ✨ AI' : '') + (it.n > 1 ? ' · missed ×' + it.n : '') + '</span><br><span class="small muted">' + esc(it.stem) + '</span></span><span class="small nowrap">answered <b class="bad">' + esc(it.ans) + '</b> · correct <b class="okc">' + esc(it.correct) + '</b></span></li>'; }).join('') + '</ul></details></div>';
+  return h;
 }
 function aiStatsOf(d){
   var a = d.aiStats && typeof d.aiStats === 'object' ? d.aiStats : null; if (!a || !a.requests) return null;
@@ -3709,6 +3847,7 @@ function renderParent(){
       return '<div class="pvbar"><span>' + (sec === 'rw' ? 'Reading & Writing' : 'Math') + '</span><div class="bar"><i style="width:' + v + '%;background:' + (sec === 'rw' ? '#1d4ed8' : '#6d28d9') + '"></i></div><b>' + (a.n ? v + '%' : '—') + '</b><span class="small muted">' + a.n + '</span></div>'; }).join('') + '</div>';
     h += '<div class="pvrow"><span class="ml">Weakest skills</span>' + (x.weakest.length ? '<ul class="pvlist">' + x.weakest.map(function(w){ return '<li><span>' + esc(w.name) + '</span><span class="small muted">' + w.rate + '% recent · Lv ' + w.level.toFixed(1) + '</span></li>'; }).join('') + '</ul>' : '<span class="small muted">Not enough practice yet</span>') + '</div>';
     h += '<div class="pvrow pvcoach"><span class="ml">Coach usage</span><span class="small">' + (x.coach && x.coach.n ? x.coach.n + ' coached question' + (x.coach.n === 1 ? '' : 's') + ' (' + x.coach.week + ' this week) · ' + pct(x.coach.ok, x.coach.n) + '% correct with Coach' : 'Coach not used yet') + '</span></div>';
+    h += pvMissedHTML(x.missed);
     h += pvGameHTML(p, x);
     if (x.ai) h += '<div class="pvrow pvai"><span class="ml">AI questions</span><span class="small">' + x.ai.kept + ' AI question' + (x.ai.kept === 1 ? '' : 's') + ' from ' + x.ai.requests + ' request' + (x.ai.requests === 1 ? '' : 's') +
       (x.ai.panelReq ? ' · Cross-AI review pass rate <b>' + (x.ai.rate == null ? '—' : x.ai.rate + '%') + '</b> (' + (x.ai.firstRate == null ? '—' : x.ai.firstRate + '%') + ' on the first try' + (x.ai.revOk ? ', ' + x.ai.revOk + ' fixed after review' : '') + ')' : ' · Cross-AI review off') + '</span></div>';
@@ -3866,6 +4005,8 @@ function sanitizeState(st){
   var rp = {}; Object.keys(st.reported && typeof st.reported === 'object' ? st.reported : {}).forEach(function(id){ var x = st.reported[id]; if (x) rp[id] = {at:+x.at || now(), reason:String(x.reason || '').slice(0, 80)}; });
   st.reported = rp;
   if (st.game !== undefined) { var cg = cleanGame(st.game); if (cg) st.game = cg; else delete st.game; }
+  if (st.missedGot !== undefined) { var mg = {}, ms = st.missedGot && typeof st.missedGot === 'object' && !Array.isArray(st.missedGot) ? st.missedGot : {};
+    Object.keys(ms).slice(0, 5000).forEach(function(id){ var x = ms[id]; if (!/^[\w-]{1,80}$/.test(id) || !x || typeof x !== 'object' || !(+x.at > 0)) return; mg[id] = {at:+x.at, on:x.on ? 1 : 0}; }); st.missedGot = mg; }
   return st;
 }
 function cleanRemoteMeta(m, id){
@@ -4240,6 +4381,7 @@ function renderPage(p){
   else if (p === 'settings') renderSettings();
   else if (p === 'badges') renderBadges();
   else if (p === 'boss') renderBoss();
+  else if (p === 'missed') renderMissed();
   else renderHome();
 }
 /* ---------- onboarding tour (first launch per profile; replay from Home or Settings) ---------- */
@@ -4938,7 +5080,13 @@ var ACTIONS = {
   'connect-sync': function(){ connectSyncModal(); },
   'sync-now': function(){ syncNow('manual').then(function(){ if (view.page === 'settings' || view.page === 'profiles') render(); }); },
   'sync-info': function(){ syncInfo(); },
-  'dash-range': function(el){ DASH.range = el.getAttribute('data-r'); render(); }
+  'dash-range': function(el){ DASH.range = el.getAttribute('data-r'); render(); },
+  'mq-open': function(el){ var id = el.getAttribute('data-id'); MQ.open[id] = !MQ.open[id]; render(); },
+  'mq-sec': function(el){ MQ.sec = el.getAttribute('data-v'); render(); },
+  'mq-got': function(el){ var id = el.getAttribute('data-id'); if (!S.missedGot || typeof S.missedGot !== 'object') S.missedGot = {}; S.missedGot[id] = {at:now(), on:1}; delete MQ.open[id]; S.updatedAt = now(); save(); render(); syncSoon(); },
+  'mq-ungot': function(el){ var id = el.getAttribute('data-id'); if (!S.missedGot || typeof S.missedGot !== 'object') S.missedGot = {}; S.missedGot[id] = {at:now(), on:0}; S.updatedAt = now(); save(); render(); syncSoon(); },
+  'mq-practice': function(){ var L = missedFiltered(missedList()), lab = MQ.skill ? (CMAP[MQ.skill] || {}).name : MQ.sec !== 'all' ? (MQ.sec === 'math' ? 'Math' : 'Reading & Writing') + ' missed' : 'all missed'; practiceMissed(L, lab); },
+  'mq-practice-one': function(el){ var id = el.getAttribute('data-id'), e = missedList().filter(function(x){ return x.id === id; })[0]; if (e) practiceMissed([e], (CMAP[e.q.concept] || {}).name); }
 };
 Object.keys(GAME_ACTIONS).forEach(function(k){ ACTIONS[k] = GAME_ACTIONS[k]; });
 app.addEventListener('click', function(e){
@@ -4948,7 +5096,7 @@ app.addEventListener('click', function(e){
   var fn = ACTIONS[el.getAttribute('data-act')]; if (fn) { e.preventDefault(); fn(el); }
 });
 app.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && (e.target.id === 'ai-url' || e.target.id === 'ai-pass')) { e.preventDefault(); aiConnect(); } if (e.key === 'Enter' && e.target && e.target.id === 'spr-in') { e.preventDefault(); var ks = curSession(); if (ks && checkOn(ks) && !scoredExamNow(ks) && e.target.value && !isChecked(ks, ks.modules[ks.mod][ks.idx])) doCheck(); else e.target.blur(); } });
-app.addEventListener('change', function(e){ var t = e.target; if (!t) return; if (t.id === 'ai-provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.id === 'ai-model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-review' || t.getAttribute('data-aiset') === 'review') { setPref('ai.review', !!t.checked); render(); return; } if (t.getAttribute('data-aiset') === 'provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.getAttribute('data-aiset') === 'model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-prefetch') { setPref('ai.prefetch', !!t.checked); if (t.checked) schedulePrefetch(500); else cancelPrefetch(); render(); return; } if (view.page === 'settings' && t.type === 'checkbox' && t.getAttribute('data-pref') === 'coach') { setPref('coach', !!t.checked); render(); return; } if (t.type === 'checkbox' && t.getAttribute('data-gpref')) { var gp = t.getAttribute('data-gpref'); if (gp === 'sound') { setPref('gameSound', !!t.checked); if (t.checked) chime(); } else if (gp === 'lb') { G().lbOpt = {off:!t.checked, at:now()}; updateLbLine(); save(); syncSoon(1500); } render(); return; } if (t.id === 'dash-concept') { DASH.concept = t.value; render(); return; } if (t.id === 'dash-mode') { DASH.mode = t.value; render(); return; } homeChange(t); });
+app.addEventListener('change', function(e){ var t = e.target; if (!t) return; if (t.id === 'ai-provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.id === 'ai-model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-review' || t.getAttribute('data-aiset') === 'review') { setPref('ai.review', !!t.checked); render(); return; } if (t.getAttribute('data-aiset') === 'provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.getAttribute('data-aiset') === 'model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-prefetch') { setPref('ai.prefetch', !!t.checked); if (t.checked) schedulePrefetch(500); else cancelPrefetch(); render(); return; } if (view.page === 'settings' && t.type === 'checkbox' && t.getAttribute('data-pref') === 'coach') { setPref('coach', !!t.checked); render(); return; } if (t.type === 'checkbox' && t.getAttribute('data-gpref')) { var gp = t.getAttribute('data-gpref'); if (gp === 'sound') { setPref('gameSound', !!t.checked); if (t.checked) chime(); } else if (gp === 'lb') { G().lbOpt = {off:!t.checked, at:now()}; updateLbLine(); save(); syncSoon(1500); } render(); return; } if (t.id === 'dash-concept') { DASH.concept = t.value; render(); return; } if (t.id === 'mq-skill') { MQ.skill = t.value; render(); return; } if (t.id === 'mq-got') { MQ.got = !!t.checked; render(); return; } if (t.id === 'dash-mode') { DASH.mode = t.value; render(); return; } homeChange(t); });
 /* Student-produced response box: saved as you type (no re-render, so the keyboard stays up). */
 app.addEventListener('input', function(e){
   var t = e.target; if (!t || t.id !== 'spr-in' || view.page !== 'run') return;
@@ -5029,7 +5177,7 @@ else { S = blankState(); view = {page:'profiles', sid:null, filter:'all'}; rende
 if (relayUrl() && AIS.passcode && now() - (AIS.checkedAt || 0) > 6*3600e3 && navigator.onLine !== false) {
   refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); schedulePrefetch(6000); }, function(){});
 } else schedulePrefetch(6000);
-window.__SAT = {submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
+window.__SAT = {missedList:function(){ return missedList(); }, missedCount:function(){ return missedCount(); }, practiceMissed:function(e, l){ practiceMissed(e, l); }, MQ:MQ, sanitizeState:function(x){ return sanitizeState(x); }, submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
   game:{G:G, recalc:gameRecalc, stats:gameStats, streakInfo:streakInfo, sessionXP:sessionXP, levelInfo:levelInfo, badgeStep:badgeStep, bossState:bossState, leaderboard:leaderboard, lbRows:lbRows, cleanGame:cleanGame, dayKeyOf:dayKeyOf, mondayKey:mondayKey, todayKey:todayKey, startBoss:startBoss, startSpeed:startSpeed, goalInfo:goalInfo, GAME:GAME, SKILL_BADGES:SKILL_BADGES, queue:function(){ return GUI.queue; }, flush:flushCelebrations},
   reg:function(){ return REG; }, active:function(){ return ACTIVE; }, sync:function(){ return SY; }, syncNow:syncNow, merge:mergeProfileData, sha256hex:sha256hex, records:collectRecords};
 })();
