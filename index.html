@@ -1691,7 +1691,11 @@ function adaptSlot(s, i){
   var want = diffForLevel(levelOf(cur.concept), cur.concept); if (diffDist(cur.difficulty, want) === 0) return;
   var exclude = {}; flat(s).forEach(function(id){ exclude[id] = 1; });
   var got = pickForConcept(cur.concept, 1, exclude, seenInfo(), want, {noAI:true, adaptive:true});
-  if (got.length && Q[got[0]] && diffDist(Q[got[0]].difficulty, want) < diffDist(cur.difficulty, want)) { mod[i] = got[0]; s.swaps = (+s.swaps || 0) + 1; }
+  if (got.length && Q[got[0]] && diffDist(Q[got[0]].difficulty, want) < diffDist(cur.difficulty, want)) { mod[i] = got[0]; s.swaps = (+s.swaps || 0) + 1; return; }
+  // nothing better left in the bank: bring forward a later, unanswered question of this skill that is closer to the level
+  var best = -1, bd = diffDist(cur.difficulty, want);
+  for (var j = i + 1; j < mod.length; j++) { var qj = Q[mod[j]]; if (!qj || qj.ai || qj.concept !== cur.concept || s.answers[mod[j]]) continue; var dj = diffDist(qj.difficulty, want); if (dj < bd) { bd = dj; best = j; if (!dj) break; } }
+  if (best > 0) { var t = mod[i]; mod[i] = mod[best]; mod[best] = t; s.swaps = (+s.swaps || 0) + 1; }
 }
 function leaveQuestion(s, toIdx){
   if (!s || s.stage !== 'q' || s.kind !== 'practice') return;
