@@ -605,7 +605,7 @@ body.touring{overflow:hidden}
 .sri.sri-bad{border-color:#f0b4b4}.sri.sri-ok{border-color:#b7e2c8}
 .sqd>summary{cursor:pointer;font-weight:700;color:var(--blue-d);min-height:36px;display:flex;align-items:center}
 .sqd[open]>summary{margin-bottom:6px}.sqd>summary{list-style:none}.sqd>summary::-webkit-details-marker{display:none}.sqd>summary::before{content:'\25B8';margin-right:8px}.sqd[open]>summary::before{content:'\25BE'}
-.score.srpb{background:var(--ok-l)}.mrtabs{display:flex;flex-wrap:wrap;gap:6px 22px;margin:4px 0 12px}.mrgrp{display:flex;flex-direction:column;gap:4px}.mrsec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted,#64748b)}.mrtabs .filters{margin:0}.mrtabs .filters button,.mrfilters button{min-height:40px}.mrsum{margin-bottom:10px}.mrsum .scores{margin-top:6px}.mrskill{margin:0 0 6px}.mracts .btn{min-height:40px}.mri-gone{border-style:dashed}.mrnote{background:var(--blue-l,#eef4ff);border:1px solid #c9d8f5;border-radius:12px;padding:12px 14px;margin:14px auto;text-align:left;max-width:560px}.mrnote .btn{min-height:44px}.arml{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.arml .btn{min-height:34px;padding:4px 8px;font-size:12px}.pvlist li .pvrv{margin-left:8px;min-height:32px}.sri .rv-b .row .btn{min-height:40px}
+.score.srpb{background:var(--ok-l)}.pvmqbtn{margin:10px 0 2px}.pvmqopen{width:100%;min-height:46px;font-weight:700;border-color:#f0b4b4;background:#fff5f5;color:#b42318}.pvact{display:block}.pvact .ml{display:block;margin-bottom:6px}.pvactl{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}.pvactrow{width:100%;display:flex;align-items:center;gap:10px;text-align:left;min-height:52px;padding:8px 12px;border:1px solid #d6e0f0;border-radius:12px;background:#f7faff;cursor:pointer;font:inherit;color:inherit}.pvactrow:hover,.pvactrow:focus-visible{border-color:var(--blue-d,#1d4ed8);background:#eef4ff}.pvactt{flex:1;min-width:0;display:flex;flex-direction:column}.pvactt b{overflow-wrap:anywhere;line-height:1.3}.pvactres{flex-shrink:0;text-align:right}.pvactgo{flex-shrink:0;font-weight:700;color:var(--blue-d,#1d4ed8)}.pvactempty{margin:0}.pvactmore{margin-top:8px;min-height:40px}.pvlist li .pvrv{min-height:40px}.pvwrap .mqhead{min-height:44px}.pvwrap .mqfilters .seg button{min-height:40px}@media(max-width:640px){.pvactrow{flex-wrap:wrap}.pvactres{text-align:left}}.mrtabs{display:flex;flex-wrap:wrap;gap:6px 22px;margin:4px 0 12px}.mrgrp{display:flex;flex-direction:column;gap:4px}.mrsec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted,#64748b)}.mrtabs .filters{margin:0}.mrtabs .filters button,.mrfilters button{min-height:40px}.mrsum{margin-bottom:10px}.mrsum .scores{margin-top:6px}.mrskill{margin:0 0 6px}.mracts .btn{min-height:40px}.mri-gone{border-style:dashed}.mrnote{background:var(--blue-l,#eef4ff);border:1px solid #c9d8f5;border-radius:12px;padding:12px 14px;margin:14px auto;text-align:left;max-width:560px}.mrnote .btn{min-height:44px}.arml{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.arml .btn{min-height:34px;padding:4px 8px;font-size:12px}.pvlist li .pvrv{margin-left:8px;min-height:32px}.sri .rv-b .row .btn{min-height:40px}
 @media(max-width:640px){.sri .srans{margin-left:0;width:100%}.sri .rv-b{padding:12px}#speed-sum .row .btn{flex:1 1 auto}}
 </style>
 </head>
@@ -3102,6 +3102,30 @@ function renderModReview(){
   else h += modReviewHTML(s, {mi:view.rmod, f:view.filter});
   app.innerHTML = h + '</div>';
 }
+/* Parent view: a profile's Missed list, read-only (same content as the kid's Missed tab, nothing writes). */
+function renderParentMissed(){
+  var M = PV.mqv, p = PV.profiles.filter(function(x){ return x.id === M.pid; })[0], m = p && (p.meta || {name:'Profile'});
+  if (!p || !p.data || (m.pinHash && !PV.parentOk && !PV.unlocked[p.id])) { PV.mqv = null; renderParent(); return; }
+  var body = withProfileData(p.data, function(d){
+    var all = missedList(), act = all.filter(function(e){ return !e.got; }), list = missedFiltered(all, M);
+    var h = '<div class="card" id="pvmq-card"><div class="pvhead">' + avatarHTML(m) + '<div><h2 style="margin:0">❌ ' + esc(m.name) + '\u2019s missed questions <span class="nbadge big" id="pvmq-count">' + act.length + '</span></h2>' +
+      '<p class="small muted" style="margin:2px 0 0">Every question ' + esc(m.name) + ' answered wrong, newest first. Tap one to see the question, the answer given, the correct answer and the explanation. ' + (all.length - act.length ? (all.length - act.length) + ' marked “Got it” (use Show mastered).' : '') + '</p></div></div>' + missedFiltersHTML(all, M, true) + '</div>';
+    if (!all.length) h += '<div class="card"><p class="muted" style="margin:0">No missed questions yet.</p></div>';
+    else if (!list.length) h += '<div class="card"><p class="muted" style="margin:0">' + (act.length ? 'Nothing matches these filters.' : 'Every missed question is marked ✓ Got it.') + '</p></div>';
+    else h += '<div class="card mqlist pvmqlist">' + list.map(function(e){ return missedItemHTML(e, M, true); }).join('') + '</div>';
+    return h;
+  });
+  app.innerHTML = '<div class="wrap pvwrap"><div class="card"><div class="dhead"><h2 style="margin:0">👪 Parent view · missed questions</h2><div class="row"><button class="btn small primary" data-act="pv-mqback">← Back to Parent view</button></div></div><p class="small muted" style="margin:0">Read-only: nothing here changes ' + esc(m.name) + '\u2019s profile.</p></div>' + body + '</div>';
+}
+function pvActivityHTML(p, x){
+  var L = x.activity || [], all = !!(PV.actAll && PV.actAll[p.id]), shown = all ? L : L.slice(0, 5);
+  var h = '<div class="pvrow pvact"><span class="ml">📋 Recent activity</span>';
+  if (!L.length) return h + '<p class="small muted pvactempty">No finished sets yet. Finished tests, practice sets, Boss Battles and Speed Rounds show up here to review.</p></div>';
+  h += '<ul class="pvactl">' + shown.map(function(t){ return '<li><button type="button" class="pvactrow" data-act="pv-review" data-pid="' + esc(p.id) + '" data-sid="' + esc(t.sid) + '" aria-label="Review ' + esc(t.title) + '">' +
+    '<span class="pvactt"><b>' + esc(t.title) + '</b><span class="small muted">' + esc(t.mode) + ' · ' + fmtMD(t.at) + '</span></span><span class="pvactres small"><b>' + esc(t.res) + '</b></span><span class="pvactgo">Review ›</span></button></li>'; }).join('') + '</ul>';
+  if (L.length > 5) h += '<button class="btn small pvactmore" data-act="pv-actall" data-pid="' + esc(p.id) + '">' + (all ? 'Show fewer' : 'See all ' + L.length) + '</button>';
+  return h + '</div>';
+}
 /* Parent view: the same review, read-only (no practice / report / thorough buttons), for another profile's data. */
 function renderParentReview(){
   var R = PV.rev, p = PV.profiles.filter(function(x){ return x.id === R.pid; })[0], m = p && (p.meta || {name:'Profile'});
@@ -3116,7 +3140,7 @@ function renderParentReview(){
 }
 /* The question (passage / figure / stem / choices), the student's answer, the key, the explanation, the concept lesson
    and the thorough explanation (relay /explain, cached). Shared by Review cards and Missed questions. */
-function reviewBodyHTML(q, ans){
+function reviewBodyHTML(q, ans, noThorough){
   var c = CMAP[q.concept] || {name:'', lesson:'', domain:''}, x = {ans:ans || null}, h = questionPartHTML(q, ans, true);
   if (q.format === 'spr') {
     h += '<div class="yours"><div><b>Your answer:</b> ' + ansText(q, x.ans) + '</div><div><b>Correct answer:</b> ' + esc(q.answers[0]) + (q.answers.length > 1 ? ' <span class="small muted">(also accepted: ' + q.answers.slice(1).map(esc).join(', ') + ', and any equivalent form that fits the box)</span>' : '') + '</div></div>';
@@ -3126,7 +3150,7 @@ function reviewBodyHTML(q, ans){
     h += '<div class="why"><b>Why '+q.correct+' is right:</b> '+qh(q, q.explanation)+'</div>';
   }
   h += '<div class="lesson"><b>Concept: '+esc(c.name)+'</b> <span class="small muted">('+DOMAINS[c.domain]+')</span><br>'+esc(c.lesson)+'</div>';
-  return h + thoroughBtnHTML(q, x.ans);
+  return noThorough ? h : h + thoroughBtnHTML(q, x.ans);
 }
 function thoroughBtnHTML(q, ans){
   var tOpen = !!(view.thx && view.thx[q.id]);
@@ -3146,7 +3170,7 @@ function questionPartHTML(q, ans, passOpen){
 
 /* ---------- Missed questions page ---------- */
 var MQ = {sec:'all', skill:'', got:false, open:{}};   // filters + expanded items (this page load only)
-function missedFiltered(all){ return all.filter(function(e){ return (MQ.got || !e.got) && (MQ.sec === 'all' || qSec(e.q) === MQ.sec) && (!MQ.skill || e.q.concept === MQ.skill); }); }
+function missedFiltered(all, M){ M = M || MQ; return all.filter(function(e){ return (M.got || !e.got) && (M.sec === 'all' || qSec(e.q) === M.sec) && (!M.skill || e.q.concept === M.skill); }); }
 function practiceMissed(entries, label){
   entries = (entries || []).filter(function(e){ return e && e.q && !e.got; }); if (!entries.length) return;
   var cnt = {}, last = {};
@@ -3158,35 +3182,41 @@ function practiceMissed(entries, label){
   var per = cids.length === 1 ? AI_MORE_COUNT : AI_PER_SKILL;
   if (aiReady()) aiPractice(cids, label, per, opts); else startPractice(cids, label, opts, per);
 }
-function missedItemHTML(e){
-  var q = e.q, c = CMAP[q.concept] || {name:q.concept}, s = S.sessions[e.sid], open = !!MQ.open[e.id], math = qSec(q) === 'math';
+function missedItemHTML(e, M, ro){
+  M = M || MQ; var q = e.q, c = CMAP[q.concept] || {name:q.concept}, s = S.sessions[e.sid], open = !!M.open[e.id], math = qSec(q) === 'math';
   var where = s ? esc(s.title) + (s.kind === 'test' ? ' · ' + esc(modLabel(s, e.mod)) : '') + ' · Q' + e.num : '';
   var key = q.format === 'spr' ? q.answers[0] : q.correct;
   var h = '<div class="rv mqi' + (e.got ? ' mqgot' : '') + (math ? ' rvm' : '') + '" data-qid="' + esc(e.id) + '">';
-  h += '<button class="mqhead" data-act="mq-open" data-id="' + esc(e.id) + '" aria-expanded="' + open + '" aria-controls="mqb-' + esc(e.id) + '">' +
+  h += '<button class="mqhead" data-act="' + (ro ? 'pvmq-open' : 'mq-open') + '" data-id="' + esc(e.id) + '" aria-expanded="' + open + '" aria-controls="mqb-' + esc(e.id) + '">' +
     '<span class="mqchev" aria-hidden="true">' + (open ? '▾' : '▸') + '</span><span class="mqmain"><span class="mqtop"><b>' + esc(c.name) + '</b> <span class="badge ' + (math ? 'b-math' : 'b-rw') + '">' + (math ? 'Math' : 'RW') + '</span>' +
     (q.ai ? ' <span class="aitag">✨ AI</span>' : '') + (e.n > 1 ? ' <span class="badge b-wrong">missed ×' + e.n + '</span>' : '') + (e.fixed ? ' <span class="badge b-ok">✓ right on a later try</span>' : '') + (e.got ? ' <span class="badge b-mastered">✓ Got it</span>' : '') + '</span>' +
     '<span class="mqsub small"><span class="mqans">You: <b class="bad">' + esc(e.ans) + '</b> · Correct: <b class="okc">' + esc(key) + '</b></span><span class="muted"> · ' + fmtMD(e.at) + (where ? ' · ' + where : '') + '</span></span>' +
     '<span class="mqstem small muted">' + esc(stemLine(q, 140)) + '</span></span></button>';
-  h += '<div class="mqacts">' + (e.got ? '<button class="btn small" data-act="mq-ungot" data-id="' + esc(e.id) + '">↩ Not yet (show again)</button>' : '<button class="btn small mqgotbtn" data-act="mq-got" data-id="' + esc(e.id) + '">✓ Got it</button>') +
+  if (!ro) h += '<div class="mqacts">' + (e.got ? '<button class="btn small" data-act="mq-ungot" data-id="' + esc(e.id) + '">↩ Not yet (show again)</button>' : '<button class="btn small mqgotbtn" data-act="mq-got" data-id="' + esc(e.id) + '">✓ Got it</button>') +
     '<button class="btn small ' + (aiReady() ? 'ai' : '') + '" data-act="mq-practice-one" data-id="' + esc(e.id) + '">🔁 Practice this concept</button></div>';
-  if (open) h += '<div class="rv-b" id="mqb-' + esc(e.id) + '">' + reviewBodyHTML(q, e.ans) + '<div class="row" style="margin-top:10px"><button class="btn small ghost" data-act="report" data-id="' + esc(e.id) + '">⚑ Report question</button></div></div>';
+  if (open) h += '<div class="rv-b" id="mqb-' + esc(e.id) + '">' + reviewBodyHTML(q, e.ans, ro) + (q.format === 'spr' ? '<div class="fb-acc"><b>All accepted answers:</b> ' + sprEquivalents(q.answers).map(function(a){ return '<code>' + esc(a) + '</code>'; }).join(' ') + '</div>' : '') +
+    (ro ? '' : '<div class="row" style="margin-top:10px"><button class="btn small ghost" data-act="report" data-id="' + esc(e.id) + '">⚑ Report question</button></div>') + '</div>';
   return h + '</div>';
 }
+/* Section buttons, skill select and Show mastered toggle (kid page: mq-*, Parent view read-only page: pvmq-*). */
+function missedFiltersHTML(all, M, ro){
+  var gotN = all.filter(function(e){ return e.got; }).length, sk = {}, pre = ro ? 'pvmq-' : 'mq-';
+  all.filter(function(e){ return (M.got || !e.got) && (M.sec === 'all' || qSec(e.q) === M.sec); }).forEach(function(e){ sk[e.q.concept] = (sk[e.q.concept] || 0) + 1; });
+  if (M.skill && !sk[M.skill]) M.skill = '';
+  var secN = function(x){ return all.filter(function(e){ return (M.got || !e.got) && (x === 'all' || qSec(e.q) === x); }).length; };
+  return '<div class="mqfilters"><div class="seg" role="group" aria-label="Section">' + [['all', 'All'], ['rw', 'Reading & Writing'], ['math', 'Math']].map(function(o){ var on = M.sec === o[0];
+      return '<button type="button" data-act="' + pre + 'sec" data-v="' + o[0] + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '">' + o[1] + ' (' + secN(o[0]) + ')</button>'; }).join('') + '</div>' +
+    '<label class="fld inline"><span>Skill</span><select id="' + pre + 'skill" aria-label="Filter by skill"><option value="">All skills</option>' + Object.keys(sk).sort(function(a, b){ return sk[b] - sk[a] || ((CMAP[a] || {}).name < (CMAP[b] || {}).name ? -1 : 1); }).map(function(c){
+      return '<option value="' + esc(c) + '"' + (M.skill === c ? ' selected' : '') + '>' + esc((CMAP[c] || {}).name || c) + ' (' + sk[c] + ')</option>'; }).join('') + '</select></label>' +
+    '<label class="ck"><input type="checkbox" id="' + pre + 'got"' + (M.got ? ' checked' : '') + '> Show mastered <span class="small muted">(' + gotN + ' marked Got it)</span></label></div>';
+}
 function renderMissed(){
-  var all = missedList(), act = all.filter(function(e){ return !e.got; }), gotN = all.length - act.length;
-  var base = all.filter(function(e){ return (MQ.got || !e.got) && (MQ.sec === 'all' || qSec(e.q) === MQ.sec); }), sk = {};
-  base.forEach(function(e){ sk[e.q.concept] = (sk[e.q.concept] || 0) + 1; });
-  if (MQ.skill && !sk[MQ.skill]) MQ.skill = '';
+  var all = missedList(), act = all.filter(function(e){ return !e.got; });
+  var filtersH = missedFiltersHTML(all, MQ, false);
   var list = missedFiltered(all), todo = list.filter(function(e){ return !e.got; });
-  var secN = function(x){ return all.filter(function(e){ return (MQ.got || !e.got) && (x === 'all' || qSec(e.q) === x); }).length; };
   var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card" id="missed-card"><h2 style="margin-bottom:4px">❌ Missed questions <span class="nbadge big" id="mq-count">' + act.length + '</span></h2>' +
     '<p class="small muted" style="margin-top:0">Every question you answered wrong, from tests, practice sets, AI questions, boss battles and speed rounds, newest first. Tap one to see the question, your answer, the correct answer and the full explanation. Mark it <b>✓ Got it</b> once it makes sense (it hides, and comes back if you miss it again).</p>';
-  h += '<div class="mqfilters"><div class="seg" role="group" aria-label="Section">' + [['all', 'All'], ['rw', 'Reading & Writing'], ['math', 'Math']].map(function(o){ var on = MQ.sec === o[0];
-      return '<button type="button" data-act="mq-sec" data-v="' + o[0] + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '">' + o[1] + ' (' + secN(o[0]) + ')</button>'; }).join('') + '</div>' +
-    '<label class="fld inline"><span>Skill</span><select id="mq-skill" aria-label="Filter by skill"><option value="">All skills</option>' + Object.keys(sk).sort(function(a, b){ return sk[b] - sk[a] || ((CMAP[a] || {}).name < (CMAP[b] || {}).name ? -1 : 1); }).map(function(c){
-      return '<option value="' + esc(c) + '"' + (MQ.skill === c ? ' selected' : '') + '>' + esc((CMAP[c] || {}).name || c) + ' (' + sk[c] + ')</option>'; }).join('') + '</select></label>' +
-    '<label class="ck"><input type="checkbox" id="mq-got"' + (MQ.got ? ' checked' : '') + '> Show mastered <span class="small muted">(' + gotN + ' marked Got it)</span></label></div>';
+  h += filtersH;
   if (todo.length) {
     var nsk = {}; todo.forEach(function(e){ nsk[e.q.concept] = 1; }); var k = Object.keys(nsk).length, filtered = MQ.sec !== 'all' || !!MQ.skill;
     h += '<div class="mqpractice"><button class="btn primary' + (aiReady() ? ' ai' : '') + '" data-act="mq-practice">🔁 Practice these concepts <span class="small">(' + (filtered ? 'filtered: ' : '') + todo.length + ' question' + (todo.length === 1 ? '' : 's') + ', ' + Math.min(k, MAX_PRACTICE_CONCEPTS) + ' skill' + (k === 1 ? '' : 's') + ')</span></button>' +
@@ -3196,7 +3226,7 @@ function renderMissed(){
   h += '</div>';
   if (!all.length) h += '<div class="card"><p class="muted" style="margin:0">' + (S.archiveIds.length ? 'No missed questions yet. 🎉 Wrong answers from tests and practice will show up here.' : 'Finish a test or practice set (or check an answer), and any question you get wrong shows up here.') + '</p></div>';
   else if (!list.length) h += '<div class="card"><p class="muted" style="margin:0">' + (act.length ? 'Nothing matches these filters.' : 'All caught up: every missed question is marked ✓ Got it. 🎉') + '</p></div>';
-  else h += '<div class="card mqlist">' + list.map(missedItemHTML).join('') + '</div>';
+  else h += '<div class="card mqlist">' + list.map(function(e){ return missedItemHTML(e, MQ, false); }).join('') + '</div>';
   app.innerHTML = h + '</div>';
 }
 
@@ -3880,7 +3910,7 @@ function openParent(){
   setTimeout(function(){ var i = document.getElementById('pv-pass'); if (i) i.focus(); }, 30);
 }
 function showParent(){ if (view.page !== 'parent') PV.back = {page:view.page, sid:view.sid}; view = {page:'parent', sid:null, filter:'all'}; render(); window.scrollTo(0, 0); }
-function leaveParent(){ var b = PV.back || {page:'home'}; PV.back = null; PV.rev = null; if (!ACTIVE) { view = {page:'profiles', sid:null, filter:'all'}; render(); } else go(b.page === 'parent' || b.page === 'run' ? 'home' : b.page, b.sid); }
+function leaveParent(){ var b = PV.back || {page:'home'}; PV.back = null; PV.rev = null; PV.mqv = null; if (!ACTIVE) { view = {page:'profiles', sid:null, filter:'all'}; render(); } else go(b.page === 'parent' || b.page === 'run' ? 'home' : b.page, b.sid); }
 function lockParent(){ PV = {open:false, parentOk:false, unlocked:{}, loading:false, err:'', profiles:[], at:0, back:PV.back}; leaveParent(); }
 function loadParent(){
   PV.loading = true; PV.err = ''; if (view.page === 'parent') render();
@@ -3931,7 +3961,9 @@ function profileSummary(data){
     var excluded = rec.sess.filter(function(x){ return x.s.kind === 'test' && instantExam(x.s); }).length;
     return {latest:latest ? Object.assign(scoreOf(latest.scores), {at:latest.s.finishedAt}) : null, best:best, testCount:tests.length, excluded:excluded,
       week:{n:wk.length, ok:wk.filter(function(r){ return r.ok; }).length}, sec:secAcc, last:last || +d.updatedAt || 0, weakest:weakest, trend:trend, recent:recent,
-      practiced:rec.sess.length, missed:missedSummary(8), ai:aiStatsOf(d), game:pvGameSummary(d), coach:(function(){ var L = rec.recs.filter(function(r){ return r.fin && r.answered && r.co; }), W = L.filter(function(r){ return r.t >= weekAgo; }); return {n:L.length, ok:L.filter(function(r){ return r.ok; }).length, week:W.length}; })()};
+      practiced:rec.sess.length, missed:missedSummary(8), activity:Object.keys(d.sessions).map(function(id){ return d.sessions[id]; }).filter(function(s){ return s && s.finishedAt && Array.isArray(s.modules); }).sort(function(a, b){ return b.finishedAt - a.finishedAt; }).map(function(s){
+      var r = sessionResults(s), sc = s.mode === 'speed' ? null : scoreSession(s, r);
+      return {sid:s.id, title:s.title || 'Session', at:s.finishedAt, mode:MODE_LABEL[modeOf(s)] || (s.kind === 'test' ? 'Test' : 'Practice'), res:s.mode === 'speed' ? r.correct + ' correct in 60 s' : sc ? scoreLine(sc) : r.correct + '/' + r.total + ' correct'}; }), ai:aiStatsOf(d), game:pvGameSummary(d), coach:(function(){ var L = rec.recs.filter(function(r){ return r.fin && r.answered && r.co; }), W = L.filter(function(r){ return r.t >= weekAgo; }); return {n:L.length, ok:L.filter(function(r){ return r.ok; }).length, week:W.length}; })()};
   });
 }
 function pvMissedHTML(m){
@@ -3982,6 +4014,8 @@ function renderParent(){
       h += '<div class="pvlocked"><p class="small muted" style="margin:0 0 8px">🔒 ' + esc(m.name) + '\u2019s profile has a PIN, so only the summary is shown.</p><button class="btn small" data-act="pv-unlock" data-id="' + esc(p.id) + '">Enter ' + esc(m.name) + '\u2019s PIN for details</button></div></section>';
       return;
     }
+    h += '<div class="pvmqbtn"><button class="btn pvmqopen" data-act="pv-missed" data-pid="' + esc(p.id) + '">❌ Missed questions (' + (x.missed ? x.missed.n : 0) + ')</button></div>';
+    h += pvActivityHTML(p, x);
     h += '<div class="pvrow"><span class="ml">Score trend</span>' + sparkSVG([{pts:x.trend.rw, color:'#1d4ed8'}, {pts:x.trend.math, color:'#6d28d9'}], m.name + ' score trend') +
       '<span class="small muted"><span class="ddot" style="background:#1d4ed8"></span>RW ' + (x.trend.rw.length ? x.trend.rw[x.trend.rw.length - 1] : '—') + ' &nbsp; <span class="ddot" style="background:#6d28d9"></span>Math ' + (x.trend.math.length ? x.trend.math[x.trend.math.length - 1] : '—') + ' · ' + x.testCount + ' scored exam' + (x.testCount === 1 ? '' : 's') + (x.excluded ? ' (' + x.excluded + ' with instant feedback not scored)' : '') + '</span></div>';
     h += '<div class="pvrow"><span class="ml">Accuracy by section</span>' + ['rw', 'math'].map(function(sec){ var a = x.sec[sec], v = a.n ? pct(a.ok, a.n) : 0;
@@ -4511,7 +4545,7 @@ function render(){
 }
 function renderPage(p){
   if (p !== 'run' && Calc.isOpen()) Calc.hide();
-  if (p === 'parent') { if (PV.open) { if (PV.rev) renderParentReview(); else renderParent(); return; } p = view.page = ACTIVE ? 'home' : 'profiles'; }
+  if (p === 'parent') { if (PV.open) { if (PV.rev) renderParentReview(); else if (PV.mqv) renderParentMissed(); else renderParent(); return; } p = view.page = ACTIVE ? 'home' : 'profiles'; }
   if (!ACTIVE || p === 'profiles') { view.page = 'profiles'; renderProfiles(); return; }
   if (p === 'dashboard') renderDashboard();
   else if (p === 'run') renderRun();
@@ -5147,6 +5181,11 @@ var ACTIONS = {
   'mr-open': function(el){ view = {page:'review', sid:el.getAttribute('data-sid'), filter:'all', rmod:+el.getAttribute('data-m')}; render(); window.scrollTo(0, 0); },
   'pv-review': function(el){ PV.rev = {pid:el.getAttribute('data-pid'), sid:el.getAttribute('data-sid'), mi:0, f:'all'}; render(); window.scrollTo(0, 0); },
   'pv-rback': function(){ PV.rev = null; render(); window.scrollTo(0, 0); },
+  'pv-missed': function(el){ PV.rev = null; PV.mqv = {pid:el.getAttribute('data-pid'), sec:'all', skill:'', got:false, open:{}}; render(); window.scrollTo(0, 0); },
+  'pv-mqback': function(){ PV.mqv = null; render(); window.scrollTo(0, 0); },
+  'pvmq-open': function(el){ if (!PV.mqv) return; var id = el.getAttribute('data-id'); PV.mqv.open[id] = !PV.mqv.open[id]; render(); },
+  'pvmq-sec': function(el){ if (!PV.mqv) return; PV.mqv.sec = el.getAttribute('data-v'); render(); },
+  'pv-actall': function(el){ var id = el.getAttribute('data-pid'); PV.actAll = PV.actAll || {}; PV.actAll[id] = !PV.actAll[id]; render(); },
   'pv-rmod': function(el){ if (PV.rev) { PV.rev.mi = +el.getAttribute('data-m'); render(); var rv = document.getElementById('review'); if (rv && rv.scrollIntoView) rv.scrollIntoView(); } },
   'pv-rfilter': function(el){ if (PV.rev) { PV.rev.f = el.getAttribute('data-f'); render(); var rv = document.getElementById('review'); if (rv && rv.scrollIntoView) rv.scrollIntoView(); } },
   discard: function(el){ var id = el.getAttribute('data-sid'), s = S.sessions[id];
@@ -5252,7 +5291,7 @@ app.addEventListener('click', function(e){
   var fn = ACTIONS[el.getAttribute('data-act')]; if (fn) { e.preventDefault(); fn(el); }
 });
 app.addEventListener('keydown', function(e){ if (e.key === 'Enter' && e.target && (e.target.id === 'ai-url' || e.target.id === 'ai-pass')) { e.preventDefault(); aiConnect(); } if (e.key === 'Enter' && e.target && e.target.id === 'spr-in') { e.preventDefault(); var ks = curSession(); if (ks && checkOn(ks) && !scoredExamNow(ks) && e.target.value && !isChecked(ks, ks.modules[ks.mod][ks.idx])) doCheck(); else e.target.blur(); } });
-app.addEventListener('change', function(e){ var t = e.target; if (!t) return; if (t.id === 'ai-provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.id === 'ai-model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-review' || t.getAttribute('data-aiset') === 'review') { setPref('ai.review', !!t.checked); render(); return; } if (t.getAttribute('data-aiset') === 'provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.getAttribute('data-aiset') === 'model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-prefetch') { setPref('ai.prefetch', !!t.checked); if (t.checked) schedulePrefetch(500); else cancelPrefetch(); render(); return; } if (view.page === 'settings' && t.type === 'checkbox' && t.getAttribute('data-pref') === 'coach') { setPref('coach', !!t.checked); render(); return; } if (t.type === 'checkbox' && t.getAttribute('data-gpref')) { var gp = t.getAttribute('data-gpref'); if (gp === 'sound') { setPref('gameSound', !!t.checked); if (t.checked) chime(); } else if (gp === 'lb') { G().lbOpt = {off:!t.checked, at:now()}; updateLbLine(); save(); syncSoon(1500); } render(); return; } if (t.id === 'dash-concept') { DASH.concept = t.value; render(); return; } if (t.id === 'mq-skill') { MQ.skill = t.value; render(); return; } if (t.id === 'mq-got') { MQ.got = !!t.checked; render(); return; } if (t.id === 'dash-mode') { DASH.mode = t.value; render(); return; } homeChange(t); });
+app.addEventListener('change', function(e){ var t = e.target; if (!t) return; if (t.id === 'ai-provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.id === 'ai-model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-review' || t.getAttribute('data-aiset') === 'review') { setPref('ai.review', !!t.checked); render(); return; } if (t.getAttribute('data-aiset') === 'provider') { AIS.provider = t.value; saveAISettings(); setPref('ai.provider', t.value); setPref('ai.model', ''); render(); return; } if (t.getAttribute('data-aiset') === 'model') { setPref('ai.provider', AIS.provider); setPref('ai.model', t.value); render(); return; } if (t.id === 'ai-prefetch') { setPref('ai.prefetch', !!t.checked); if (t.checked) schedulePrefetch(500); else cancelPrefetch(); render(); return; } if (view.page === 'settings' && t.type === 'checkbox' && t.getAttribute('data-pref') === 'coach') { setPref('coach', !!t.checked); render(); return; } if (t.type === 'checkbox' && t.getAttribute('data-gpref')) { var gp = t.getAttribute('data-gpref'); if (gp === 'sound') { setPref('gameSound', !!t.checked); if (t.checked) chime(); } else if (gp === 'lb') { G().lbOpt = {off:!t.checked, at:now()}; updateLbLine(); save(); syncSoon(1500); } render(); return; } if (t.id === 'dash-concept') { DASH.concept = t.value; render(); return; } if (t.id === 'mq-skill') { MQ.skill = t.value; render(); return; } if (t.id === 'pvmq-skill' && PV.mqv) { PV.mqv.skill = t.value; render(); return; } if (t.id === 'pvmq-got' && PV.mqv) { PV.mqv.got = !!t.checked; render(); return; } if (t.id === 'mq-got') { MQ.got = !!t.checked; render(); return; } if (t.id === 'dash-mode') { DASH.mode = t.value; render(); return; } homeChange(t); });
 /* Student-produced response box: saved as you type (no re-render, so the keyboard stays up). */
 app.addEventListener('input', function(e){
   var t = e.target; if (!t || t.id !== 'spr-in' || view.page !== 'run') return;
