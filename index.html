@@ -605,7 +605,7 @@ body.touring{overflow:hidden}
 .sri.sri-bad{border-color:#f0b4b4}.sri.sri-ok{border-color:#b7e2c8}
 .sqd>summary{cursor:pointer;font-weight:700;color:var(--blue-d);min-height:36px;display:flex;align-items:center}
 .sqd[open]>summary{margin-bottom:6px}.sqd>summary{list-style:none}.sqd>summary::-webkit-details-marker{display:none}.sqd>summary::before{content:'\25B8';margin-right:8px}.sqd[open]>summary::before{content:'\25BE'}
-.score.srpb{background:var(--ok-l)}.sri .rv-b .row .btn{min-height:40px}
+.score.srpb{background:var(--ok-l)}.mrtabs{display:flex;flex-wrap:wrap;gap:6px 22px;margin:4px 0 12px}.mrgrp{display:flex;flex-direction:column;gap:4px}.mrsec{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted,#64748b)}.mrtabs .filters{margin:0}.mrtabs .filters button,.mrfilters button{min-height:40px}.mrsum{margin-bottom:10px}.mrsum .scores{margin-top:6px}.mrskill{margin:0 0 6px}.mracts .btn{min-height:40px}.mri-gone{border-style:dashed}.mrnote{background:var(--blue-l,#eef4ff);border:1px solid #c9d8f5;border-radius:12px;padding:12px 14px;margin:14px auto;text-align:left;max-width:560px}.mrnote .btn{min-height:44px}.arml{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.arml .btn{min-height:34px;padding:4px 8px;font-size:12px}.pvlist li .pvrv{margin-left:8px;min-height:32px}.sri .rv-b .row .btn{min-height:40px}
 @media(max-width:640px){.sri .srans{margin-left:0;width:100%}.sri .rv-b{padding:12px}#speed-sum .row .btn{flex:1 1 auto}}
 </style>
 </head>
@@ -2891,12 +2891,12 @@ function renderBreak(s){
     var left = Math.max(0, ((+s.breakEnds || now()) - now()) / 1000);
     app.innerHTML = nav() + '<div class="wrap"><div class="card center breakcard"><h2>Reading and Writing complete ✅</h2><p>Take a 10-minute break. You answered <b>' + answered + '</b> of ' + s.modules[s.mod].length + ' questions in the last module.</p>' +
       '<div class="bclock" id="breakclock" aria-live="off">' + fmtClock(left) + '</div><p class="muted">Remaining break time. On test day you can stand up and stretch, but don\'t use a phone or study materials. The <b>Math</b> section (2 modules × 22 questions, 35 minutes each) starts automatically when the break ends.</p>' +
-      '<button class="btn primary big" data-act="start-m2">Resume testing</button></div></div>';
+      breakReviewHTML(s) + '<button class="btn primary big" data-act="start-m2">Resume testing</button></div></div>';
     return;
   }
   app.innerHTML = nav() + '<div class="wrap"><div class="card center"><h2>' + esc(SECTION_NAMES[modSec(s, s.mod)]) + ' Module ' + modNum(s, s.mod) + ' complete ✅</h2><p>You answered <b>'+answered+'</b> of '+s.modules[s.mod].length+' questions.</p>' +
     '<p class="muted">Module ' + modNum(s, nextI) + ' has ' + nlen + ' questions and its own ' + nmin + '-minute timer' + (s.routes && s.routes[nextI] ? '. It adapts to how you did on Module ' + modNum(s, s.mod) + ' (easier or harder)' : (s.source === 'original' ? '. It is harder' : '')) + '. Once you start it, you can\'t go back. Your score appears after the last module.</p>' +
-    '<p>Take a short stretch break if you want. The timer won\'t start until you tap the button.</p><button class="btn primary big" data-act="start-m2">Start Module ' + modNum(s, nextI) + '</button></div></div>';
+    '<p>Take a short stretch break if you want. The timer won\'t start until you tap the button.</p>' + breakReviewHTML(s) + '<button class="btn primary big" data-act="start-m2">Start Module ' + modNum(s, nextI) + '</button></div></div>';
 }
 function submitModule(){
   var s = curSession(); if (!s) return;
@@ -2942,6 +2942,7 @@ function renderResults(){
   if (isTest) r.modules.forEach(function(m, i){ h += '<div class="score">'+esc(modLabel(s, i, true))+'<b>'+m.correct+' / '+m.total+'</b>'+pct(m.correct,m.total)+'%</div>'; });
   h += '<div class="score" style="background:var(--amber-l)">Flagged unsure<b style="color:var(--amber)">'+r.unsure+'</b>'+r.review.filter(function(x){return x.ok&&x.un;}).length+' correct but unsure</div></div>';
   if (r.reported) h += '<p class="small muted">⚑ '+r.reported+' reported question'+(r.reported===1?' is':'s are')+' not counted in this score.</p>';
+  h += '<div class="row" style="margin:10px 0 4px"><button class="btn" data-act="mr-jump">📋 Review ' + (s.modules.length > 1 ? 'each module' : 'every question') + '</button></div>';
   if (aiN) h += '<p class="small muted"><span class="aitag">✨ AI</span> '+aiN+' question'+(aiN===1?' was':'s were')+' written by AI and double-checked. If one looks wrong, tap <b>Report question</b> on it below.</p>';
   if (r.byFormat.spr.total || (r.sections.math && r.byFormat.mc.total)) h += '<p class="small">Math by answer type: multiple choice <b>' + r.byFormat.mc.correct + '/' + r.byFormat.mc.total + '</b> · student-produced response <b>' + r.byFormat.spr.correct + '/' + r.byFormat.spr.total + '</b></p>';
   h += '</div>';
@@ -2966,7 +2967,7 @@ function renderResults(){
     var x = r.byConcept[c.id], o = st[c.id];
     h += '<tr><td>'+esc(c.name)+'<div class="small muted">'+DOMAINS[c.domain]+'</div></td><td><b>'+x.correct+'/'+x.total+'</b></td><td>'+(x.unsure?'<span class="badge b-unsure">'+x.unsure+'</span>':'0')+'</td><td>'+statusBadge(o)+'</td></tr>'; });
   h += '</tbody></table></div></div>';
-  h += reviewSection(s, r);
+  h += modReviewHTML(s, {mi:view.rmod, f:view.filter});
   h += '</div>';
   app.innerHTML = h;
 }
@@ -3014,31 +3015,104 @@ function renderSpeedResults(s){
   app.innerHTML = h + '</div></div>';
 }
 function statusBadge(o){ return o.archived ? '<span class="badge b-archived">Archived</span>' : '<span class="badge b-'+o.status+'">'+STATUS_LABEL[o.status]+'</span>'; }
-function reviewSection(s, r){
-  var wrong = r.review.filter(function(x){ return !x.ok; }), cu = r.review.filter(function(x){ return x.ok && x.un; });
-  var f = view.filter || 'all';
-  var list = f === 'wrong' ? wrong : f === 'cu' ? cu : r.review;
-  var h = '<div class="card" id="review"><h2>Review: missed and unsure questions</h2>';
-  if (!r.review.length && !r.reportedIds.length) return h + '<p>Perfect: no wrong answers and no Unsure flags. 🎉</p></div>';
-  h += '<div class="filters"><button data-act="filter" data-f="all" class="'+(f==='all'?'on':'')+'">All ('+r.review.length+')</button><button data-act="filter" data-f="wrong" class="'+(f==='wrong'?'on':'')+'">Wrong ('+wrong.length+')</button><button data-act="filter" data-f="cu" class="'+(f==='cu'?'on':'')+'">Correct but unsure ('+cu.length+')</button></div>';
-  list.forEach(function(x){ h += reviewCard(s, x); });
-  if (r.reportedIds.length) { h += '<h3 style="margin-top:18px">Reported questions (not scored)</h3>'; r.reportedIds.forEach(function(x){ h += reviewCard(s, {id:x.id, mod:x.mod, num:x.num, ok:isCorrect(Q[x.id], s.answers[x.id]), un:!!s.unsure[x.id], ans:s.answers[x.id] || null, rep:true}); }); }
+/* ---------- Module review (every question of a finished module) ----------
+   Finished sessions: every module, on the Results page and from Past Tests (Module 1 / Module 2 tabs per section).
+   In progress: a module that has ended can be reviewed right away only in unscored attempts (practice / instant
+   feedback / coached); a scored test shows "Review after test" instead so answers never leak mid-test. */
+function modEnded(s, mi){ return !!s && (!!s.finishedAt || mi < s.mod || (s.stage === 'break' && mi === s.mod)); }
+function modReviewOK(s, mi){ return !!s && !!(s.modules && s.modules[mi] && s.modules[mi].length) && modEnded(s, mi) && (!!s.finishedAt || !scoredExamNow(s)); }
+function modReviewItems(s, mi){
+  return ((s.modules && s.modules[mi]) || []).map(function(id, qi){
+    var q = Q[id] || null, ans = (s.answers && s.answers[id]) || null;
+    return {id:id, q:q, mod:mi, num:qi + 1, ans:ans, ok:!!q && !!ans && isCorrect(q, ans), un:!!(s.unsure && s.unsure[id]), skipped:!ans, rep:isReported(id), gone:!q};
+  }).filter(function(x){ return !unattempted(s, x.id); });
+}
+function modTabLabel(s, mi){ var r = routeLabel(s, mi); return 'Module ' + modNum(s, mi) + (r ? ' (' + r + ')' : ''); }
+function modReviewHTML(s, o){
+  o = o || {}; var ro = !!o.ro, live = !s.finishedAt;
+  var mods = []; (s.modules || []).forEach(function(m, mi){ if (modReviewOK(s, mi)) mods.push(mi); });
+  var mi = mods.indexOf(+o.mi) >= 0 ? +o.mi : (live && mods.length ? mods[mods.length - 1] : mods[0]);
+  var h = '<div class="card" id="review"><h2>' + (mods.length > 1 ? 'Review each module' : 'Review every question') + '</h2>';
+  if (!mods.length) return h + '<p class="muted">There are no questions to review here.</p></div>';
+  if (mods.length > 1) {
+    var groups = {}, order = [];
+    mods.forEach(function(k){ var sec = modSec(s, k); if (!groups[sec]) { groups[sec] = []; order.push(sec); } groups[sec].push(k); });
+    h += '<div class="mrtabs">' + order.map(function(sec){
+      return '<div class="mrgrp"><span class="mrsec">' + esc(SECTION_NAMES[sec] || 'Questions') + '</span><div class="filters" role="tablist">' + groups[sec].map(function(k){
+        return '<button role="tab" data-act="' + (ro ? 'pv-rmod' : 'mr-mod') + '" data-m="' + k + '" class="' + (k === mi ? 'on' : '') + '" aria-selected="' + (k === mi) + '">' + esc(modTabLabel(s, k)) + '</button>'; }).join('') + '</div></div>'; }).join('') + '</div>';
+  }
+  var items = modReviewItems(s, mi), counted = items.filter(function(x){ return !x.gone && !x.rep; });
+  var right = counted.filter(function(x){ return x.ok; }).length, unans = counted.filter(function(x){ return x.skipped; }).length, wrongN = counted.filter(function(x){ return !x.ok && !x.skipped; }).length;
+  var cuN = counted.filter(function(x){ return x.ok && x.un; }).length, gone = items.filter(function(x){ return x.gone; }).length, repN = items.filter(function(x){ return !x.gone && x.rep; }).length;
+  var secName = SECTION_NAMES[modSec(s, mi)];
+  h += '<div class="mrsum" id="mr-sum"><div class="muted small">' + (secName && s.modules.length > 1 ? esc(secName) + ' · ' : '') + esc(mods.length > 1 || s.modules.length > 1 ? modTabLabel(s, mi) : (s.kind === 'test' ? 'Module 1' : 'This set')) + ' · ' + items.length + ' question' + (items.length === 1 ? '' : 's') + '</div>' +
+    '<div class="scores"><div class="score">Score for this module<b>' + right + ' / ' + counted.length + '</b>' + (counted.length ? pct(right, counted.length) + '% correct' : '—') + '</div>' +
+    '<div class="score">Missed<b>' + (wrongN + unans) + '</b>' + wrongN + ' wrong · ' + unans + ' unanswered</div>' +
+    '<div class="score" style="background:var(--amber-l)">Correct but unsure<b style="color:var(--amber)">' + cuN + '</b>flagged 🤔</div></div>' +
+    (repN ? '<p class="small muted">⚑ ' + repN + ' reported question' + (repN === 1 ? ' is' : 's are') + ' not counted.</p>' : '') +
+    (gone ? '<p class="small muted">' + gone + ' question' + (gone === 1 ? ' from this older attempt is' : 's from this older attempt are') + ' no longer saved on this device, so only the answer is shown for ' + (gone === 1 ? 'it' : 'them') + '.</p>' : '') + '</div>';
+  var f = o.f === 'wrong' || o.f === 'cu' ? o.f : 'all';
+  var missL = items.filter(function(x){ return !x.ok && !x.rep; }), cuL = items.filter(function(x){ return x.ok && x.un; });
+  var list = f === 'wrong' ? missL : f === 'cu' ? cuL : items, fa = ro ? 'pv-rfilter' : 'filter';
+  h += '<div class="filters mrfilters"><button data-act="' + fa + '" data-f="all" class="' + (f === 'all' ? 'on' : '') + '" aria-pressed="' + (f === 'all') + '">All (' + items.length + ')</button>' +
+    '<button data-act="' + fa + '" data-f="wrong" class="' + (f === 'wrong' ? 'on' : '') + '" aria-pressed="' + (f === 'wrong') + '">Show only missed (' + missL.length + ')</button>' +
+    '<button data-act="' + fa + '" data-f="cu" class="' + (f === 'cu' ? 'on' : '') + '" aria-pressed="' + (f === 'cu') + '">Correct but unsure (' + cuL.length + ')</button></div>';
+  h += list.length ? list.map(function(x){ return modItemHTML(s, x, {ro:ro, live:live}); }).join('') : '<p class="muted">' + (f === 'wrong' ? 'Nothing missed in this module. 🎉' : 'No questions flagged unsure in this module.') + '</p>';
   return h + '</div>';
 }
-function reviewCard(s, x){
-  var q = Q[x.id], c = CMAP[q.concept], isTest = s.kind === 'test', math = qSec(q) === 'math';
-  var status = !x.ok ? (x.ans ? '<span class="badge b-wrong">✗ Wrong</span>' : '<span class="badge b-wrong">No answer</span>') : (x.un ? '<span class="badge b-unsure">✓ Correct but unsure</span>' : '<span class="badge b-ok">✓ Correct</span>');
-  if (!x.ok && x.un) status += ' <span class="badge b-unsure">🤔 Also flagged unsure</span>';
-  if (q.ai) status += ' <span class="aitag">'+esc(aiSourceLabel(q))+'</span>' + panelBadge(q, true);
-  if (math && q.format === 'spr') status += ' <span class="badge b-new">Student-produced response</span>';
-  if (isChecked(s, x.id)) status += ' <span class="badge b-chk">✓ Checked during practice</span>';
-  var label = isTest ? modLabel(s, x.mod) + ' · Question '+x.num : 'Question '+x.num;
-  var h = '<div class="rv' + (math ? ' rvm' : '') + '"><div class="rv-h"><b>'+esc(label)+'</b>'+status+'<span class="badge b-new" style="margin-left:auto">'+esc(c.name)+'</span></div><div class="rv-b">' + reviewBodyHTML(q, x.ans);
-  var rep = S.reported[x.id];
-  h += '<div class="row" style="margin-top:10px">' + (aiReady() ? '<button class="btn small ai" data-act="ai-practice-one" data-c="'+q.concept+'">✨ More AI questions on this skill</button>' + aiReviewToggle(true) : '') +
-    (rep ? '<span class="small muted">⚑ Reported'+(rep.reason?' ('+esc(rep.reason)+')':'')+'. Not scored, not reused.</span><button class="btn small" data-act="unreport" data-id="'+esc(x.id)+'">Undo report</button>'
-         : '<button class="btn small ghost" data-act="report" data-id="'+esc(x.id)+'">⚑ Report question</button>') + '</div>';
-  return h + '</div></div>';
+function modItemHTML(s, x, o){
+  o = o || {}; var q = x.q;
+  if (x.gone) return '<div class="rv mri mri-gone" data-qid="' + esc(x.id) + '"><div class="rv-h"><b>Question ' + x.num + '</b><span class="badge b-new">' + (x.ans ? 'Answered' : 'Unanswered') + '</span><span class="small srans">You: <b>' + (x.ans ? esc(x.ans) : '—') + '</b></span></div>' +
+    '<div class="rv-b"><p class="small muted" style="margin:0">This question is no longer saved on this device (it was probably an older AI question), so its text, answer key and explanation can\u2019t be shown.</p></div></div>';
+  var sp = q.format === 'spr', math = qSec(q) === 'math', key = sp ? q.answers[0] : q.correct, mob = narrowScreen(), c = CMAP[q.concept] || {name:'', lesson:'', domain:''};
+  var st = x.rep ? '<span class="badge b-new">⚑ Reported · not scored</span>' : x.skipped ? '<span class="badge b-wrong">Unanswered</span>' : x.ok ? (x.un ? '<span class="badge b-unsure">✓ Correct but unsure</span>' : '<span class="badge b-ok">✓ Right</span>') : '<span class="badge b-wrong">✗ Wrong</span>';
+  if (!x.ok && x.un) st += ' <span class="badge b-unsure">🤔 Also flagged unsure</span>';
+  if (q.ai) st += ' <span class="aitag">' + esc(aiSourceLabel(q)) + '</span>' + panelBadge(q, true);
+  if (isChecked(s, x.id)) st += ' <span class="badge b-chk">✓ Checked during practice</span>';
+  if (s.coached && s.coached[x.id]) st += ' <span class="badge b-new">🧑‍🏫 Coached</span>';
+  var h = '<div class="rv sri mri ' + (x.ok ? 'sri-ok' : x.rep ? '' : 'sri-bad') + (math ? ' rvm' : '') + '" data-qid="' + esc(x.id) + '"><div class="rv-h"><b>Question ' + x.num + '</b>' + st +
+    '<span class="small srans">You: <b class="' + (x.ok ? 'okc' : 'bad') + '">' + (x.ans ? esc(x.ans) : '—') + '</b> · Correct: <b class="okc">' + esc(key) + '</b></span></div><div class="rv-b">';
+  h += '<div class="small muted mrskill">Skill: ' + esc(c.name) + (sp ? ' · student-produced response' : '') + '</div>';
+  h += '<details class="sqd"' + (mob ? '' : ' open') + '><summary>' + (mob ? 'Show the question' : 'Question') + '</summary>' + questionPartHTML(q, x.ans, !mob) + '</details>';
+  if (sp) h += '<div class="yours"><div><b>Your answer:</b> ' + ansText(q, x.ans) + '</div><div><b>Correct answer:</b> ' + esc(q.answers[0]) + '</div></div><div class="fb-acc"><b>Accepted answers:</b> ' + sprEquivalents(q.answers).map(function(a){ return '<code>' + esc(a) + '</code>'; }).join(' ') + ' <span class="small muted">and any other equivalent form that fits the box.</span></div>';
+  h += '<div class="why"><b>Why' + (sp ? '' : ' ' + q.correct + ' is right') + ':</b> ' + qh(q, q.explanation) + '</div>';
+  h += '<div class="lesson"><b>Concept: ' + esc(c.name) + '</b> <span class="small muted">(' + (DOMAINS[c.domain] || '') + ')</span><br>' + esc(c.lesson) + '</div>';
+  if (o.ro) return h + '</div></div>';
+  h += thoroughBtnHTML(q, x.ans);
+  var acts = '';
+  if (!x.ok && !x.rep && !o.live) acts += '<button class="btn small' + (aiReady() ? ' ai' : '') + '" data-act="sr-practice" data-id="' + esc(x.id) + '">🔁 Practice this concept</button><button class="btn small ghost" data-act="nav" data-page="missed">❌ Missed tab</button>';
+  if (aiReady() && !o.live) acts += '<button class="btn small ai" data-act="ai-practice-one" data-c="' + q.concept + '">✨ More AI questions on this skill</button>' + aiReviewToggle(true);
+  var rp = S.reported[x.id];
+  acts += rp ? '<span class="small muted">⚑ Reported' + (rp.reason ? ' (' + esc(rp.reason) + ')' : '') + '. Not scored, not reused.</span><button class="btn small" data-act="unreport" data-id="' + esc(x.id) + '">Undo report</button>'
+    : '<button class="btn small ghost" data-act="report" data-id="' + esc(x.id) + '">⚑ Report question</button>';
+  return h + '<div class="row mracts" style="margin-top:10px">' + acts + '</div></div></div>';
+}
+/* Between modules: scored tests keep answers hidden; unscored attempts can open the module review right away. */
+function breakReviewHTML(s){
+  if (scoredExamNow(s)) return '<div class="mrnote" id="review-later"><b>🔒 Review after test</b><p class="small" style="margin:4px 0 0">To keep your score fair, the answers and explanations for this module unlock when the whole test is finished. Then you can review every module on the Results page or in Past Tests.</p></div>';
+  return '<div class="mrnote" id="review-now"><p class="small" style="margin:0 0 8px">This attempt isn\u2019t scored, so you can check this module now: every question, your answer, the correct answer and the explanations.</p><button class="btn" data-act="mr-open" data-sid="' + esc(s.id) + '" data-m="' + s.mod + '">📋 Review ' + esc(modLabel(s, s.mod)) + ' now</button></div>';
+}
+function renderModReview(){
+  var s = S.sessions[view.sid];
+  if (!s) { go('home'); return; }
+  if (s.finishedAt) { var m = view.rmod; go('results', s.id); view.rmod = m; render(); return; }
+  var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card"><div class="muted small">' + esc(MODE_LABEL[modeOf(s)]) + ' · in progress</div><h2 style="font-size:24px">' + esc(s.title) + '</h2>' +
+    '<div class="row"><button class="btn primary" data-act="resume" data-sid="' + esc(s.id) + '">← Back to the test</button></div></div>';
+  if (scoredExamNow(s)) h += '<div class="card">' + breakReviewHTML(s) + '</div>';
+  else h += modReviewHTML(s, {mi:view.rmod, f:view.filter});
+  app.innerHTML = h + '</div>';
+}
+/* Parent view: the same review, read-only (no practice / report / thorough buttons), for another profile's data. */
+function renderParentReview(){
+  var R = PV.rev, p = PV.profiles.filter(function(x){ return x.id === R.pid; })[0], m = p && (p.meta || {name:'Profile'});
+  if (!p || !p.data || (m.pinHash && !PV.parentOk && !PV.unlocked[p.id])) { PV.rev = null; renderParent(); return; }
+  var body = withProfileData(p.data, function(d){
+    var s = d.sessions[R.sid]; if (!s || !s.finishedAt) return '<div class="card"><p class="muted">That attempt isn\u2019t available.</p></div>';
+    var sc = scoreSession(s), r = sessionResults(s);
+    return '<div class="card"><div class="muted small">' + esc(m.name) + ' · ' + esc(MODE_LABEL[modeOf(s)]) + ' · finished ' + fmtDate(s.finishedAt) + '</div><h2 style="font-size:22px">' + esc(s.title) + '</h2><p class="small">' +
+      (sc ? '<b>Estimated ' + esc(scoreLine(sc)) + '</b> · ' : instantExam(s) ? '<span class="muted">' + esc(unscoredLabel(s)) + '</span> · ' : '') + r.correct + '/' + r.total + ' correct (' + pct(r.correct, r.total) + '%)</p></div>' + modReviewHTML(s, {mi:R.mi, f:R.f, ro:true});
+  });
+  app.innerHTML = '<div class="wrap pvwrap"><div class="card"><div class="dhead"><h2 style="margin:0">👪 Parent view · review</h2><div class="row"><button class="btn small primary" data-act="pv-rback">← Back to Parent view</button></div></div><p class="small muted" style="margin:0">Read-only.</p></div>' + body + '</div>';
 }
 /* The question (passage / figure / stem / choices), the student's answer, the key, the explanation, the concept lesson
    and the thorough explanation (relay /explain, cached). Shared by Review cards and Missed questions. */
@@ -3160,6 +3234,10 @@ function checkedSplit(recs){ var a = recs.filter(function(r){ return r.fin && r.
 function checkedLine(){ var x = checkedSplit(collectRecords().recs); if (!x.c) return '';
   return '<p class="small chkline">✅ <b>Checked</b> with instant feedback: <b>' + x.c + '</b> answer' + (x.c === 1 ? '' : 's') + ' (' + pct(x.cOk, x.c) + '% correct) · <b>not checked</b>: ' + x.u + (x.u ? ' (' + pct(x.uOk, x.u) + '% correct)' : '') + '. Checked answers count the same toward skill accuracy.</p>'; }
 /* ---------- archive ---------- */
+function archModLinks(s){
+  if (s.mode === 'speed' || !s.modules || s.modules.length < 2) return '';
+  return '<div class="arml">' + s.modules.map(function(m, mi){ return m && m.length ? '<button class="btn small ghost" data-act="open" data-sid="' + esc(s.id) + '" data-m="' + mi + '">Review ' + esc(modLabel(s, mi)).replace('Module ', 'M') + '</button>' : ''; }).join('') + '</div>';
+}
 function renderArchive(){
   var ids = S.archiveIds.slice().sort(function(a,b){ return S.sessions[b].finishedAt - S.sessions[a].finishedAt; });
   var h = nav() + '<div class="wrap">' + storageWarning() + '<div class="card"><h2>Past tests &amp; practice sets</h2><p class="small muted">Every finished exam and practice set, labelled by mode. Open one to see your answers, explanations and estimated scores.</p>';
@@ -3167,7 +3245,7 @@ function renderArchive(){
   else {
     h += '<div class="tscroll"><table class="t"><thead><tr><th>Date</th><th>Name</th><th>Score</th><th>Missed</th><th>Unsure</th><th></th></tr></thead><tbody>';
     ids.forEach(function(id){ var s = S.sessions[id], r = sessionResults(s), sc = scoreSession(s, r);
-      h += '<tr><td class="small">'+fmtDate(s.finishedAt)+'</td><td><b>'+esc(s.title)+'</b><div class="small">'+modeTag(s)+' <span class="muted">'+sessSecs(s).map(function(k){ return k === 'math' ? 'Math' : 'RW'; }).join(' + ')+'</span></div></td><td><b>'+r.correct+'/'+r.total+'</b>'+(sc ? '<div class="small"><b>'+esc(scoreLine(sc))+'</b> est.</div>' : '')+'<div class="small muted">'+(s.kind==='test'?r.modules.map(function(m,i){return esc(modLabel(s, i)).replace('Module ', 'M')+(m.route ? (m.route === 'harder' ? '↑' : '↓') : '')+' '+m.correct+'/'+m.total;}).join(' · '):pct(r.correct,r.total)+'%')+'</div></td><td>'+(r.total-r.correct)+'</td><td>'+r.unsure+'</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn small primary" data-act="open" data-sid="'+id+'">Open</button><button class="btn small danger" data-act="del" data-sid="'+id+'">Delete</button></div></td></tr>'; });
+      h += '<tr><td class="small">'+fmtDate(s.finishedAt)+'</td><td><b>'+esc(s.title)+'</b><div class="small">'+modeTag(s)+' <span class="muted">'+sessSecs(s).map(function(k){ return k === 'math' ? 'Math' : 'RW'; }).join(' + ')+'</span></div></td><td><b>'+r.correct+'/'+r.total+'</b>'+(sc ? '<div class="small"><b>'+esc(scoreLine(sc))+'</b> est.</div>' : '')+'<div class="small muted">'+(s.kind==='test'?r.modules.map(function(m,i){return esc(modLabel(s, i)).replace('Module ', 'M')+(m.route ? (m.route === 'harder' ? '↑' : '↓') : '')+' '+m.correct+'/'+m.total;}).join(' · '):pct(r.correct,r.total)+'%')+'</div>'+archModLinks(s)+'</td><td>'+(r.total-r.correct)+'</td><td>'+r.unsure+'</td><td><div class="row" style="flex-wrap:nowrap"><button class="btn small primary" data-act="open" data-sid="'+id+'">Review</button><button class="btn small danger" data-act="del" data-sid="'+id+'">Delete</button></div></td></tr>'; });
     h += '</tbody></table></div>';
   }
   app.innerHTML = h + '</div></div>';
@@ -3802,7 +3880,7 @@ function openParent(){
   setTimeout(function(){ var i = document.getElementById('pv-pass'); if (i) i.focus(); }, 30);
 }
 function showParent(){ if (view.page !== 'parent') PV.back = {page:view.page, sid:view.sid}; view = {page:'parent', sid:null, filter:'all'}; render(); window.scrollTo(0, 0); }
-function leaveParent(){ var b = PV.back || {page:'home'}; PV.back = null; if (!ACTIVE) { view = {page:'profiles', sid:null, filter:'all'}; render(); } else go(b.page === 'parent' || b.page === 'run' ? 'home' : b.page, b.sid); }
+function leaveParent(){ var b = PV.back || {page:'home'}; PV.back = null; PV.rev = null; if (!ACTIVE) { view = {page:'profiles', sid:null, filter:'all'}; render(); } else go(b.page === 'parent' || b.page === 'run' ? 'home' : b.page, b.sid); }
 function lockParent(){ PV = {open:false, parentOk:false, unlocked:{}, loading:false, err:'', profiles:[], at:0, back:PV.back}; leaveParent(); }
 function loadParent(){
   PV.loading = true; PV.err = ''; if (view.page === 'parent') render();
@@ -3849,7 +3927,7 @@ function profileSummary(data){
       .map(function(c){ return {id:c.id, name:c.name, sec:cSec(c.id), rate:Math.round(st[c.id].recentRate * 100), level:levelOf(c.id), leveled:!!(d.levels && d.levels[c.id])}; });
     var trend = {rw:[], math:[]}; tests.forEach(function(x){ if (x.scores.rw) trend.rw.push(x.scores.rw.scaled); if (x.scores.math) trend.math.push(x.scores.math.scaled); });
     var recent = rec.sess.filter(function(x){ return x.s.kind === 'test'; }).slice(-5).reverse().map(function(x){ var sc = x.scores ? scoreOf(x.scores) : null;
-      return {title:x.s.title, at:x.s.finishedAt, score:sc ? sc.v : null, lab:sc ? sc.lab : '', instant:instantExam(x.s), acc:pct(x.ok, x.n)}; });
+      return {sid:x.s.id, title:x.s.title, at:x.s.finishedAt, score:sc ? sc.v : null, lab:sc ? sc.lab : '', instant:instantExam(x.s), acc:pct(x.ok, x.n)}; });
     var excluded = rec.sess.filter(function(x){ return x.s.kind === 'test' && instantExam(x.s); }).length;
     return {latest:latest ? Object.assign(scoreOf(latest.scores), {at:latest.s.finishedAt}) : null, best:best, testCount:tests.length, excluded:excluded,
       week:{n:wk.length, ok:wk.filter(function(r){ return r.ok; }).length}, sec:secAcc, last:last || +d.updatedAt || 0, weakest:weakest, trend:trend, recent:recent,
@@ -3914,7 +3992,7 @@ function renderParent(){
     h += pvGameHTML(p, x);
     if (x.ai) h += '<div class="pvrow pvai"><span class="ml">AI questions</span><span class="small">' + x.ai.kept + ' AI question' + (x.ai.kept === 1 ? '' : 's') + ' from ' + x.ai.requests + ' request' + (x.ai.requests === 1 ? '' : 's') +
       (x.ai.panelReq ? ' · Cross-AI review pass rate <b>' + (x.ai.rate == null ? '—' : x.ai.rate + '%') + '</b> (' + (x.ai.firstRate == null ? '—' : x.ai.firstRate + '%') + ' on the first try' + (x.ai.revOk ? ', ' + x.ai.revOk + ' fixed after review' : '') + ')' : ' · Cross-AI review off') + '</span></div>';
-    h += '<div class="pvrow"><span class="ml">Recent tests</span>' + (x.recent.length ? '<ul class="pvlist">' + x.recent.map(function(t){ return '<li><span>' + esc(t.title) + ' <span class="small muted">' + fmtMD(t.at) + '</span></span><b>' + (t.score !== null ? t.score : t.instant ? '<span class="small muted">instant feedback · ' + t.acc + '%</span>' : t.acc + '%') + '</b></li>'; }).join('') + '</ul>' : '<span class="small muted">No finished tests yet</span>') + '</div>';
+    h += '<div class="pvrow"><span class="ml">Recent tests</span>' + (x.recent.length ? '<ul class="pvlist">' + x.recent.map(function(t){ return '<li><span>' + esc(t.title) + ' <span class="small muted">' + fmtMD(t.at) + '</span></span><b>' + (t.score !== null ? t.score : t.instant ? '<span class="small muted">instant feedback · ' + t.acc + '%</span>' : t.acc + '%') + '</b><button class="btn small ghost pvrv" data-act="pv-review" data-pid="' + esc(p.id) + '" data-sid="' + esc(t.sid) + '">Review</button></li>'; }).join('') + '</ul>' : '<span class="small muted">No finished tests yet</span>') + '</div>';
     h += '</section>';
   });
   if (!PV.profiles.length) h += '<div class="card"><p class="muted">No profiles yet.</p></div>';
@@ -4433,11 +4511,12 @@ function render(){
 }
 function renderPage(p){
   if (p !== 'run' && Calc.isOpen()) Calc.hide();
-  if (p === 'parent') { if (PV.open) { renderParent(); return; } p = view.page = ACTIVE ? 'home' : 'profiles'; }
+  if (p === 'parent') { if (PV.open) { if (PV.rev) renderParentReview(); else renderParent(); return; } p = view.page = ACTIVE ? 'home' : 'profiles'; }
   if (!ACTIVE || p === 'profiles') { view.page = 'profiles'; renderProfiles(); return; }
   if (p === 'dashboard') renderDashboard();
   else if (p === 'run') renderRun();
   else if (p === 'results') renderResults();
+  else if (p === 'review') renderModReview();
   else if (p === 'tracker') renderTracker();
   else if (p === 'archive') renderArchive();
   else if (p === 'backup') renderBackup();
@@ -5062,7 +5141,14 @@ var ACTIONS = {
   nav: function(el){ go(el.getAttribute('data-page')); },
   tour: function(){ startTour(false); },
   resume: function(el){ go('run', el.getAttribute('data-sid')); },
-  open: function(el){ go('results', el.getAttribute('data-sid')); },
+  open: function(el){ var m = el.getAttribute('data-m'); go('results', el.getAttribute('data-sid')); if (m != null && view.page === 'results') { view.rmod = +m; render(); var rv = document.getElementById('review'); if (rv && rv.scrollIntoView) rv.scrollIntoView(); } },
+  'mr-jump': function(){ var rv = document.getElementById('review'); if (rv && rv.scrollIntoView) rv.scrollIntoView(); },
+  'mr-mod': function(el){ view.rmod = +el.getAttribute('data-m'); render(); var rv = document.getElementById('review'); if (rv && rv.scrollIntoView) rv.scrollIntoView(); },
+  'mr-open': function(el){ view = {page:'review', sid:el.getAttribute('data-sid'), filter:'all', rmod:+el.getAttribute('data-m')}; render(); window.scrollTo(0, 0); },
+  'pv-review': function(el){ PV.rev = {pid:el.getAttribute('data-pid'), sid:el.getAttribute('data-sid'), mi:0, f:'all'}; render(); window.scrollTo(0, 0); },
+  'pv-rback': function(){ PV.rev = null; render(); window.scrollTo(0, 0); },
+  'pv-rmod': function(el){ if (PV.rev) { PV.rev.mi = +el.getAttribute('data-m'); render(); var rv = document.getElementById('review'); if (rv && rv.scrollIntoView) rv.scrollIntoView(); } },
+  'pv-rfilter': function(el){ if (PV.rev) { PV.rev.f = el.getAttribute('data-f'); render(); var rv = document.getElementById('review'); if (rv && rv.scrollIntoView) rv.scrollIntoView(); } },
   discard: function(el){ var id = el.getAttribute('data-sid'), s = S.sessions[id];
     confirmBox('Discard this '+(s.kind==='test'?'test':'practice set')+'?', '<p>Your answers in <b>'+esc(s.title)+'</b> will be erased. ' + (s.source==='original' ? 'This is the original practice test, which can\'t be started again (new tests are generated from the question bank instead).' : 'Its questions stay marked as seen.') + '</p>', 'Discard', function(){
       S.openIds = S.openIds.filter(function(x){ return x !== id; }); delete S.sessions[id]; S.deleted[id] = now(); save(); render(); syncSoon(); }, true); },
