@@ -2137,13 +2137,77 @@ function buildRWSection(opts){
         got.forEach(function(id){ excl[id] = 1; ids.push(id); });
       }
     });
-    return orderRW(ids);
+    return ids;
   }
   var m1 = build(BLUEPRINT[0], RW_MIX.m1, exclude, true);
   var copy = function(){ var o = {}; for (var k in exclude) o[k] = 1; return o; };
   var harder = build(BLUEPRINT[1], RW_MIX.harder, copy(), true);
   var easier = build(BLUEPRINT[1], RW_MIX.easier, copy(), false);
-  return {m1:m1, harder:harder, easier:easier, repeats:m1.concat(harder).filter(function(id){ return info[id]; }).length};
+  var gap = enforceM2Gap('rw', m1, harder, easier, info, RW_MIX);
+  m1 = orderRW(m1); harder = orderRW(harder); easier = orderRW(easier);
+  return {m1:m1, harder:harder, easier:easier, gap:gap, repeats:m1.concat(harder).filter(function(id){ return info[id]; }).length};
+}
+/* Module 2 difficulty guarantee. Every newly built adaptive section must have a harder Module 2 whose average difficulty
+   (easy 0, medium 1, hard 2) is at least M2_GAP above Module 1, and an easier Module 2 at least M2_GAP below it. The normal
+   pick follows the calibrated mixes, but a skill can run short of the wanted difficulty (small bank, many questions already
+   seen, AI questions labelled differently), so after building we repair: replace a question with another of the same skill
+   (and the same answer format in Math) from the bank, or swap two same-skill questions between Module 1 and a Module 2.
+   Each step must shrink the shortfall; unseen questions first, then steps that keep each module closest to its calibrated
+   mix. Skill mix, counts and SPR counts stay exactly the same; Module 1 never shares a question with either Module 2.
+   Only new builds are affected (Module 2s are stored with the test when it starts). If a tiny bank truly has no harder or
+   easier questions left, the best reachable gap is kept and noted on the session (m2gap). */
+var M2_GAP = 0.2;
+function modAvgDiff(ids){ if (!ids.length) return 0; var t = 0; ids.forEach(function(id){ t += dRank(Q[id] && Q[id].difficulty); }); return t / ids.length; }
+function enforceM2Gap(sec, m1, h, e, info, mixes){
+  var bank = sec === 'math' ? MATH.bank : DATA.bank, n1 = m1.length, nh = h.length, ne = e.length;
+  if (!n1 || !nh || !ne) return {h:0, e:0, steps:0, ok:false};
+  var byKey = {}; bank.forEach(function(q){ if (isReported(q.id)) return; var k = q.concept + '|' + (sec === 'math' ? (q.format === 'spr' ? 'spr' : 'mc') : ''); (byKey[k] || (byKey[k] = [])).push(q.id); });
+  var keyOf = function(id){ var q = Q[id]; return q.concept + '|' + (sec === 'math' ? (q.format === 'spr' ? 'spr' : 'mc') : ''); };
+  var mods = [m1, h, e], N = [n1, nh, ne];
+  var sums = mods.map(function(m){ var t = 0; m.forEach(function(id){ t += dRank(Q[id].difficulty); }); return t; });
+  var cnt = mods.map(function(m){ var c = [0, 0, 0]; m.forEach(function(id){ c[dRank(Q[id].difficulty)]++; }); return c; });
+  var tgt = [mixes.m1, mixes.harder, mixes.easier].map(function(mx, i){ var tot = (mx.easy || 0) + (mx.medium || 0) + (mx.hard || 0) || 1;
+    return [mx.easy || 0, mx.medium || 0, mx.hard || 0].map(function(v){ return v * N[i] / tot; }); });
+  var deficit = function(sm){ var a1 = sm[0] / n1, gh = sm[1] / nh - a1, ge = a1 - sm[2] / ne; return Math.max(0, M2_GAP - gh) + Math.max(0, M2_GAP - ge); };
+  var dist = function(mi, c){ var t = 0; for (var d = 0; d < 3; d++) t += Math.abs(c[d] - tgt[mi][d]); return t; };
+  var steps = 0, D = deficit(sums);
+  while (D > 1e-9 && steps < 200) {
+    var best = null, inSet = mods.map(function(m){ var o = {}; m.forEach(function(id){ o[id] = 1; }); return o; });
+    var consider = function(mv){   // mv: {chg:[[mi, pos, newId], ...], seen, ai}
+      var sm = sums.slice(), cc = cnt.map(function(c){ return c.slice(); });
+      mv.chg.forEach(function(c){ var od = dRank(Q[mods[c[0]][c[1]]].difficulty), nd = dRank(Q[c[2]].difficulty); sm[c[0]] += nd - od; cc[c[0]][od]--; cc[c[0]][nd]++; });
+      var nD = deficit(sm); if (nD >= D - 1e-9) return;
+      var dd = 0; [0, 1, 2].forEach(function(mi){ dd += dist(mi, cc[mi]) - dist(mi, cnt[mi]); });
+      var key = [mv.ai, mv.seen, dd, nD];
+      if (!best || key[0] < best.key[0] || (key[0] === best.key[0] && (key[1] < best.key[1] || (key[1] === best.key[1] && (key[2] < best.key[2] - 1e-9 || (Math.abs(key[2] - best.key[2]) < 1e-9 && key[3] < best.key[3] - 1e-9))))))
+        best = {key:key, chg:mv.chg, sm:sm, cc:cc};
+    };
+    // 1) replace one question with a bank question of the same skill/format
+    [0, 1, 2].forEach(function(mi){
+      mods[mi].forEach(function(id, pos){
+        (byKey[keyOf(id)] || []).forEach(function(y){
+          if (inSet[mi][y]) return;
+          if (mi === 0 ? (inSet[1][y] || inSet[2][y]) : inSet[0][y]) return;
+          if (dRank(Q[y].difficulty) === dRank(Q[id].difficulty)) return;
+          consider({chg:[[mi, pos, y]], seen:info[y] ? 1 : 0, ai:Q[id].ai ? 1 : 0});
+        });
+      });
+    });
+    // 2) swap two same-skill questions between Module 1 and one Module 2 (keeps every question unseen status as it was)
+    [1, 2].forEach(function(mi){ var other = mi === 1 ? 2 : 1;
+      m1.forEach(function(a, pa){ var ka = keyOf(a), ra = dRank(Q[a].difficulty);
+        mods[mi].forEach(function(b, pb){
+          if (keyOf(b) !== ka || dRank(Q[b].difficulty) === ra || inSet[other][b] || (mi === 2 && Q[a].ai)) return;   // the easier Module 2 never takes AI questions
+          consider({chg:[[0, pa, b], [mi, pb, a]], seen:0, ai:0});
+        });
+      });
+    });
+    if (!best) break;
+    best.chg.forEach(function(c){ mods[c[0]][c[1]] = c[2]; });
+    sums = best.sm; cnt = best.cc; D = deficit(sums); steps++;
+  }
+  var a1 = sums[0] / n1;
+  return {h:sums[1] / nh - a1, e:a1 - sums[2] / ne, steps:steps, ok:D <= 1e-9};
 }
 function mathSlots(){ var slots = MATH_FIXED.slice(); MATH_ROTATE.forEach(function(r){ shuffle(r.pool).slice(0, r.n).forEach(function(c){ slots.push([c, 1]); }); }); return slots; }
 function buildMathModule(mix, exclude, info){
@@ -2151,7 +2215,7 @@ function buildMathModule(mix, exclude, info){
   var ids = [], k = 0;
   mathSlots().forEach(function(sl){ for (var i = 0; i < sl[1]; i++) pickForConcept(sl[0], 1, exclude, info, diffs[k++] || 'medium', {noAI:true}).forEach(function(id){ exclude[id] = 1; ids.push(id); }); });
   balanceSPR(ids, exclude, info);
-  return placeSPR(ids);
+  return ids;
 }
 /* Like the real test: difficulty rises through the module, and student-produced-response questions sit at fixed points spread
    through it (official 27-question modules use positions 6, 7, 13, 14, 20, 21, 27; scaled here to 22) instead of bunching up. */
@@ -2186,7 +2250,9 @@ function buildMathSection(){
   var info = seenInfo(), exclude = {};
   var m1 = buildMathModule(MATH_MIX.m1, exclude, info);
   var copy = function(){ var o = {}; for (var k in exclude) o[k] = 1; return o; };
-  return {m1:m1, harder:buildMathModule(MATH_MIX.harder, copy(), info), easier:buildMathModule(MATH_MIX.easier, copy(), info)};
+  var harder = buildMathModule(MATH_MIX.harder, copy(), info), easier = buildMathModule(MATH_MIX.easier, copy(), info);
+  var gap = enforceM2Gap('math', m1, harder, easier, info, MATH_MIX);
+  return {m1:placeSPR(m1), harder:placeSPR(harder), easier:placeSPR(easier), gap:gap};
 }
 function sectionSpec(list){ // list: [{sec, m1, harder, easier}]
   var o = {modules:[], modSec:[], secs:[], routes:{}};
@@ -2200,7 +2266,7 @@ function generateTest(opts){
   var r = buildRWSection(opts), sp = sectionSpec([{sec:'rw', m1:r.m1, harder:r.harder, easier:r.easier}]);
   var aiCount = r.m1.concat(r.harder).filter(function(id){ return Q[id] && Q[id].ai; }).length;
   S.counters.test = (S.counters.test || 0) + 1;
-  var s = newSession('test', (opts.aiIds ? 'AI Mix Test #' : 'Generated Test #') + S.counters.test, sp.modules, {source:opts.aiIds ? 'generated-ai' : 'generated', mode:'rw', section:'rw', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, repeats:r.repeats, aiCount:aiCount, aiProvider:opts.aiIds ? AIS.provider : null});
+  var s = newSession('test', (opts.aiIds ? 'AI Mix Test #' : 'Generated Test #') + S.counters.test, sp.modules, {source:opts.aiIds ? 'generated-ai' : 'generated', mode:'rw', section:'rw', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, m2gap:{rw:r.gap}, repeats:r.repeats, aiCount:aiCount, aiProvider:opts.aiIds ? AIS.provider : null});
   if (r.repeats) {
     modal('Heads up', '<p>This test has <b>' + r.repeats + '</b> question' + (r.repeats===1?'':'s') + ' you have seen before, because the question bank ran out of new questions for some skills. Everything else is new.</p>', [{label:'OK', primary:true}]);
   }
@@ -2209,7 +2275,7 @@ function generateTest(opts){
 function startMathTest(){
   var m = buildMathSection(), sp = sectionSpec([{sec:'math', m1:m.m1, harder:m.harder, easier:m.easier}]);
   S.counters.math = (S.counters.math || 0) + 1;
-  var s = newSession('test', 'Math Test #' + S.counters.math, sp.modules, {source:'generated', mode:'math', section:'math', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}});
+  var s = newSession('test', 'Math Test #' + S.counters.math, sp.modules, {source:'generated', mode:'math', section:'math', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, m2gap:{math:m.gap}});
   go('run', s.id);
 }
 function startFullSAT(){ go('run', buildFullSAT().id); }
@@ -2217,7 +2283,7 @@ function buildFullSAT(){
   var r = buildRWSection({}), m = buildMathSection();
   var sp = sectionSpec([{sec:'rw', m1:r.m1, harder:r.harder, easier:r.easier}, {sec:'math', m1:m.m1, harder:m.harder, easier:m.easier}]);
   S.counters.full = (S.counters.full || 0) + 1;
-  return newSession('test', 'Full SAT #' + S.counters.full, sp.modules, {source:'generated', mode:'full', section:'full', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, longBreakAfter:1, repeats:r.repeats});
+  return newSession('test', 'Full SAT #' + S.counters.full, sp.modules, {source:'generated', mode:'full', section:'full', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, m2gap:{rw:r.gap, math:m.gap}, longBreakAfter:1, repeats:r.repeats});
 }
 /* Adaptive routing: when module `base` is submitted, module i becomes the harder or easier version. */
 function routeNext(s, i){
@@ -5427,7 +5493,7 @@ else { S = blankState(); view = {page:'profiles', sid:null, filter:'all'}; rende
 if (relayUrl() && AIS.passcode && now() - (AIS.checkedAt || 0) > 6*3600e3 && navigator.onLine !== false) {
   refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); schedulePrefetch(6000); }, function(){});
 } else schedulePrefetch(6000);
-window.__SAT = {speedAttempts:function(s){ return speedAttempts(s); }, missedList:function(){ return missedList(); }, missedCount:function(){ return missedCount(); }, practiceMissed:function(e, l){ practiceMissed(e, l); }, MQ:MQ, sanitizeState:function(x){ return sanitizeState(x); }, submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
+window.__SAT = {speedAttempts:function(s){ return speedAttempts(s); }, missedList:function(){ return missedList(); }, missedCount:function(){ return missedCount(); }, practiceMissed:function(e, l){ practiceMissed(e, l); }, MQ:MQ, sanitizeState:function(x){ return sanitizeState(x); }, submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, buildFullSAT:buildFullSAT, enforceM2Gap:enforceM2Gap, M2_GAP:M2_GAP, modAvgDiff:modAvgDiff, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
   game:{G:G, recalc:gameRecalc, stats:gameStats, streakInfo:streakInfo, sessionXP:sessionXP, levelInfo:levelInfo, badgeStep:badgeStep, bossState:bossState, leaderboard:leaderboard, lbRows:lbRows, cleanGame:cleanGame, dayKeyOf:dayKeyOf, mondayKey:mondayKey, todayKey:todayKey, startBoss:startBoss, startSpeed:startSpeed, goalInfo:goalInfo, GAME:GAME, SKILL_BADGES:SKILL_BADGES, queue:function(){ return GUI.queue; }, flush:flushCelebrations},
   reg:function(){ return REG; }, active:function(){ return ACTIVE; }, sync:function(){ return SY; }, syncNow:syncNow, merge:mergeProfileData, sha256hex:sha256hex, records:collectRecords};
 })();
