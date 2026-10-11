@@ -768,9 +768,12 @@ function mergeProfileData(local, remote) {
   if (a.migrations || b.migrations) { var mg = {}; [].concat(Array.isArray(a.migrations) ? a.migrations : [], Array.isArray(b.migrations) ? b.migrations : []).forEach(function (m) {
     if (!m || typeof m !== 'object' || !mNum(m.v)) return; var o = mg[m.v]; if (!o || mNum(m.at) < mNum(o.at)) mg[m.v] = mCopy(m); });
     out.migrations = Object.keys(mg).sort(function (x, y) { return x - y; }).map(function (v) { return mg[v]; }).slice(-10); }
+  // seen-question log (questions of deleted sessions stay "seen"): union, latest time per question; "Erase progress" (seenQAt) wins over older entries
+  if (a.seenQ || b.seenQ || a.seenQAt || b.seenQAt) { var qa = mObj(a.seenQ), qb = mObj(b.seenQ), qAt = Math.max(mNum(a.seenQAt), mNum(b.seenQAt)); out.seenQ = {};
+    mKeys(qa, qb).forEach(function (id) { var v = Math.max(mNum(qa[id]), mNum(qb[id])); if (v > qAt) out.seenQ[id] = v; }); if (qAt) out.seenQAt = qAt; }
   out.updatedAt = Math.max(mNum(a.updatedAt), mNum(b.updatedAt));
   // fields added by a newer app version: keep them (prefer the copy that changed last)
-  var known = { app: 1, version: 1, deleted: 1, sessions: 1, openIds: 1, archiveIds: 1, aiBank: 1, reported: 1, unreported: 1, conceptArchived: 1, settingsAt: 1, prefs: 1, prefsAt: 1, counters: 1, updatedAt: 1, explain: 1, levels: 1, coach: 1, game: 1, aiStats: 1, cleared: 1, contentVersion: 1, freshPending: 1, freshMade: 1, migrations: 1, missedGot: 1 };
+  var known = { app: 1, version: 1, deleted: 1, sessions: 1, openIds: 1, archiveIds: 1, aiBank: 1, reported: 1, unreported: 1, conceptArchived: 1, settingsAt: 1, prefs: 1, prefsAt: 1, counters: 1, updatedAt: 1, explain: 1, levels: 1, coach: 1, game: 1, aiStats: 1, cleared: 1, contentVersion: 1, freshPending: 1, freshMade: 1, migrations: 1, missedGot: 1, seenQ: 1, seenQAt: 1 };
   mKeys(a, b).forEach(function (k) { if (known[k] || LOCAL_ONLY_FIELDS.indexOf(k) >= 0) return; var v = mNum(b.updatedAt) > mNum(a.updatedAt) ? (b[k] !== undefined ? b[k] : a[k]) : (a[k] !== undefined ? a[k] : b[k]); if (v !== undefined) out[k] = mCopy(v); });
   // device-only fields come from the local copy
   LOCAL_ONLY_FIELDS.forEach(function (k) { if (a[k] !== undefined) out[k] = mCopy(a[k]); });
@@ -819,6 +822,7 @@ function migrateContent(d, cv, t) {
     var s = d.sessions[id]; if (!s || typeof s !== 'object' || s.finishedAt) return;
     var total = 0; (Array.isArray(s.modules) ? s.modules : []).forEach(function (m) { total += Array.isArray(m) ? m.length : 0; });
     res.cleared.push({ id: id, title: String(s.title || 'Session').slice(0, 120), kind: s.kind || '', mode: s.mode || '', answered: answeredCount(s), total: total, createdAt: mNum(s.createdAt) });
+    var sq = d.seenQ = mObj(d.seenQ); Object.keys(mObj(s.answers)).forEach(function (q) { sq[q] = Math.max(mNum(sq[q]), mNum(s.createdAt) || mNum(t)); }); // answered questions stay "seen"
     d.cleared[id] = cv; d.deleted[id] = CONTENT_TOMB + cv; delete d.sessions[id];
   });
   if (Array.isArray(d.openIds)) d.openIds = d.openIds.filter(function (id) { return d.sessions[id]; });
@@ -1583,7 +1587,7 @@ var PROVIDER_NAMES = {openai:'OpenAI', anthropic:'Claude', xai:'Grok'};
 
 /* ---------- storage ---------- */
 var S, storageOK = true;
-function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, openIds:[], archiveIds:[], conceptArchived:{}, counters:{test:0, practice:0}, lastExport:null, ui:{page:'home'}, aiBank:{}, reported:{}, unreported:{}, deleted:{}, settingsAt:0, prefs:{}, prefsAt:0, explain:{}, levels:{}, missedGot:{}, updatedAt:0}; }
+function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, openIds:[], archiveIds:[], conceptArchived:{}, counters:{test:0, practice:0}, lastExport:null, ui:{page:'home'}, aiBank:{}, reported:{}, unreported:{}, deleted:{}, settingsAt:0, prefs:{}, prefsAt:0, explain:{}, levels:{}, missedGot:{}, seenQ:{}, updatedAt:0}; }
 function normalize(){
   var b = blankState();
   for (var k in b) if (S[k] === undefined) S[k] = b[k];
@@ -1592,7 +1596,7 @@ function normalize(){
   S.archiveIds = S.archiveIds.filter(function(id){ return S.sessions[id] && S.sessions[id].finishedAt; });
   if (!S.aiBank || typeof S.aiBank !== 'object') S.aiBank = {};
   if (!S.reported || typeof S.reported !== 'object') S.reported = {};
-  ['unreported','deleted','conceptArchived','counters','prefs','explain','levels','missedGot'].forEach(function(k){ if (!S[k] || typeof S[k] !== 'object' || Array.isArray(S[k])) S[k] = blankState()[k]; });
+  ['unreported','deleted','conceptArchived','counters','prefs','explain','levels','missedGot','seenQ'].forEach(function(k){ if (!S[k] || typeof S[k] !== 'object' || Array.isArray(S[k])) S[k] = blankState()[k]; });
   if (ACTIVE) dedupeFresh();
   registerAIBank();
   seedLevels();
@@ -1617,7 +1621,7 @@ function dedupeFresh(){
   var f = freshSessions().filter(function(s){ return !Object.keys(s.answers || {}).length; });
   if (f.length < 2) return;
   var keep = f.filter(function(s){ return view && view.sid === s.id; })[0] || f.slice().sort(function(a, b){ return (a.createdAt || 0) - (b.createdAt || 0) || (a.id < b.id ? -1 : 1); })[0];
-  f.forEach(function(s){ if (s !== keep) { S.deleted[s.id] = now(); delete S.sessions[s.id]; } });
+  f.forEach(function(s){ if (s !== keep) { S.deleted[s.id] = now(); delete S.sessions[s.id]; } });   // untouched copies: never shown, nothing to remember
   S.openIds = S.openIds.filter(function(id){ return S.sessions[id]; });
 }
 var MIG_TEXT = 'Questions were upgraded \u2014 unfinished tests were cleared and a fresh test is ready.';
@@ -1907,16 +1911,45 @@ function isReported(id){ return !!(S.reported && S.reported[id]); }
 /* Speed rounds queue ~20 questions but a student only reaches some of them in 60 seconds. Questions never
    answered in a speed round were never attempted, so they don't count anywhere (not seen, not wrong). */
 function unattempted(s, id){ return !!s && s.mode === 'speed' && !(s.answers && s.answers[id]); }
+/* ---------- no-repeat guarantees ----------
+ * "Seen" = every question shown in any session of this profile (synced), plus S.seenQ: a synced log
+ * (question id -> last time) of questions from sessions that were later discarded/deleted, so deleting a
+ * test never makes its questions look new. Near-duplicate pairs found by the bank audit are linked:
+ *  - Q_SAME: same passage/item in two versions -> seeing one counts as seeing the other, never both in a test.
+ *  - Q_TOPIC: same topic/passage subject -> never both in the same test or set (can appear in different tests).
+ * New tests always use unseen questions first; only when a skill's pool is exhausted do they fall back to the
+ * least-recently-seen ones (the test records how many, the student is told, and Parent view shows it). */
+var Q_SAME = [['synthesis-11', 'synthesis-e3']];
+var Q_TOPIC = [['tense-4', 'tense-e1'], ['verbform-1', 'synthesis-e1'], ['synthesis-17', 'verbform-e2'], ['detail-2', 'pronoun-e1'], ['modifier-e1', 'T26'], ['supplement-2', 'supplement-e1'], ['m-la-05', 'm-cal-14']];
+var SIB = {}, SAME = {};
+[Q_SAME, Q_TOPIC].forEach(function(L, k){ L.forEach(function(g){ g.forEach(function(a){ g.forEach(function(b){ if (a === b) return; (SIB[a] || (SIB[a] = [])).push(b); if (!k) (SAME[a] || (SAME[a] = [])).push(b); }); }); }); });
+/* Is id excluded from a set/test that already holds `excl` (itself or a linked sibling)? */
+function blk(excl, id){ if (excl[id]) return true; var L = SIB[id]; if (L) for (var i = 0; i < L.length; i++) if (excl[L[i]]) return true; return false; }
 function seenInfo(){
   var info = {};
+  var add = function(id, t){ var r = info[id] || (info[id] = {n:0, last:0}); r.n++; r.last = Math.max(r.last, t || 0); };
   Object.keys(S.sessions).forEach(function(sid){
     var s = S.sessions[sid];
-    flat(s).forEach(function(id){ if (unattempted(s, id)) return;
-      var r = info[id] || (info[id] = {n:0, last:0});
-      r.n++; r.last = Math.max(r.last, s.createdAt || 0);
-    });
+    flat(s).forEach(function(id){ if (unattempted(s, id)) return; add(id, s.createdAt || 0); });
   });
+  var log = S.seenQ && typeof S.seenQ === 'object' ? S.seenQ : {};
+  Object.keys(log).forEach(function(id){ add(id, +log[id] || 0); });
+  Object.keys(SAME).forEach(function(id){ if (info[id]) return; SAME[id].forEach(function(o){ var r = info[o]; if (r && !(info[id] && info[id].last >= r.last)) info[id] = {n:r.n, last:r.last, via:o}; }); });
   return info;
+}
+/* Before a session is deleted/discarded, remember its questions as seen (synced). */
+function rememberSeen(s){
+  if (!s || !Array.isArray(s.modules)) return;
+  if (!S.seenQ || typeof S.seenQ !== 'object') S.seenQ = {};
+  var t = +s.createdAt || now();
+  flat(s).forEach(function(id){ if (typeof id !== 'string' || unattempted(s, id)) return; S.seenQ[id] = Math.max(+S.seenQ[id] || 0, t); });
+}
+/* Unseen / total questions per section and skill for the active profile (Parent view + tests). */
+function poolStats(){
+  var info = seenInfo(), o = {rw:{total:0, unseen:0}, math:{total:0, unseen:0}, skills:{}};
+  DATA.bank.concat(MATH.bank).forEach(function(q){ if (isReported(q.id)) return; var sec = qSec(q), k = o.skills[q.concept] || (o.skills[q.concept] = {total:0, unseen:0});
+    o[sec].total++; k.total++; if (!info[q.id]) { o[sec].unseen++; k.unseen++; } });
+  return o;
 }
 function finishedSessions(){
   return S.archiveIds.map(function(id){ return S.sessions[id]; }).sort(function(a,b){ return a.finishedAt - b.finishedAt; });
@@ -2088,7 +2121,7 @@ function sessionResults(s){
 function bankFor(cid){ return cSec(cid) === 'math' ? MATH.bank : DATA.bank; }
 function pickForConcept(cid, n, exclude, info, prefDiff, opts){
   opts = opts || {};
-  var pool = bankFor(cid).concat(opts.noAI ? [] : aiList()).filter(function(q){ return q.concept === cid && !exclude[q.id] && !isReported(q.id); });
+  var pool = bankFor(cid).concat(opts.noAI ? [] : aiList()).filter(function(q){ return q.concept === cid && !blk(exclude, q.id) && !isReported(q.id); });
   pool = shuffle(pool);
   pool.sort(function(a,b){
     var sa = info[a.id] ? info[a.id].n : 0, sb = info[b.id] ? info[b.id].n : 0;
@@ -2099,11 +2132,12 @@ function pickForConcept(cid, n, exclude, info, prefDiff, opts){
     var la = info[a.id] ? info[a.id].last : 0, lb = info[b.id] ? info[b.id].last : 0;
     return la - lb;
   });
-  var out = pool.slice(0, n);
+  var out = [];   // take in order, skipping a question whose linked sibling was already taken here
+  for (var pi = 0; pi < pool.length && out.length < n; pi++) { var tk = {}; out.forEach(function(q){ tk[q.id] = 1; }); if (!blk(tk, pool[pi].id)) out.push(pool[pi]); }
   // The original 54-question practice test (DATA.test) is never used to build tests. Practice sets may use its questions,
   // but only last: after every other bank question for the skill (seen ones included) has been used in the set.
   if (out.length < n && cSec(cid) === 'rw' && !opts.noOriginal) {
-    var extra = shuffle(DATA.test.filter(function(q){ return q.concept === cid && !exclude[q.id] && !isReported(q.id); }));
+    var extra = shuffle(DATA.test.filter(function(q){ return q.concept === cid && !blk(exclude, q.id) && !isReported(q.id); }));
     out = out.concat(extra.slice(0, n - out.length));
   }
   return out.map(function(q){ return q.id; });
@@ -2132,7 +2166,7 @@ function buildRWSection(opts){
       for (var i = 0; i < slot[1]; i++) {
         var want = bag[k++], avail = useAI ? (aiIds[slot[0]] || []) : [], got = [];
         avail.sort(function(a, b){ return diffDist(Q[a].difficulty, want) - diffDist(Q[b].difficulty, want); });
-        while (!got.length && avail.length) { var x = avail.shift(); if (!excl[x]) got.push(x); }
+        while (!got.length && avail.length) { var x = avail.shift(); if (!blk(excl, x)) got.push(x); }
         if (!got.length) got = pickForConcept(slot[0], 1, excl, info, want, {noAI:!useAI, noOriginal:true});
         got.forEach(function(id){ excl[id] = 1; ids.push(id); });
       }
@@ -2145,7 +2179,7 @@ function buildRWSection(opts){
   var easier = build(BLUEPRINT[1], RW_MIX.easier, copy(), false);
   var gap = enforceM2Gap('rw', m1, harder, easier, info, RW_MIX);
   m1 = orderRW(m1); harder = orderRW(harder); easier = orderRW(easier);
-  return {m1:m1, harder:harder, easier:easier, gap:gap, repeats:m1.concat(harder).filter(function(id){ return info[id]; }).length};
+  return {m1:m1, harder:harder, easier:easier, gap:gap, repeats:countRepeats(m1, harder, easier, info)};
 }
 /* Module 2 difficulty guarantee. Every newly built adaptive section must have a harder Module 2 whose average difficulty
    (easy 0, medium 1, hard 2) is at least M2_GAP above Module 1, and an easier Module 2 at least M2_GAP below it. The normal
@@ -2156,6 +2190,8 @@ function buildRWSection(opts){
    mix. Skill mix, counts and SPR counts stay exactly the same; Module 1 never shares a question with either Module 2.
    Only new builds are affected (Module 2s are stored with the test when it starts). If a tiny bank truly has no harder or
    easier questions left, the best reachable gap is kept and noted on the session (m2gap). */
+/* Seen-before questions a student could meet in this section (Module 1 + whichever Module 2 is longer on repeats). */
+function countRepeats(m1, h, e, info){ var f = function(L){ return L.filter(function(id){ return info[id]; }).length; }; return f(m1) + Math.max(f(h), f(e)); }
 var M2_GAP = 0.2;
 function modAvgDiff(ids){ if (!ids.length) return 0; var t = 0; ids.forEach(function(id){ t += dRank(Q[id] && Q[id].difficulty); }); return t / ids.length; }
 function enforceM2Gap(sec, m1, h, e, info, mixes){
@@ -2185,9 +2221,11 @@ function enforceM2Gap(sec, m1, h, e, info, mixes){
     // 1) replace one question with a bank question of the same skill/format
     [0, 1, 2].forEach(function(mi){
       mods[mi].forEach(function(id, pos){
-        (byKey[keyOf(id)] || []).forEach(function(y){
-          if (inSet[mi][y]) return;
-          if (mi === 0 ? (inSet[1][y] || inSet[2][y]) : inSet[0][y]) return;
+        var kk = keyOf(id), spareNew = (byKey[kk] || []).some(function(z){ return !info[z] && !blk(inSet[0], z) && !blk(inSet[1], z) && !blk(inSet[2], z); });
+        (byKey[kk] || []).forEach(function(y){
+          if (info[y] && spareNew) return;   // never trade in a seen question while this skill still has an unused unseen one
+          if (blk(inSet[mi], y)) return;
+          if (mi === 0 ? (blk(inSet[1], y) || blk(inSet[2], y)) : blk(inSet[0], y)) return;
           if (dRank(Q[y].difficulty) === dRank(Q[id].difficulty)) return;
           consider({chg:[[mi, pos, y]], seen:info[y] ? 1 : 0, ai:Q[id].ai ? 1 : 0});
         });
@@ -2197,7 +2235,7 @@ function enforceM2Gap(sec, m1, h, e, info, mixes){
     [1, 2].forEach(function(mi){ var other = mi === 1 ? 2 : 1;
       m1.forEach(function(a, pa){ var ka = keyOf(a), ra = dRank(Q[a].difficulty);
         mods[mi].forEach(function(b, pb){
-          if (keyOf(b) !== ka || dRank(Q[b].difficulty) === ra || inSet[other][b] || (mi === 2 && Q[a].ai)) return;   // the easier Module 2 never takes AI questions
+          if (keyOf(b) !== ka || dRank(Q[b].difficulty) === ra || blk(inSet[other], b) || (mi === 2 && Q[a].ai)) return;   // the easier Module 2 never takes AI questions
           consider({chg:[[0, pa, b], [mi, pb, a]], seen:0, ai:0});
         });
       });
@@ -2206,6 +2244,18 @@ function enforceM2Gap(sec, m1, h, e, info, mixes){
     best.chg.forEach(function(c){ mods[c[0]][c[1]] = c[2]; });
     sums = best.sm; cnt = best.cc; D = deficit(sums); steps++;
   }
+  // 3) no-repeat pass: a seen question left in any module (e.g. after a Module 1/Module 2 swap) is traded for an unused
+  //    unseen one of the same skill/format when that keeps the gap shortfall from growing (same difficulty preferred).
+  [1, 2, 0].forEach(function(mi){
+    mods[mi].forEach(function(id, pos){ if (!info[id]) return;
+      var inS = mods.map(function(m){ var o = {}; m.forEach(function(x){ o[x] = 1; }); return o; }), od = dRank(Q[id].difficulty);
+      var c = (byKey[keyOf(id)] || []).filter(function(y){ if (info[y] || y === id) return false; var t = {}; for (var k in inS[mi]) if (k !== id) t[k] = 1;
+        if (blk(t, y)) return false; return mi === 0 ? !(blk(inS[1], y) || blk(inS[2], y)) : !blk(inS[0], y); });
+      c.sort(function(x, y){ return Math.abs(dRank(Q[x].difficulty) - od) - Math.abs(dRank(Q[y].difficulty) - od); });
+      for (var i = 0; i < c.length; i++) { var nd = dRank(Q[c[i]].difficulty), sm = sums.slice(); sm[mi] += nd - od;
+        if (deficit(sm) <= D + 1e-9) { mods[mi][pos] = c[i]; sums = sm; cnt[mi][od]--; cnt[mi][nd]++; D = deficit(sums); break; } }
+    });
+  });
   var a1 = sums[0] / n1;
   return {h:sums[1] / nh - a1, e:a1 - sums[2] / ne, steps:steps, ok:D <= 1e-9};
 }
@@ -2238,9 +2288,9 @@ function balanceSPR(ids, exclude, info){
     var swapped = false, order = shuffle(ids.map(function(_, i){ return i; }));
     for (var j = 0; j < order.length && !swapped; j++) {
       var old = Q[ids[order[j]]]; if (old.format === want || (want === 'spr' && old.concept === 'claims')) continue;
-      var cands = MATH.bank.filter(function(q){ return q.concept === old.concept && q.format === want && !exclude[q.id] && !isReported(q.id); });
+      var cands = MATH.bank.filter(function(q){ return q.concept === old.concept && q.format === want && !blk(exclude, q.id) && !isReported(q.id); });
       if (!cands.length) continue;
-      cands.sort(function(x, y){ return ((x.difficulty !== old.difficulty) * 2 + (info[x.id] ? 1 : 0)) - ((y.difficulty !== old.difficulty) * 2 + (info[y.id] ? 1 : 0)); });
+      cands.sort(function(x, y){ return ((x.difficulty !== old.difficulty) + (info[x.id] ? 4 : 0)) - ((y.difficulty !== old.difficulty) + (info[y.id] ? 4 : 0)); });   // unseen first, then same difficulty
       delete exclude[old.id]; exclude[cands[0].id] = 1; ids[order[j]] = cands[0].id; swapped = true;
     }
     if (!swapped) return;
@@ -2252,7 +2302,7 @@ function buildMathSection(){
   var copy = function(){ var o = {}; for (var k in exclude) o[k] = 1; return o; };
   var harder = buildMathModule(MATH_MIX.harder, copy(), info), easier = buildMathModule(MATH_MIX.easier, copy(), info);
   var gap = enforceM2Gap('math', m1, harder, easier, info, MATH_MIX);
-  return {m1:placeSPR(m1), harder:placeSPR(harder), easier:placeSPR(easier), gap:gap};
+  return {m1:placeSPR(m1), harder:placeSPR(harder), easier:placeSPR(easier), gap:gap, repeats:countRepeats(m1, harder, easier, info)};
 }
 function sectionSpec(list){ // list: [{sec, m1, harder, easier}]
   var o = {modules:[], modSec:[], secs:[], routes:{}};
@@ -2267,23 +2317,25 @@ function generateTest(opts){
   var aiCount = r.m1.concat(r.harder).filter(function(id){ return Q[id] && Q[id].ai; }).length;
   S.counters.test = (S.counters.test || 0) + 1;
   var s = newSession('test', (opts.aiIds ? 'AI Mix Test #' : 'Generated Test #') + S.counters.test, sp.modules, {source:opts.aiIds ? 'generated-ai' : 'generated', mode:'rw', section:'rw', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, m2gap:{rw:r.gap}, repeats:r.repeats, aiCount:aiCount, aiProvider:opts.aiIds ? AIS.provider : null});
-  if (r.repeats) {
-    modal('Heads up', '<p>This test has <b>' + r.repeats + '</b> question' + (r.repeats===1?'':'s') + ' you have seen before, because the question bank ran out of new questions for some skills. Everything else is new.</p>', [{label:'OK', primary:true}]);
-  }
+  repeatNotice(r.repeats);
   go('run', s.id);
 }
 function startMathTest(){
   var m = buildMathSection(), sp = sectionSpec([{sec:'math', m1:m.m1, harder:m.harder, easier:m.easier}]);
   S.counters.math = (S.counters.math || 0) + 1;
-  var s = newSession('test', 'Math Test #' + S.counters.math, sp.modules, {source:'generated', mode:'math', section:'math', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, m2gap:{math:m.gap}});
+  var s = newSession('test', 'Math Test #' + S.counters.math, sp.modules, {source:'generated', mode:'math', section:'math', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, m2gap:{math:m.gap}, repeats:m.repeats});
+  repeatNotice(m.repeats);
   go('run', s.id);
 }
-function startFullSAT(){ go('run', buildFullSAT().id); }
+function repeatNotice(n){
+  if (n) modal('Heads up', '<p>This test can include up to <b>' + n + '</b> question' + (n===1?'':'s') + ' you have seen before, because the question bank ran out of new questions for some skills (the ones seen longest ago are used). Everything else is new.</p>', [{label:'OK', primary:true}]);
+}
+function startFullSAT(){ var s = buildFullSAT(); repeatNotice(s.repeats); go('run', s.id); }
 function buildFullSAT(){
   var r = buildRWSection({}), m = buildMathSection();
   var sp = sectionSpec([{sec:'rw', m1:r.m1, harder:r.harder, easier:r.easier}, {sec:'math', m1:m.m1, harder:m.harder, easier:m.easier}]);
   S.counters.full = (S.counters.full || 0) + 1;
-  return newSession('test', 'Full SAT #' + S.counters.full, sp.modules, {source:'generated', mode:'full', section:'full', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, m2gap:{rw:r.gap, math:m.gap}, longBreakAfter:1, repeats:r.repeats});
+  return newSession('test', 'Full SAT #' + S.counters.full, sp.modules, {source:'generated', mode:'full', section:'full', modSec:sp.modSec, secs:sp.secs, routes:sp.routes, route:{}, m2gap:{rw:r.gap, math:m.gap}, longBreakAfter:1, repeats:r.repeats + m.repeats});
 }
 /* Adaptive routing: when module `base` is submitted, module i becomes the harder or easier version. */
 function routeNext(s, i){
@@ -3570,23 +3622,51 @@ function exampleFor(cid){
 /* Ask the relay for `t.count` questions on one concept; caches valid ones in the AI bank. */
 function requestAI(t, job){
   var c = CMAP[t.concept];
-  var body = {provider:AIS.provider, section:cSec(t.concept), concept:t.concept, conceptName:c.name, conceptDescription:c.lesson, domain:c.domain, count:t.count, difficulty:t.difficulty || 'medium', exampleQuestion:exampleFor(t.concept), avoid:aiAvoidTopics(t.concept), model:aiModelChoice(), review:aiReviewOn()};
+  var body = {provider:AIS.provider, section:cSec(t.concept), concept:t.concept, conceptName:c.name, conceptDescription:c.lesson, domain:c.domain, count:t.count, difficulty:t.difficulty || 'medium', exampleQuestion:exampleFor(t.concept), avoid:aiAvoidTopics(t.concept).concat(t.extraAvoid || []).slice(-15), model:aiModelChoice(), review:aiReviewOn()};
   var pid = ACTIVE, t0 = now();
   return relayFetch('/generate', {method:'POST', body:JSON.stringify(body)}, AI_TIMEOUT_MS, job).then(function(data){
     if (ACTIVE !== pid || !S) throw aiErr('Switched profile.', -1);   // never write one profile's questions into another
-    var out = [];
+    var out = [], dups = [];
     (Array.isArray(data.questions) ? data.questions : []).forEach(function(raw){
       if (!raw || raw.concept !== t.concept) return;
       var q = cleanAIQuestion(raw); if (!q) return;
+      var dup = aiDuplicate(q); if (dup) { dups.push(q); return; }
       while (Q[q.id]) q.id = q.id + 'x';
       q.addedAt = now(); if (job && job.bg) q.pre = 1; S.aiBank[q.id] = q; Q[q.id] = q; out.push(q);
     });
     PF.lastMs = now() - t0;
     noteAIStats(data, out.length);
     pruneAIBank(); save(); syncSoon(5000);
-    if (!out.length) throw aiErr('The AI\'s questions didn\'t pass the answer-key double-check this time. Please try again.');
+    if (dups.length) { var a = S.aiStats && typeof S.aiStats === 'object' ? S.aiStats : (S.aiStats = {}); a.dups = (+a.dups || 0) + dups.length; }
+    // collision with the bank or this profile's history: ask once more for replacements, telling the AI what to avoid
+    if (dups.length && !t.retry && !(job && job.cancelled)) {
+      var t2 = Object.assign({}, t, {count:Math.min(10, dups.length), retry:1, extraAvoid:dups.map(function(q){ return q.topic || stemLine(q, 60); })});
+      return requestAI(t2, job).then(function(more){ return out.concat(more); }, function(e){ if (out.length) return out; throw e; });
+    }
+    if (!out.length) throw aiErr(dups.length ? 'The AI only wrote questions too close to ones already in your bank. Please try again.' : 'The AI\'s questions didn\'t pass the answer-key double-check this time. Please try again.');
     return out;
   });
+}
+/* ---------- AI duplicate check ----------
+   Normalized-text hash (exact repeats) + word-3-gram similarity (paraphrases), against the built-in banks, the
+   original practice test, and every AI question this profile has (its history). Returns the matching id or ''. */
+var FP = {};
+function normQText(h){ return plainText(String(h || '')).toLowerCase().replace(/\\[a-z]+/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim(); }
+function qPrint(q){
+  var c = q.id && FP[q.id]; if (c && c.q === q) return c;
+  var body = normQText(q.passage) + ' | ' + normQText(q.stem), all = body + ' | ' + (q.choices || []).map(normQText).join(' | ');
+  var w = body.split(/\s+/), sh = {}, n = 0; for (var i = 0; i + 2 < w.length; i++) { var k = w[i] + ' ' + w[i + 1] + ' ' + w[i + 2]; if (!sh[k]) { sh[k] = 1; n++; } }
+  var pw = {}, pn = 0; normQText(q.passage).split(/\s+/).forEach(function(x){ if (x.length > 3 && !pw[x]) { pw[x] = 1; pn++; } });
+  var r = {q:q, h:hashStr(all), sh:sh, n:n, pw:pw, pn:pn}; if (q.id) FP[q.id] = r; return r;
+}
+function hashStr(s){ var h = 2166136261; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36) + ':' + s.length; }
+function jac(a, na, b, nb){ if (!na || !nb) return 0; var x = 0; for (var k in a) if (b[k]) x++; return x / (na + nb - x); }
+var AI_SIM = 0.55, AI_PSIM = 0.6;
+function aiDuplicate(q){
+  var f = qPrint(q), sec = cSec(q.concept), pool = (sec === 'math' ? MATH.bank : DATA.bank.concat(DATA.test)).concat(aiList());
+  for (var i = 0; i < pool.length; i++) { var o = pool[i]; if (o === q || o.id === q.id || qSec(o) !== sec) continue; var g = qPrint(o);
+    if (g.h === f.h || jac(f.sh, f.n, g.sh, g.n) >= AI_SIM || (sec === 'rw' && f.pn >= 12 && jac(f.pw, f.pn, g.pw, g.pn) >= AI_PSIM)) return o.id; }
+  return '';
 }
 /* Per-profile record of how the cross-AI review went (Parent view shows the pass rate). */
 function noteAIStats(data, kept){
@@ -4081,7 +4161,7 @@ function profileSummary(data){
     var excluded = rec.sess.filter(function(x){ return x.s.kind === 'test' && instantExam(x.s); }).length;
     return {latest:latest ? Object.assign(scoreOf(latest.scores), {at:latest.s.finishedAt}) : null, best:best, testCount:tests.length, excluded:excluded,
       week:{n:wk.length, ok:wk.filter(function(r){ return r.ok; }).length}, sec:secAcc, last:last || +d.updatedAt || 0, weakest:weakest, trend:trend, recent:recent,
-      practiced:rec.sess.length, missed:missedSummary(8), activity:Object.keys(d.sessions).map(function(id){ return d.sessions[id]; }).filter(function(s){ return s && s.finishedAt && Array.isArray(s.modules); }).sort(function(a, b){ return b.finishedAt - a.finishedAt; }).map(function(s){
+      practiced:rec.sess.length, pool:(function(){ var ps = poolStats(), rt = rec.sess.filter(function(x){ return x.s.kind === 'test' && +x.s.repeats > 0; }); return {rw:ps.rw, math:ps.math, low:CONCEPTS.filter(function(c){ var k = ps.skills[c.id]; return k && k.unseen < 3; }).map(function(c){ return {name:c.name, unseen:ps.skills[c.id].unseen, total:ps.skills[c.id].total}; }), repeatTests:rt.length, repeatQs:rt.reduce(function(a, x){ return a + (+x.s.repeats || 0); }, 0)}; })(), missed:missedSummary(8), activity:Object.keys(d.sessions).map(function(id){ return d.sessions[id]; }).filter(function(s){ return s && s.finishedAt && Array.isArray(s.modules); }).sort(function(a, b){ return b.finishedAt - a.finishedAt; }).map(function(s){
       var r = sessionResults(s), sc = s.mode === 'speed' ? null : scoreSession(s, r);
       return {sid:s.id, title:s.title || 'Session', at:s.finishedAt, mode:MODE_LABEL[modeOf(s)] || (s.kind === 'test' ? 'Test' : 'Practice'), res:s.mode === 'speed' ? r.correct + ' correct in 60 s' : sc ? scoreLine(sc) : r.correct + '/' + r.total + ' correct', time:timingShort(s)}; }), ai:aiStatsOf(d), game:pvGameSummary(d), coach:(function(){ var L = rec.recs.filter(function(r){ return r.fin && r.answered && r.co; }), W = L.filter(function(r){ return r.t >= weekAgo; }); return {n:L.length, ok:L.filter(function(r){ return r.ok; }).length, week:W.length}; })()};
   });
@@ -4143,6 +4223,9 @@ function renderParent(){
     h += '<div class="pvrow"><span class="ml">Weakest skills</span>' + (x.weakest.length ? '<ul class="pvlist">' + x.weakest.map(function(w){ return '<li><span>' + esc(w.name) + '</span><span class="small muted">' + w.rate + '% recent · Lv ' + w.level.toFixed(1) + '</span></li>'; }).join('') + '</ul>' : '<span class="small muted">Not enough practice yet</span>') + '</div>';
     h += '<div class="pvrow pvcoach"><span class="ml">Coach usage</span><span class="small">' + (x.coach && x.coach.n ? x.coach.n + ' coached question' + (x.coach.n === 1 ? '' : 's') + ' (' + x.coach.week + ' this week) · ' + pct(x.coach.ok, x.coach.n) + '% correct with Coach' : 'Coach not used yet') + '</span></div>';
     h += pvMissedHTML(x.missed);
+    if (x.pool) h += '<div class="pvrow pvpool"><span class="ml">Question pool</span><span class="small">Unseen: RW <b>' + x.pool.rw.unseen + '</b>/' + x.pool.rw.total + ' · Math <b>' + x.pool.math.unseen + '</b>/' + x.pool.math.total +
+      ' · ' + (x.pool.repeatTests ? '<b>' + x.pool.repeatTests + ' test' + (x.pool.repeatTests === 1 ? '' : 's') + '</b> had to reuse up to ' + x.pool.repeatQs + ' seen question' + (x.pool.repeatQs === 1 ? '' : 's') + ' (pool exhausted for some skills)' : 'no test has repeated a question') + '</span>' +
+      (x.pool.low.length ? '<details class="pvmq"><summary class="small">' + x.pool.low.length + ' skill' + (x.pool.low.length === 1 ? '' : 's') + ' nearly out of new questions</summary><ul class="pvlist">' + x.pool.low.map(function(k){ return '<li><span>' + esc(k.name) + '</span><span class="small muted">' + k.unseen + ' of ' + k.total + ' unseen</span></li>'; }).join('') + '</ul></details>' : '') + '</div>';
     h += pvGameHTML(p, x);
     if (x.ai) h += '<div class="pvrow pvai"><span class="ml">AI questions</span><span class="small">' + x.ai.kept + ' AI question' + (x.ai.kept === 1 ? '' : 's') + ' from ' + x.ai.requests + ' request' + (x.ai.requests === 1 ? '' : 's') +
       (x.ai.panelReq ? ' · Cross-AI review pass rate <b>' + (x.ai.rate == null ? '—' : x.ai.rate + '%') + '</b> (' + (x.ai.firstRate == null ? '—' : x.ai.firstRate + '%') + ' on the first try' + (x.ai.revOk ? ', ' + x.ai.revOk + ' fixed after review' : '') + ')' : ' · Cross-AI review off') + '</span></div>';
@@ -4302,6 +4385,9 @@ function sanitizeState(st){
   if (st.game !== undefined) { var cg = cleanGame(st.game); if (cg) st.game = cg; else delete st.game; }
   if (st.missedGot !== undefined) { var mg = {}, ms = st.missedGot && typeof st.missedGot === 'object' && !Array.isArray(st.missedGot) ? st.missedGot : {};
     Object.keys(ms).slice(0, 5000).forEach(function(id){ var x = ms[id]; if (!/^[\w-]{1,80}$/.test(id) || !x || typeof x !== 'object' || !(+x.at > 0)) return; mg[id] = {at:+x.at, on:x.on ? 1 : 0}; }); st.missedGot = mg; }
+  if (st.seenQ !== undefined) { var sq = {}, ss = st.seenQ && typeof st.seenQ === 'object' && !Array.isArray(st.seenQ) ? st.seenQ : {};
+    Object.keys(ss).slice(0, 20000).forEach(function(id){ if (/^[\w-]{1,80}$/.test(id) && +ss[id] > 0) sq[id] = +ss[id]; }); st.seenQ = sq; }
+  if (st.seenQAt !== undefined) st.seenQAt = +st.seenQAt > 0 ? +st.seenQAt : 0;
   return st;
 }
 function cleanRemoteMeta(m, id){
@@ -5310,10 +5396,10 @@ var ACTIONS = {
   'pv-rfilter': function(el){ if (PV.rev) { PV.rev.f = el.getAttribute('data-f'); render(); var rv = document.getElementById('review'); if (rv && rv.scrollIntoView) rv.scrollIntoView(); } },
   discard: function(el){ var id = el.getAttribute('data-sid'), s = S.sessions[id];
     confirmBox('Discard this '+(s.kind==='test'?'test':'practice set')+'?', '<p>Your answers in <b>'+esc(s.title)+'</b> will be erased. ' + (s.source==='original' ? 'This is the original practice test, which can\'t be started again (new tests are generated from the question bank instead).' : 'Its questions stay marked as seen.') + '</p>', 'Discard', function(){
-      S.openIds = S.openIds.filter(function(x){ return x !== id; }); delete S.sessions[id]; S.deleted[id] = now(); save(); render(); syncSoon(); }, true); },
+      S.openIds = S.openIds.filter(function(x){ return x !== id; }); rememberSeen(S.sessions[id]); delete S.sessions[id]; S.deleted[id] = now(); save(); render(); syncSoon(); }, true); },
   del: function(el){ var id = el.getAttribute('data-sid'), s = S.sessions[id];
     confirmBox('Delete from history?', '<p><b>'+esc(s.title)+'</b> ('+fmtDate(s.finishedAt)+') will be removed from Past Tests and from your concept history. This can\'t be undone unless you have a backup.</p>', 'Delete', function(){
-      S.archiveIds = S.archiveIds.filter(function(x){ return x !== id; }); delete S.sessions[id]; S.deleted[id] = now(); save(); render(); syncSoon(); }, true); },
+      S.archiveIds = S.archiveIds.filter(function(x){ return x !== id; }); rememberSeen(S.sessions[id]); delete S.sessions[id]; S.deleted[id] = now(); save(); render(); syncSoon(); }, true); },
     'gen-test': function(){ generateTest(); },
   'practice-weak': function(){ startPractice(weakConcepts(), 'weak concepts'); },
   'practice-from': function(el){ var s = S.sessions[el.getAttribute('data-sid')]; startPractice(fromSessionConcepts(s), 'from ' + s.title); },
@@ -5371,7 +5457,7 @@ var ACTIONS = {
   'ai-forget': function(){ AIS.passcode = ''; AIS.providers = []; AIS.status = null; saveAISettings(); setSync('off'); render(); },
   'ai-restore-all': function(){ confirmBox('Restore all reported questions?', '<p>They will count in scores again and can be picked for future tests.</p>', 'Restore', function(){ var t = now(); Object.keys(S.reported).forEach(function(id){ S.unreported[id] = t; }); S.reported = {}; save(); render(); syncSoon(); }); },
   wipe: function(){ confirmBox('Erase ' + profileName(ACTIVE) + '\u2019s progress?', '<p>Every test, practice set, and all concept history for this profile will be deleted' + (canSync() ? ', on every synced device' : '') + '. Other profiles are not affected.</p>', 'Erase everything', function(){
-    var t = now(); Object.keys(S.sessions).forEach(function(id){ S.deleted[id] = t; }); S.sessions = {}; Object.keys(S.reported).forEach(function(id){ S.unreported[id] = t; }); S.reported = {}; S.conceptArchived = {}; S.settingsAt = t; S.updatedAt = t;
+    var t = now(); Object.keys(S.sessions).forEach(function(id){ S.deleted[id] = t; }); S.sessions = {}; S.seenQ = {}; S.seenQAt = t; Object.keys(S.reported).forEach(function(id){ S.unreported[id] = t; }); S.reported = {}; S.conceptArchived = {}; S.settingsAt = t; S.updatedAt = t;
     normalize(); save(); go('home'); syncNow('wipe'); }, true); },
   'pick-profile': function(el){ openProfile(el.getAttribute('data-id')); },
   'edit-profile': function(el){ editProfile(el.getAttribute('data-id')); },
@@ -5493,7 +5579,7 @@ else { S = blankState(); view = {page:'profiles', sid:null, filter:'all'}; rende
 if (relayUrl() && AIS.passcode && now() - (AIS.checkedAt || 0) > 6*3600e3 && navigator.onLine !== false) {
   refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); schedulePrefetch(6000); }, function(){});
 } else schedulePrefetch(6000);
-window.__SAT = {speedAttempts:function(s){ return speedAttempts(s); }, missedList:function(){ return missedList(); }, missedCount:function(){ return missedCount(); }, practiceMissed:function(e, l){ practiceMissed(e, l); }, MQ:MQ, sanitizeState:function(x){ return sanitizeState(x); }, submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, buildFullSAT:buildFullSAT, enforceM2Gap:enforceM2Gap, M2_GAP:M2_GAP, modAvgDiff:modAvgDiff, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
+window.__SAT = {norepeat:{seenInfo:function(){ return seenInfo(); }, poolStats:function(){ return poolStats(); }, aiDuplicate:function(q){ return aiDuplicate(q); }, rememberSeen:function(x){ rememberSeen(x); }, blk:blk, SIB:SIB, SAME:SAME, requestAI:function(t, j){ return requestAI(t, j); }, AIS:function(){ return AIS; }, startMathTest:function(){ startMathTest(); }, generateTest:function(o){ generateTest(o); }}, speedAttempts:function(s){ return speedAttempts(s); }, missedList:function(){ return missedList(); }, missedCount:function(){ return missedCount(); }, practiceMissed:function(e, l){ practiceMissed(e, l); }, MQ:MQ, sanitizeState:function(x){ return sanitizeState(x); }, submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, buildFullSAT:buildFullSAT, enforceM2Gap:enforceM2Gap, M2_GAP:M2_GAP, modAvgDiff:modAvgDiff, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
   game:{G:G, recalc:gameRecalc, stats:gameStats, streakInfo:streakInfo, sessionXP:sessionXP, levelInfo:levelInfo, badgeStep:badgeStep, bossState:bossState, leaderboard:leaderboard, lbRows:lbRows, cleanGame:cleanGame, dayKeyOf:dayKeyOf, mondayKey:mondayKey, todayKey:todayKey, startBoss:startBoss, startSpeed:startSpeed, goalInfo:goalInfo, GAME:GAME, SKILL_BADGES:SKILL_BADGES, queue:function(){ return GUI.queue; }, flush:flushCelebrations},
   reg:function(){ return REG; }, active:function(){ return ACTIVE; }, sync:function(){ return SY; }, syncNow:syncNow, merge:mergeProfileData, sha256hex:sha256hex, records:collectRecords};
 })();
