@@ -2859,9 +2859,9 @@ function fetchCoach(id){
   if (navigator.onLine === false) { CO[id] = {fallback:true, offline:true}; updateCoach(id); return; }
   var b = explainBody(q, null); delete b.studentAnswer; var body = JSON.stringify(b);
   if (byteLen(body) > EXPLAIN_MAX_BYTES) { CO[id] = {fallback:true, err:'this question is too long to send'}; updateCoach(id); return; }
-  CO[id] = {loading:true}; updateCoach(id);
+  CO[id] = {loading:true, t0:Date.now()}; updateCoach(id);
   var pid = ACTIVE;
-  relayFetch('/coach', {method:'POST', body:body}, 90000).then(function(data){
+  coachStream(id, body).then(function(data){
     var d = cleanCoach(data && data.coach);
     if (!d) { CO[id] = {fallback:true, err:data && data.fallback ? 'the AI hints gave too much away, so built-in hints are shown' : 'no hints came back'}; updateCoach(id); return; }
     delete CO[id];
@@ -2874,6 +2874,35 @@ function fetchCoach(id){
     CO[id] = {fallback:true, err:e && e.message || 'error', offline:navigator.onLine === false || /offline|reach the AI relay/i.test(e && e.message || '')}; updateCoach(id);
   });
 }
+/* Streams /coach?stream=1: hint 1 arrives in ~1 s (event hint1), the full checked card follows (event coach).
+   Falls back to the plain JSON endpoint when the browser can't read a stream. */
+function coachStream(id, body){
+  if (typeof fetch !== 'function' || typeof TextDecoder === 'undefined' || typeof ReadableStream === 'undefined') return relayFetch('/coach', {method:'POST', body:body}, 90000);
+  var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null, timer = setTimeout(function(){ if (ctrl) ctrl.abort(); }, 90000);
+  var init = {method:'POST', headers:{'X-Passcode':AIS.passcode, 'Content-Type':'application/json'}, body:body, cache:'no-store', mode:'cors', credentials:'omit'}; if (ctrl) init.signal = ctrl.signal;
+  return fetch(relayUrl() + '/coach?stream=1', init).then(function(res){
+    if (!res.ok || !res.body || !/event-stream/.test(res.headers.get('Content-Type') || '')) return res.text().then(function(t){ clearTimeout(timer); var d = null; try { d = JSON.parse(t); } catch(e){} if (d && d.ok !== false && d.coach !== undefined) return d; throw aiErr(d && d.error || ('The AI relay returned HTTP ' + res.status + '.'), res.status); });
+    var rd = res.body.getReader(), dec = new TextDecoder(), buf = '', out = null, last = 0;
+    var pump = function(){ return rd.read().then(function(r){
+      if (r.value) buf += dec.decode(r.value, {stream:true});
+      var i; while ((i = buf.indexOf('\n\n')) >= 0) {
+        var blk = buf.slice(0, i), ev = /(?:^|\n)event: *(\w+)/.exec(blk), da = /(?:^|\n)data: *(.*)/.exec(blk); buf = buf.slice(i + 2);
+        if (!ev || !da) continue; var j = null; try { j = JSON.parse(da[1]); } catch(e){ continue; }
+        if (ev[1] === 'hint1' && CO[id] && CO[id].loading) { CO[id].h1 = (CO[id].h1 || '') + String(j.t || ''); if (Date.now() - last > 120) { last = Date.now(); updateCoach(id); } }
+        else if (ev[1] === 'hint1done' && CO[id] && CO[id].loading) updateCoach(id);
+        else if (ev[1] === 'coach') out = j;
+      }
+      if (r.done) { clearTimeout(timer); if (!out) throw aiErr('no hints came back'); if (out.ok === false) throw aiErr(out.error || 'AI error', out.status); return out; }
+      return pump();
+    }); };
+    return pump();
+  }, function(e){ clearTimeout(timer); throw aiErr(navigator.onLine === false ? 'offline' : 'Could not reach the AI relay.'); });
+}
+/* Fetch the next question's hints in the background so they're ready the moment it's shown. */
+function prefetchNextCoach(s, id){
+  try { if (!s || !s.modules || !aiReady() || navigator.onLine === false) return; var m = s.modules[s.mod] || [], i = m.indexOf(id), nx = i >= 0 ? m[i + 1] : null;
+    if (nx && Q[nx] && !coachFor(Q[nx]) && !CO[nx] && !(s.answers && s.answers[nx])) fetchCoach(nx); } catch(e){}
+}
 function coachInner(s, id, q, after){
   var c = CMAP[q.concept] || {name:''}, lessonLink = '<button class="linkbtn" data-act="lesson" data-c="' + esc(q.concept) + '">Open the \u201c' + esc(c.name) + '\u201d lesson →</button>';
   if (after) {   // after checking: full walk-through of the logic and every choice (same as the thorough explanation)
@@ -2881,16 +2910,17 @@ function coachInner(s, id, q, after){
     return '<p class="small muted" style="margin-top:0">Now that you\u2019ve checked, here is the whole walk-through.</p>' + thoroughHTML(q, s.answers[id] || null);
   }
   var ex = coachFor(q), st = CO[id] || {}, d = ex ? ex.data : null, h = '';
-  if (!d && st.loading) return '<div class="thload"><span class="spin" aria-hidden="true"></span> Your coach is getting hints ready… <span class="small muted">(usually 5–20 seconds)</span></div>';
   if (!d) { d = builtinCoach(q); if (!st.fallback && !st.loading) setTimeout(function(){ fetchCoach(id); }, 0); }
+  if (d.builtin && st.loading && st.h1) { d = JSON.parse(JSON.stringify(d)); d.hints[0] = {stage:'concept', title:'The idea', text:st.h1, ai:true}; }
+  if (!st.loading) setTimeout(function(){ prefetchNextCoach(s, id); }, 400);
   var T = function(x, raw){ return qh(q, raw ? x : esc(x)); };
   var step = Math.max(1, Math.min(d.hints.length, (view.coachStep && view.coachStep[id]) || 1));
   h += '<div class="coachsec"><h4>What this question tests</h4><p>' + T(d.concept) + '</p>' + (d.lesson && d.lesson !== d.concept ? '<p class="small">' + T(d.lesson) + '</p>' : '') +
     (d.example ? '<div class="coachex"><b>Tiny example:</b> ' + T(d.example.problem) + '<details><summary>See how it works</summary>' + T(d.example.solution) + '</details></div>' : '') + '</div>';
-  h += '<div class="coachsec"><h4>Hints</h4><ol class="coachhints">' + d.hints.slice(0, step).map(function(x){ return '<li><b>' + esc(x.title || (x.stage === 'concept' ? 'The idea' : x.stage === 'look' ? 'What to look for' : 'How to test the choices')) + '.</b> ' + T(x.text, d.builtin) + '</li>'; }).join('') + '</ol>' +
+  h += '<div class="coachsec"><h4>Hints</h4><ol class="coachhints">' + d.hints.slice(0, step).map(function(x){ return '<li><b>' + esc(x.title || (x.stage === 'concept' ? 'The idea' : x.stage === 'look' ? 'What to look for' : 'How to test the choices')) + '.</b> ' + T(x.text, d.builtin && !x.ai) + '</li>'; }).join('') + '</ol>' +
     (step < d.hints.length ? '<button class="btn small coachnext" data-act="coach-next" data-id="' + esc(id) + '">Next hint (' + (step + 1) + ' of ' + d.hints.length + ')</button>' : '<p class="small muted">That\u2019s every hint. Now pick your answer.</p>') + '</div>';
   h += '<p class="thles">' + lessonLink + '</p>';
-  h += '<p class="small muted coachsrc">' + (d.builtin ? (st.offline ? '📴 Offline, so these are built-in hints from the lesson.' : st.why === 'nopass' ? 'Built-in hints. AI coaching needs the family passcode (Settings).' : st.err ? 'Built-in hints (' + esc(String(st.err).replace(/\.$/, '')) + ').' : 'Built-in hints.') :
+  h += '<p class="small muted coachsrc">' + (d.builtin && st.loading ? '<span class="spin" aria-hidden="true"></span> ' + (st.h1 ? '✨ First AI hint is in; the full checked hints are on the way (a few seconds).' : 'Starting with built-in hints; AI hints are on the way…') : d.builtin ? (st.offline ? '📴 Offline, so these are built-in hints from the lesson.' : st.why === 'nopass' ? 'Built-in hints. AI coaching needs the family passcode (Settings).' : st.err ? 'Built-in hints (' + esc(String(st.err).replace(/\.$/, '')) + ').' : 'Built-in hints.') :
     '✨ Hints by ' + esc(PROVIDER_NAMES[ex.provider] || 'AI') + ', checked so they don\u2019t give the answer away. Saved to your profile.') + '</p>';
   return h;
 }
