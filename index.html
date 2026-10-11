@@ -132,6 +132,7 @@ table.data td:first-child,table.data th:first-child{text-align:left}
 details.pass summary{cursor:pointer;color:var(--blue);font-weight:600;font-size:14px;margin-bottom:6px}
 /* modal */
 .mback{position:fixed;inset:0;background:rgba(15,23,42,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.chlbox{max-width:720px}.chlout{white-space:pre-wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;max-height:46vh;overflow:auto;font-size:15px;line-height:1.5;min-height:60px}.chlrow{margin-top:10px}
 .mbox{background:#fff;border-radius:14px;max-width:620px;width:100%;max-height:88vh;overflow:auto;padding:20px 22px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
 .mbox h3{margin:0 0 8px;font-size:20px}
 .mbox .mbtns{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:16px}
@@ -771,12 +772,14 @@ function mergeProfileData(local, remote) {
   // seen-question log (questions of deleted sessions stay "seen"): union, latest time per question; "Erase progress" (seenQAt) wins over older entries
   if (a.seenQ || b.seenQ || a.seenQAt || b.seenQAt) { var qa = mObj(a.seenQ), qb = mObj(b.seenQ), qAt = Math.max(mNum(a.seenQAt), mNum(b.seenQAt)); out.seenQ = {};
     mKeys(qa, qb).forEach(function (id) { var v = Math.max(mNum(qa[id]), mNum(qb[id])); if (v > qAt) out.seenQ[id] = v; }); if (qAt) out.seenQAt = qAt; }
+  // answer challenges log: union by id, newest 200
+  if (a.challenges || b.challenges) { var cm = {}; (Array.isArray(a.challenges) ? a.challenges : []).concat(Array.isArray(b.challenges) ? b.challenges : []).forEach(function (c) { if (c && c.id && (!cm[c.id] || mNum(c.at) > mNum(cm[c.id].at))) cm[c.id] = c; }); out.challenges = Object.keys(cm).map(function (k) { return cm[k]; }).sort(function (x, y) { return mNum(x.at) - mNum(y.at); }).slice(-200); }
   // served-question fingerprints (normalized-text hash -> time; strict no-repeat across devices): same union rule
   if (a.seenH || b.seenH) { var ha = mObj(a.seenH), hb = mObj(b.seenH), hAt = Math.max(mNum(a.seenQAt), mNum(b.seenQAt)); out.seenH = {};
     mKeys(ha, hb).forEach(function (k) { if (!/^[0-9a-z]{1,8}:\d{1,6}$/.test(k)) return; var v = Math.max(mNum(ha[k]), mNum(hb[k])); if (v > hAt) out.seenH[k] = v; }); }
   out.updatedAt = Math.max(mNum(a.updatedAt), mNum(b.updatedAt));
   // fields added by a newer app version: keep them (prefer the copy that changed last)
-  var known = { app: 1, version: 1, deleted: 1, sessions: 1, openIds: 1, archiveIds: 1, aiBank: 1, reported: 1, unreported: 1, conceptArchived: 1, settingsAt: 1, prefs: 1, prefsAt: 1, counters: 1, updatedAt: 1, explain: 1, levels: 1, coach: 1, game: 1, aiStats: 1, cleared: 1, contentVersion: 1, freshPending: 1, freshMade: 1, migrations: 1, missedGot: 1, seenQ: 1, seenQAt: 1, seenH: 1 };
+  var known = { app: 1, version: 1, deleted: 1, sessions: 1, openIds: 1, archiveIds: 1, aiBank: 1, reported: 1, unreported: 1, conceptArchived: 1, settingsAt: 1, prefs: 1, prefsAt: 1, counters: 1, updatedAt: 1, explain: 1, levels: 1, coach: 1, game: 1, aiStats: 1, cleared: 1, contentVersion: 1, freshPending: 1, freshMade: 1, migrations: 1, missedGot: 1, seenQ: 1, seenQAt: 1, seenH: 1, challenges: 1 };
   mKeys(a, b).forEach(function (k) { if (known[k] || LOCAL_ONLY_FIELDS.indexOf(k) >= 0) return; var v = mNum(b.updatedAt) > mNum(a.updatedAt) ? (b[k] !== undefined ? b[k] : a[k]) : (a[k] !== undefined ? a[k] : b[k]); if (v !== undefined) out[k] = mCopy(v); });
   // device-only fields come from the local copy
   LOCAL_ONLY_FIELDS.forEach(function (k) { if (a[k] !== undefined) out[k] = mCopy(a[k]); });
@@ -1590,7 +1593,7 @@ var PROVIDER_NAMES = {openai:'OpenAI', anthropic:'Claude', xai:'Grok'};
 
 /* ---------- storage ---------- */
 var S, storageOK = true;
-function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, openIds:[], archiveIds:[], conceptArchived:{}, counters:{test:0, practice:0}, lastExport:null, ui:{page:'home'}, aiBank:{}, reported:{}, unreported:{}, deleted:{}, settingsAt:0, prefs:{}, prefsAt:0, explain:{}, levels:{}, missedGot:{}, seenQ:{}, seenH:{}, updatedAt:0}; }
+function blankState(){ return {app:'dsat-rw-simulator', version:1, sessions:{}, openIds:[], archiveIds:[], conceptArchived:{}, counters:{test:0, practice:0}, lastExport:null, ui:{page:'home'}, aiBank:{}, reported:{}, unreported:{}, deleted:{}, settingsAt:0, prefs:{}, prefsAt:0, explain:{}, levels:{}, missedGot:{}, seenQ:{}, seenH:{}, challenges:[], updatedAt:0}; }
 function normalize(){
   var b = blankState();
   for (var k in b) if (S[k] === undefined) S[k] = b[k];
@@ -1657,6 +1660,7 @@ function registerAIBank(){
 }
 function aiList(){ return Object.keys(S.aiBank).map(function(id){ return S.aiBank[id]; }); }
 function load(){
+  if (typeof CORR !== 'undefined') setTimeout(applyCorrections, 0);
   Object.keys(Q).forEach(function(id){ if (Q[id] && Q[id].ai) delete Q[id]; }); // previous profile's AI questions
   S = ACTIVE ? readProfileData(ACTIVE) : null;
   if (!S || typeof S !== 'object' || !S.sessions) S = blankState();
@@ -3388,7 +3392,75 @@ function reviewBodyHTML(q, ans, noThorough){
     h += '<div class="why"><b>Why '+q.correct+' is right:</b> '+qh(q, q.explanation)+'</div>';
   }
   h += '<div class="lesson"><b>Concept: '+esc(c.name)+'</b> <span class="small muted">('+DOMAINS[c.domain]+')</span><br>'+esc(c.lesson)+'</div>';
+  if (x.ans && !isCorrect(q, x.ans) && view.page !== 'parent' && !q.keyFixed) h += '<div class="chlrow"><button class="btn small" data-act="challenge" data-qid="' + esc(q.id) + '" data-ans="' + esc(x.ans) + '">⚖️ Challenge answer</button> <span class="small muted">Think the key is wrong? Two other AIs re-check it.</span></div>';
+  if (q.keyFixed) h += '<div class="chlrow small"><b>✓ Answer key corrected</b> after a challenge' + (q.origCorrect ? ' (was ' + esc(q.origCorrect) + ')' : '') + '.</div>';
   return noThorough ? h : h + thoroughBtnHTML(q, x.ans);
+}
+/* ---------- Challenge answer ----------
+   The student picks the answer they think is right (+ optional reason). The relay streams a review by an AI from a different
+   provider than the writer (walk-through, every choice, verdict) while a second provider blind-solves. Overturned only if both
+   agree: the key is then fixed for everyone (and an AI item leaves the shared pool), the score updates and it leaves Missed. */
+var CHL = null;
+function challengeOpen(id, ans){
+  var q = Q[id]; if (!q) return; if (!aiReady()) { modal('Challenge answer', '<p>Challenges need the AI relay. Set it up in Settings.</p>'); return; }
+  var spr = q.format === 'spr';
+  CHL = {id:id, q:q, ans:ans, pick:spr ? ans : (ans && ans !== q.correct ? ans : ''), text:'', follow:0, busy:false, verdict:null, second:null};
+  var ov = document.getElementById('chl-ov'); if (ov) ov.remove();
+  ov = document.createElement('div'); ov.id = 'chl-ov'; ov.className = 'mback'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true');
+  ov.innerHTML = '<div class="mbox chlbox"><h3>⚖️ Challenge this answer</h3><div id="chl-body"></div></div>';
+  document.body.appendChild(ov); challengeForm();
+  ov.addEventListener('click', function(e){ var b = e.target.closest('[data-chl]'); if (!b) return; var a = b.getAttribute('data-chl');
+    if (a === 'close') { if (CHL && CHL.ctrl) try { CHL.ctrl.abort(); } catch(x){} ov.remove(); CHL = null; render(); }
+    else if (a === 'pick') { CHL.pick = b.getAttribute('data-v'); challengeForm(); }
+    else if (a === 'send') { if (!spr) { if (!CHL.pick) return; } else { CHL.pick = String((document.getElementById('chl-spr') || {}).value || '').trim(); if (!CHL.pick) return; }
+      CHL.reason = String((document.getElementById('chl-why') || {}).value || '').slice(0, 800); challengeRun(null); }
+    else if (a === 'follow') { var m = String((document.getElementById('chl-fu') || {}).value || '').trim(); if (m) challengeRun(m); } });
+}
+function challengeForm(){
+  var q = CHL.q, spr = q.format === 'spr', el = document.getElementById('chl-body'); if (!el) return;
+  el.innerHTML = '<p class="small" style="margin-top:0">The key says <b>' + esc(spr ? q.answers[0] : q.correct) + '</b>. Which answer do you think is right?</p>' +
+    (spr ? '<input id="chl-spr" class="inp" value="' + esc(CHL.pick || '') + '" maxlength="8" aria-label="Your answer">' :
+      '<div class="row">' + ['A', 'B', 'C', 'D'].filter(function(L){ return L !== q.correct; }).map(function(L){ return '<button class="btn small' + (CHL.pick === L ? ' primary' : '') + '" data-chl="pick" data-v="' + L + '">' + L + '</button>'; }).join('') + '</div>') +
+    '<label class="fld"><span>Why? (optional)</span><textarea id="chl-why" rows="3" maxlength="800" placeholder="What makes your answer right?"></textarea></label>' +
+    '<div class="mbtns"><button class="btn" data-chl="close">Cancel</button><button class="btn primary" data-chl="send"' + (spr || CHL.pick ? '' : ' disabled') + '>Ask the reviewers</button></div>';
+}
+var CHL_OUT = {upheld:['The key stands', 'b-improving'], overturned:['You were right: the key is corrected', 'b-mastered'], disputed:['Reviewers disagree: the key stays, your parent can see this', 'b-new'], ambiguous:['Both answers are defensible: the key stays, your parent can see this', 'b-new']};
+function challengeRun(followMsg){
+  if (!CHL || CHL.busy) return; var q = CHL.q, el = document.getElementById('chl-body'); if (!el) return;
+  CHL.busy = true; if (followMsg) { CHL.follow = 1; CHL.text += '\n\n— You: ' + followMsg + '\n\n'; } else CHL.text = '';
+  var t0 = now(), prior = CHL.text;
+  el.innerHTML = '<p class="small muted" id="chl-who" style="margin-top:0">Connecting to the reviewers…</p><div id="chl-out" class="chlout" aria-live="polite"></div><div id="chl-end"></div>';
+  var out = document.getElementById('chl-out'), who = document.getElementById('chl-who'); out.textContent = CHL.text;
+  var src = q.source || {}, body = {question:{id:q.id, section:qSec(q), format:q.format === 'spr' ? 'spr' : 'mc', passage:q.passage || '', stem:q.stem, table:q.fig || '', choices:q.choices || [], correct:q.correct || '', answers:q.answers || [], writer:q.ai ? src.provider || '' : ''}, pick:CHL.pick, reason:CHL.reason || ''};
+  if (followMsg) body.followup = {prior:CHL.review || '', message:followMsg, second:CHL.second};
+  var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null; CHL.ctrl = ctrl;
+  fetch(relayUrl() + '/challenge', {method:'POST', headers:{'X-Passcode':AIS.passcode, 'Content-Type':'application/json'}, body:JSON.stringify(body), cache:'no-store', mode:'cors', credentials:'omit', signal:ctrl ? ctrl.signal : undefined}).then(function(res){
+    if (!res.ok || !res.body) return res.text().then(function(t){ var m = 'The review could not start.'; try { m = JSON.parse(t).error || m; } catch(e){} throw new Error(m); });
+    var rd = res.body.getReader(), dec = new TextDecoder(), buf = '', reviewTxt = '';
+    function pump(){ return rd.read().then(function(r){ if (r.done) return; buf += dec.decode(r.value, {stream:true}); var i;
+      while ((i = buf.indexOf('\n\n')) >= 0) { var blk = buf.slice(0, i); buf = buf.slice(i + 2); var m = /^event: (\w+)\ndata: ([\s\S]*)$/.exec(blk); if (!m) continue; var d; try { d = JSON.parse(m[2]); } catch(e){ continue; }
+        if (m[1] === 'start') who.innerHTML = 'Reviewed by <b>' + esc(PROVIDER_NAMES[d.lead] || d.lead) + '</b>' + (d.second ? ', with a blind check by <b>' + esc(PROVIDER_NAMES[d.second] || d.second) + '</b>' : '') + ' (not the AI that wrote it).';
+        else if (m[1] === 'delta') { reviewTxt += d.t; CHL.text = prior + reviewTxt; out.textContent = CHL.text.replace(/\n?VERDICT:.*$/m, ''); out.scrollTop = out.scrollHeight; }
+        else if (m[1] === 'verdict') challengeDone(d, reviewTxt, now() - t0);
+        else if (m[1] === 'error') throw new Error(d.error); }
+      return pump(); }); }
+    return pump();
+  }).catch(function(e){ if (!CHL) return; CHL.busy = false; var end = document.getElementById('chl-end'); if (end) end.innerHTML = '<p class="bad small">' + esc(e.message || 'The review failed.') + '</p><div class="mbtns"><button class="btn" data-chl="close">Close</button></div>'; });
+}
+function challengeDone(d, reviewTxt, ms){
+  var q = CHL.q, o = CHL_OUT[d.outcome] || CHL_OUT.upheld, end = document.getElementById('chl-end');
+  CHL.busy = false; CHL.verdict = d; CHL.review = (CHL.review ? CHL.review + '\n\n' : '') + reviewTxt; if (d.second) CHL.second = {provider:d.second.provider, answer:d.second.answer};
+  var key0 = q.format === 'spr' ? (q.answers || [])[0] : q.correct;
+  if (d.corrected) { CORR[q.id] = q.format === 'spr' ? {correct:'', answers:[CHL.pick], at:now()} : {correct:CHL.pick, at:now()}; saveCorrections(); applyCorrections();
+    if (S.aiBank[q.id]) { S.aiBank[q.id].correct = q.correct; S.aiBank[q.id].answers = q.answers; S.aiBank[q.id].keyFixed = 1; } }
+  if (!Array.isArray(S.challenges)) S.challenges = [];
+  var rec = {id:uid(), qid:q.id, concept:q.concept, pick:CHL.pick, key:q.origCorrect || key0, outcome:d.outcome, lead:d.lead, second:d.second ? d.second.answer || '' : '', followup:CHL.follow ? 1 : 0, reason:String(CHL.reason || '').slice(0, 200), at:now(), ms:ms};
+  if (CHL.follow && S.challenges.length && S.challenges[S.challenges.length - 1].qid === q.id) S.challenges[S.challenges.length - 1] = Object.assign(S.challenges[S.challenges.length - 1], {outcome:d.outcome, followup:1, at:rec.at}); else S.challenges.push(rec);
+  S.challenges = S.challenges.slice(-200); S.updatedAt = now(); save(); syncSoon(1500);
+  if (end) end.innerHTML = '<p><span class="badge ' + o[1] + '">' + esc(o[0]) + '</span>' + (d.second && d.second.answer ? ' <span class="small muted">Blind check picked ' + esc(d.second.answer) + '.</span>' : '') + '</p>' +
+    (d.corrected ? '<p class="small">Your score now counts this question as correct, and it leaves your Missed list.</p>' : '') +
+    (!CHL.follow && !d.corrected ? '<label class="fld"><span>Reply once (optional)</span><textarea id="chl-fu" rows="2" maxlength="800" placeholder="Still not convinced? Say why."></textarea></label>' : '') +
+    '<div class="mbtns"><button class="btn" data-chl="close">Close</button>' + (!CHL.follow && !d.corrected ? '<button class="btn primary" data-chl="follow">Send reply</button>' : '') + '</div>';
 }
 function thoroughBtnHTML(q, ans){
   var tOpen = !!(view.thx && view.thx[q.id]);
@@ -3594,6 +3666,13 @@ function doImport(mode){
 
 /* ---------- AI questions (private relay) ---------- */
 var AIS = loadAISettings();
+var CORR_KEY = 'dsat-corrections-v1', CORR = (function(){ try { var o = JSON.parse(window.localStorage.getItem(CORR_KEY) || '{}'); return o && typeof o === 'object' ? o : {}; } catch(e){ return {}; } })();
+function applyCorrections(){ Object.keys(CORR).forEach(function(id){ var q = Q[id], c = CORR[id]; if (!q || !c) return;
+  if (q.format === 'spr') { if (Array.isArray(c.answers) && c.answers.length) { if (!q.keyFixed) q.origCorrect = (q.answers || [])[0]; q.answers = c.answers.slice(); } }
+  else if (/^[ABCD]$/.test(c.correct)) { if (!q.keyFixed) q.origCorrect = q.correct; q.correct = c.correct; }
+  q.keyFixed = 1; }); }
+function saveCorrections(){ try { window.localStorage.setItem(CORR_KEY, JSON.stringify(CORR)); } catch(e){} }
+function refreshCorrections(){ if (!aiReady()) return Promise.resolve(); return relayFetch('/corrections', {method:'GET'}, 15000).then(function(d){ (d && Array.isArray(d.corrections) ? d.corrections : []).forEach(function(c){ if (c && c.id) CORR[c.id] = {correct:c.correct || '', answers:c.answers || null, at:+c.at || 0}; }); saveCorrections(); applyCorrections(); }, function(){}); }
 function loadAISettings(){
   var d = {relayUrl:'', passcode:'', provider:'', providers:[], catalog:[], review:null, status:null, checkedAt:0, hot:{}, pf:{day:'', n:0}};
   try { var o = JSON.parse(window.localStorage.getItem(AI_KEY) || 'null'); if (o && typeof o === 'object') for (var k in d) if (o[k] !== undefined) d[k] = o[k]; } catch(e){}
@@ -3775,6 +3854,9 @@ function ensureAIQuestionsNow(reqs, job, onProgress){
     result.ids[r.concept] = have; result.reused += have.length;
     if (r.need - have.length > 0) tasks.push({concept:r.concept, count:Math.min(10, r.need - have.length), difficulty:r.difficulty || 'medium'});
   });
+  var poolStep = tasks.length && ACTIVE && !(job && job.noPool) ? poolTake(tasks, job, result) : Promise.resolve();
+  return poolStep.then(function(){ tasks = tasks.filter(function(t){ return t.count > 0; }); return runTasks(); });
+  function runTasks(){
   var done = 0, next = 0;
   if (onProgress) onProgress(0, tasks.length);
   function worker(){
@@ -3786,6 +3868,25 @@ function ensureAIQuestionsNow(reqs, job, onProgress){
   }
   var ws = []; for (var i = 0; i < Math.min(AI_CONCURRENCY, tasks.length); i++) ws.push(worker());
   return Promise.all(ws).then(function(){ save(); return result; });
+  }
+}
+/* Server pool: pre-generated, gate-passed questions this profile was never given. Each one is still checked here against the
+   built-in bank + this profile's whole history; duplicates are reported back and dropped from the pool. Instant (no AI wait). */
+var POOLST = {last:null};
+function poolTake(tasks, job, result){
+  var t0 = now(), body = {profile:ACTIVE, reqs:tasks.map(function(t){ return {concept:t.concept, difficulty:/^(easy|medium|hard)$/.test(t.difficulty) ? t.difficulty : 'medium', need:t.count}; })}, pid = ACTIVE;
+  return relayFetch('/pool/take', {method:'POST', body:JSON.stringify(body)}, 15000, job).then(function(data){
+    if (ACTIVE !== pid || !S) return;
+    var items = data && data.items && typeof data.items === 'object' ? data.items : {}, dups = [], got = 0;
+    tasks.forEach(function(t){ var k = t.concept + '|' + (/^(easy|medium|hard)$/.test(t.difficulty) ? t.difficulty : 'medium');
+      (Array.isArray(items[k]) ? items[k] : []).forEach(function(raw){ if (t.count <= 0 || !raw || raw.concept !== t.concept) return;
+        var q = cleanAIQuestion(raw); if (!q) return;
+        if (S.aiBank[q.id] || Q[q.id] && !Q[q.id].ai) return;
+        if (aiDuplicate(q)) { dups.push(q.id); return; }
+        q.addedAt = now(); q.pool = 1; S.aiBank[q.id] = q; Q[q.id] = q; result.ids[t.concept].push(q.id); result.fetched++; t.count--; got++; }); });
+    if (dups.length) relayFetch('/pool/reject', {method:'POST', body:JSON.stringify({ids:dups})}, 15000).catch(function(){});
+    POOLST.last = {at:now(), ms:now() - t0, got:got, dups:dups.length}; if (got) { save(); syncSoon(5000); }
+  }, function(){ POOLST.last = {at:now(), ms:now() - t0, error:1}; });
 }
 /* ---- background prefetch: keep a small per-profile queue of panel-approved AI questions ready ----
    The queue IS the profile's saved AI bank (S.aiBank, synced), so a batch fetched on the iPad is ready on the
@@ -4235,7 +4336,7 @@ function profileSummary(data){
       week:{n:wk.length, ok:wk.filter(function(r){ return r.ok; }).length}, sec:secAcc, last:last || +d.updatedAt || 0, weakest:weakest, trend:trend, recent:recent,
       practiced:rec.sess.length, pool:(function(){ var ps = poolStats(), rt = rec.sess.filter(function(x){ return x.s.kind === 'test' && +x.s.repeats > 0; }); return {rw:ps.rw, math:ps.math, low:CONCEPTS.filter(function(c){ var k = ps.skills[c.id]; return k && k.unseen < 3; }).map(function(c){ return {name:c.name, unseen:ps.skills[c.id].unseen, total:ps.skills[c.id].total}; }), repeatTests:rt.length, repeatQs:rt.reduce(function(a, x){ return a + (+x.s.repeats || 0); }, 0)}; })(), missed:missedSummary(8), activity:Object.keys(d.sessions).map(function(id){ return d.sessions[id]; }).filter(function(s){ return s && s.finishedAt && Array.isArray(s.modules); }).sort(function(a, b){ return b.finishedAt - a.finishedAt; }).map(function(s){
       var r = sessionResults(s), sc = s.mode === 'speed' ? null : scoreSession(s, r);
-      return {sid:s.id, title:s.title || 'Session', at:s.finishedAt, mode:MODE_LABEL[modeOf(s)] || (s.kind === 'test' ? 'Test' : 'Practice'), res:s.mode === 'speed' ? r.correct + ' correct in 60 s' : sc ? scoreLine(sc) : r.correct + '/' + r.total + ' correct', time:timingShort(s)}; }), ai:aiStatsOf(d), game:pvGameSummary(d), coach:(function(){ var L = rec.recs.filter(function(r){ return r.fin && r.answered && r.co; }), W = L.filter(function(r){ return r.t >= weekAgo; }); return {n:L.length, ok:L.filter(function(r){ return r.ok; }).length, week:W.length}; })()};
+      return {sid:s.id, title:s.title || 'Session', at:s.finishedAt, mode:MODE_LABEL[modeOf(s)] || (s.kind === 'test' ? 'Test' : 'Practice'), res:s.mode === 'speed' ? r.correct + ' correct in 60 s' : sc ? scoreLine(sc) : r.correct + '/' + r.total + ' correct', time:timingShort(s)}; }), challenges:Array.isArray(d.challenges) ? d.challenges.slice(-20).reverse() : [], ai:aiStatsOf(d), game:pvGameSummary(d), coach:(function(){ var L = rec.recs.filter(function(r){ return r.fin && r.answered && r.co; }), W = L.filter(function(r){ return r.t >= weekAgo; }); return {n:L.length, ok:L.filter(function(r){ return r.ok; }).length, week:W.length}; })()};
   });
 }
 function pvMissedHTML(m){
@@ -4299,6 +4400,7 @@ function renderParent(){
       ' · ' + (x.pool.repeatTests ? '<b>' + x.pool.repeatTests + ' test' + (x.pool.repeatTests === 1 ? '' : 's') + '</b> had to reuse up to ' + x.pool.repeatQs + ' seen question' + (x.pool.repeatQs === 1 ? '' : 's') + ' (pool exhausted for some skills)' : 'no test has repeated a question') + '</span>' +
       (x.pool.low.length ? '<details class="pvmq"><summary class="small">' + x.pool.low.length + ' skill' + (x.pool.low.length === 1 ? '' : 's') + ' nearly out of new questions</summary><ul class="pvlist">' + x.pool.low.map(function(k){ return '<li><span>' + esc(k.name) + '</span><span class="small muted">' + k.unseen + ' of ' + k.total + ' unseen</span></li>'; }).join('') + '</ul></details>' : '') + '</div>';
     h += pvGameHTML(p, x);
+    if (x.challenges && x.challenges.length) h += '<div class="pvrow pvchl"><span class="ml">Answer challenges</span><ul class="pvlist">' + x.challenges.map(function(c){ var o = {upheld:'key upheld', overturned:'✓ key corrected', disputed:'reviewers split', ambiguous:'ambiguous'}[c.outcome] || c.outcome; return '<li><span>' + fmtMD(c.at) + ' · ' + esc((CMAP[c.concept] || {}).name || c.concept) + ': picked ' + esc(c.pick) + ' vs key ' + esc(c.key) + (c.reason ? ' <span class="small muted">“' + esc(c.reason) + '”</span>' : '') + '</span><b class="small">' + esc(o) + (c.followup ? ' (after reply)' : '') + '</b></li>'; }).join('') + '</ul></div>';
     if (x.ai) h += '<div class="pvrow pvai"><span class="ml">AI questions</span><span class="small">' + x.ai.kept + ' AI question' + (x.ai.kept === 1 ? '' : 's') + ' from ' + x.ai.requests + ' request' + (x.ai.requests === 1 ? '' : 's') +
       (x.ai.panelReq ? ' · Cross-AI review pass rate <b>' + (x.ai.rate == null ? '—' : x.ai.rate + '%') + '</b> (' + (x.ai.firstRate == null ? '—' : x.ai.firstRate + '%') + ' on the first try' + (x.ai.revOk ? ', ' + x.ai.revOk + ' fixed after review' : '') + ')' : ' · Cross-AI review off') + '</span></div>';
     h += '<div class="pvrow"><span class="ml">Recent tests</span>' + (x.recent.length ? '<ul class="pvlist">' + x.recent.map(function(t){ return '<li><span>' + esc(t.title) + ' <span class="small muted">' + fmtMD(t.at) + '</span></span><b>' + (t.score !== null ? t.score : t.instant ? '<span class="small muted">instant feedback · ' + t.acc + '%</span>' : t.acc + '%') + '</b><button class="btn small ghost pvrv" data-act="pv-review" data-pid="' + esc(p.id) + '" data-sid="' + esc(t.sid) + '">Review</button></li>'; }).join('') + '</ul>' : '<span class="small muted">No finished tests yet</span>') + '</div>';
@@ -4459,6 +4561,7 @@ function sanitizeState(st){
     Object.keys(ms).slice(0, 5000).forEach(function(id){ var x = ms[id]; if (!/^[\w-]{1,80}$/.test(id) || !x || typeof x !== 'object' || !(+x.at > 0)) return; mg[id] = {at:+x.at, on:x.on ? 1 : 0}; }); st.missedGot = mg; }
   if (st.seenQ !== undefined) { var sq = {}, ss = st.seenQ && typeof st.seenQ === 'object' && !Array.isArray(st.seenQ) ? st.seenQ : {};
     Object.keys(ss).slice(0, 20000).forEach(function(id){ if (/^[\w-]{1,80}$/.test(id) && +ss[id] > 0) sq[id] = +ss[id]; }); st.seenQ = sq; }
+  if (st.challenges !== undefined) st.challenges = (Array.isArray(st.challenges) ? st.challenges : []).filter(function(c){ return c && typeof c === 'object' && /^[\w-]{1,90}$/.test(String(c.qid || '')); }).slice(-200).map(function(c){ return {id:String(c.id || '').slice(0, 40), qid:String(c.qid), concept:String(c.concept || '').slice(0, 40), pick:String(c.pick || '').slice(0, 12), key:String(c.key || '').slice(0, 12), outcome:/^(upheld|overturned|disputed|ambiguous)$/.test(c.outcome) ? c.outcome : 'upheld', lead:String(c.lead || '').slice(0, 20), second:String(c.second || '').slice(0, 12), followup:c.followup ? 1 : 0, reason:String(c.reason || '').slice(0, 200), at:+c.at || 0, ms:+c.ms || 0}; });
   if (st.seenH !== undefined) { var shh = {}, sh0 = st.seenH && typeof st.seenH === 'object' && !Array.isArray(st.seenH) ? st.seenH : {};
     Object.keys(sh0).slice(0, 40000).forEach(function(k){ if (/^[0-9a-z]{1,8}:\d{1,6}$/.test(k) && +sh0[k] > 0) shh[k] = +sh0[k]; }); st.seenH = shh; }
   if (st.seenQAt !== undefined) st.seenQAt = +st.seenQAt > 0 ? +st.seenQAt : 0;
@@ -5456,6 +5559,7 @@ function move(d){
   var panes = document.querySelectorAll('.pane'); for (var i=0;i<panes.length;i++) panes[i].scrollTop = 0;
 }
 var ACTIONS = {
+  'challenge': function(el){ challengeOpen(el.getAttribute('data-qid'), el.getAttribute('data-ans')); },
   nav: function(el){ go(el.getAttribute('data-page')); },
   tour: function(){ startTour(false); },
   resume: function(el){ go('run', el.getAttribute('data-sid')); },
@@ -5655,9 +5759,10 @@ var chosen = null; try { chosen = window.sessionStorage.getItem(ACTIVE_SESSION_K
 if (chosen && REG.profiles[chosen]) { ACTIVE = chosen; REG.lastUsed[chosen] = now(); saveReg(); load(); view = restoreView(); render(); afterOpenSync(syncNow('open')); }
 else { S = blankState(); view = {page:'profiles', sid:null, filter:'all'}; render(); if (canSync()) syncNow('list'); }
 if (relayUrl() && AIS.passcode && now() - (AIS.checkedAt || 0) > 6*3600e3 && navigator.onLine !== false) {
-  refreshProviders().then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); schedulePrefetch(6000); }, function(){});
+  applyCorrections();
+  refreshProviders().then(function(){ return refreshCorrections(); }).then(function(){ if (!modalOpen() && view.page !== 'run' && view.page !== 'settings') render(); schedulePrefetch(6000); }, function(){});
 } else schedulePrefetch(6000);
-window.__SAT = {norepeat:{startSpeed:function(c){ return startSpeed(c); }, startBoss:function(){ return startBoss(); }, buildModeSession:function(o, a){ return buildModeSession(o, a); }, freshRun:function(f){ return freshRun(f); }, NRX:NRX, isServed:function(q, i){ return isServed(q, i); }, startPractice:function(a,b,c,d){ return startPractice(a,b,c,d); }, startFullSAT:function(){ return startFullSAT(); }, seenInfo:function(){ return seenInfo(); }, poolStats:function(){ return poolStats(); }, aiDuplicate:function(q){ return aiDuplicate(q); }, rememberSeen:function(x){ rememberSeen(x); }, blk:blk, SIB:SIB, SAME:SAME, requestAI:function(t, j){ return requestAI(t, j); }, AIS:function(){ return AIS; }, startMathTest:function(){ startMathTest(); }, generateTest:function(o){ generateTest(o); }}, speedAttempts:function(s){ return speedAttempts(s); }, missedList:function(){ return missedList(); }, missedCount:function(){ return missedCount(); }, practiceMissed:function(e, l){ practiceMissed(e, l); }, MQ:MQ, sanitizeState:function(x){ return sanitizeState(x); }, submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, buildFullSAT:buildFullSAT, enforceM2Gap:enforceM2Gap, M2_GAP:M2_GAP, modAvgDiff:modAvgDiff, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
+window.__SAT = {pool:{take:function(t, j, r){ return poolTake(t, j, r); }, st:POOLST, CORR:function(){ return CORR; }, applyCorrections:applyCorrections, challengeOpen:function(i, a){ return challengeOpen(i, a); }, CHL:function(){ return CHL; }}, norepeat:{startSpeed:function(c){ return startSpeed(c); }, startBoss:function(){ return startBoss(); }, buildModeSession:function(o, a){ return buildModeSession(o, a); }, freshRun:function(f){ return freshRun(f); }, NRX:NRX, isServed:function(q, i){ return isServed(q, i); }, startPractice:function(a,b,c,d){ return startPractice(a,b,c,d); }, startFullSAT:function(){ return startFullSAT(); }, seenInfo:function(){ return seenInfo(); }, poolStats:function(){ return poolStats(); }, aiDuplicate:function(q){ return aiDuplicate(q); }, rememberSeen:function(x){ rememberSeen(x); }, blk:blk, SIB:SIB, SAME:SAME, requestAI:function(t, j){ return requestAI(t, j); }, AIS:function(){ return AIS; }, startMathTest:function(){ startMathTest(); }, generateTest:function(o){ generateTest(o); }}, speedAttempts:function(s){ return speedAttempts(s); }, missedList:function(){ return missedList(); }, missedCount:function(){ return missedCount(); }, practiceMissed:function(e, l){ practiceMissed(e, l); }, MQ:MQ, sanitizeState:function(x){ return sanitizeState(x); }, submitModule:function(){ submitModule(); }, instantExam:instantExam, content:{v:CONTENT_VERSION, migrate:contentMigrate, fresh:freshAfterOpen, freshSessions:function(){ return freshSessions(); }}, prefetch:{state:function(){ return PF; }, tick:prefetchTick, status:queueStatus, hot:hotList, noteHot:noteHot, count:queueCount, cancel:cancelPrefetch}, state:function(){ return S; }, PV:function(){ return PV; }, profileSummary:profileSummary, openParent:openParent, save:function(){ save(); }, Q:Q, buildRWSection:buildRWSection, buildMathSection:buildMathSection, buildFullSAT:buildFullSAT, enforceM2Gap:enforceM2Gap, M2_GAP:M2_GAP, modAvgDiff:modAvgDiff, BLUEPRINT:BLUEPRINT, RW_MIX:RW_MIX, orderRW:orderRW, placeSPR:placeSPR, pickForConcept:pickForConcept, levelOf:levelOf, levelStep:levelStep, diffForLevel:diffForLevel, applyLevel:applyLevel, seedLevels:seedLevels, checkOn:checkOn, sprEquivalents:sprEquivalents, cleanExplain:cleanExplain, explainBody:explainBody, explainFor:explainFor, TH:TH, DATA:DATA, MATH:MATH, CONCEPTS:CONCEPTS, conceptStats:conceptStats, isCorrect:isCorrect, sprCorrect:sprCorrect, sprProblem:sprProblem, scoreSession:scoreSession, scaleScore:scaleScore, routeNext:routeNext, renderMath:renderMath, Calc:Calc, Tour:Tour, startTour:startTour, prefs:prefs, missedConcepts:missedConcepts, modeOf:modeOf, sessionResults:sessionResults, weakConcepts:weakConcepts, view:function(){ return view; }, ai:function(){ return AIS; }, sanitizeHTML:sanitizeHTML, cleanAIQuestion:cleanAIQuestion, coachFor:coachFor, builtinCoach:builtinCoach, cleanCoach:cleanCoach, cleanPanel:cleanPanel, coachedExam:coachedExam, isCoached:isCoached, coachVisible:coachVisible, aiStatsOf:aiStatsOf,
   game:{G:G, recalc:gameRecalc, stats:gameStats, streakInfo:streakInfo, sessionXP:sessionXP, levelInfo:levelInfo, badgeStep:badgeStep, bossState:bossState, leaderboard:leaderboard, lbRows:lbRows, cleanGame:cleanGame, dayKeyOf:dayKeyOf, mondayKey:mondayKey, todayKey:todayKey, startBoss:startBoss, startSpeed:startSpeed, goalInfo:goalInfo, GAME:GAME, SKILL_BADGES:SKILL_BADGES, queue:function(){ return GUI.queue; }, flush:flushCelebrations},
   reg:function(){ return REG; }, active:function(){ return ACTIVE; }, sync:function(){ return SY; }, syncNow:syncNow, merge:mergeProfileData, sha256hex:sha256hex, records:collectRecords};
 })();
