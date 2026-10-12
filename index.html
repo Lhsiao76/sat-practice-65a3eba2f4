@@ -178,6 +178,7 @@ textarea.bk{width:100%;min-height:140px;font-family:ui-monospace,Menlo,monospace
 .topnav .navi{display:flex;flex-wrap:wrap;gap:2px;order:3;width:100%}
 @media(min-width:1000px){.topnav .navi{width:auto;order:1;margin-right:auto}.topnav .brand{margin-right:12px}}
 .topnav .navr button{min-height:36px}
+.topnav .pvtab{color:var(--blue-d);white-space:nowrap}
 .avatar{display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;color:#fff;font-weight:800;font-size:24px;flex:none;line-height:1}
 .avatar.sm{width:28px;height:28px;font-size:14px}
 .avatar.add{background:#eef1f6;color:var(--blue);border:2px dashed #9fb2d8}
@@ -2603,7 +2604,7 @@ function nav(){
   var m = REG && REG.profiles[ACTIVE];
   return '<div class="topnav"><div class="in"><span class="brand">SAT Practice</span><span class="navr">' + syncPill() +
     (m ? '<button class="pchip" data-act="switch-profile" aria-label="Switch profile (now ' + esc(m.name) + ')">' + avatarHTML(m, 'sm') + '<span>' + esc(m.name) + '</span></button>' : '') + '</span><span class="navi">' + items.map(function(it){
-    return '<button data-act="nav" data-page="'+it[0]+'" class="'+(view.page===it[0]?'on':'')+'">'+it[1]+'</button>'; }).join('') + '</span></div></div>';
+    return '<button data-act="nav" data-page="'+it[0]+'" class="'+(view.page===it[0]?'on':'')+'">'+it[1]+'</button>'; }).join('') + '<button data-act="parent-view" class="pvtab'+(view.page==='parent'?' on':'')+'" aria-label="Parent view (passcode required)">👪 Parent view</button></span></div></div>';
 }
 function storageWarning(){
   return storageOK ? '' : '<div class="warn"><b>Progress can\'t be saved in this viewer.</b> Your answers will be lost if you close it. Use the Backup page to save a copy, or open the file in Safari, Chrome, or Edge.</div>';
