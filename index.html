@@ -1606,6 +1606,7 @@ function normalize(){
   ['unreported','deleted','conceptArchived','counters','prefs','explain','levels','missedGot','seenQ','seenH'].forEach(function(k){ if (!S[k] || typeof S[k] !== 'object' || Array.isArray(S[k])) S[k] = blankState()[k]; });
   if (ACTIVE) dedupeFresh();
   registerAIBank();
+  if (ACTIVE) Object.keys(S.sessions).forEach(function(id){ var x = S.sessions[id]; if (x && x.finishedAt) noteServed(x, !x.routes); else if (x) noteServed(x); });   // backfill synced fingerprints for every mode's history
   seedLevels();
   if (ACTIVE && REG && REG.profiles[ACTIVE]) gameRecalc(false);
 }
@@ -1932,7 +1933,8 @@ var Q_TOPIC = [['tense-4', 'tense-e1'], ['verbform-1', 'synthesis-e1'], ['synthe
 var SIB = {}, SAME = {};
 [Q_SAME, Q_TOPIC].forEach(function(L, k){ L.forEach(function(g){ g.forEach(function(a){ g.forEach(function(b){ if (a === b) return; (SIB[a] || (SIB[a] = [])).push(b); if (!k) (SAME[a] || (SAME[a] = [])).push(b); }); }); }); });
 /* Is id excluded from a set/test that already holds `excl` (itself or a linked sibling)? */
-function blk(excl, id){ if (excl[id]) return true; var L = SIB[id]; if (L) for (var i = 0; i < L.length; i++) if (excl[L[i]]) return true; return false; }
+function blk(excl, id){ if (excl[id]) return true; var L = SIB[id]; if (L) for (var i = 0; i < L.length; i++) if (excl[L[i]]) return true; return sameTopicIn(excl, id); }
+function blkId(excl, id){ if (excl[id]) return true; var L = SIB[id]; if (L) for (var i = 0; i < L.length; i++) if (excl[L[i]]) return true; return false; }
 function seenInfo(){
   var info = {};
   var add = function(id, t){ var r = info[id] || (info[id] = {n:0, last:0}); r.n++; r.last = Math.max(r.last, t || 0); };
@@ -1966,7 +1968,68 @@ function servedHashes(info){
   Object.keys(info).forEach(function(id){ if (Q[id]) h[qPrint(Q[id]).h] = 1; });
   NRX.hc = {info:info, h:h}; return h;
 }
-function isServed(q, info){ return !!(info[q.id] || servedHashes(info)[qPrint(q).h]); }
+function isServed(q, info){ return !!(info[q.id] || servedHashes(info)[qPrint(q).h] || nearServed(q, info)); }
+/* ---------- near-duplicate guard (v3) ----------
+ * Exact ids and text hashes miss paraphrases: AI writers re-use a scenario with new names/wording (two "economist
+ * tracks grocery shoppers" items, two "archaeologists in coastal Peru" items), and the built-in bank has a few pairs on
+ * the same passage subject (giant panda, Venice, Apollo 11, Mae Jemison). Reading & Writing questions get an
+ * IDF-weighted content-word vector (passage + AI topic). Then:
+ *  - history: a question whose passage is close to anything this profile was served (cos >= NEAR_SERVED) counts as served;
+ *  - within one test/set (and across Module 1 / both Module 2s): two questions on the same subject (cos >= NEAR_TEST,
+ *    or AI topic labels sharing a content word) never appear together. */
+var NEAR_SERVED = 0.28, NEAR_TEST = 0.2;
+var NSTOP = {}; ('this that with from have were been their which they them than then there these those what when where while would could should about into also more most such only other some over very after before during because between both each many much through under until upon well being does doing text following choice best logically completes researching topic student taken notes wants information relevant effectively uses accomplish goal underlined sentence passage author claim study studies researchers research found findings data table graph shows according new one two three first second years year people time part used use').split(' ').forEach(function(w){ NSTOP[w] = 1; });
+var NV = {n:-1, df:null, v:{}, pair:{}, tp:{}};
+function nToks(q){ return (normQText(q.passage) + ' ' + normQText(q.topic)).split(/\s+/).filter(function(w){ return w.length > 3 && !NSTOP[w] && !/^\d+$/.test(w); }); }
+function nIndex(){
+  var pool = DATA.bank.concat(DATA.test, aiList().filter(function(q){ return qSec(q) === 'rw'; }));
+  if (NV.n === pool.length && NV.df) return NV;
+  var df = {}; pool.forEach(function(q){ var u = {}; nToks(q).forEach(function(w){ if (!u[w]) { u[w] = 1; df[w] = (df[w] || 0) + 1; } }); });
+  NV = {n:pool.length, df:df, v:{}, pair:{}, tp:{}}; return NV;
+}
+function nVec(q){
+  var ix = nIndex(), c = ix.v[q.id]; if (c && c.q === q) return c.v;
+  var tf = {}; nToks(q).forEach(function(w){ tf[w] = (tf[w] || 0) + 1; });
+  var v = {}, s = 0, N = ix.n + 1; for (var w in tf) { var x = (1 + Math.log(tf[w])) * Math.log(N / (ix.df[w] || 1)); v[w] = x; s += x * x; }
+  s = Math.sqrt(s) || 1; for (var k in v) v[k] /= s; ix.v[q.id] = {q:q, v:v}; return v;
+}
+function nCos(a, b){
+  if (!a || !b || a === b || qSec(a) !== 'rw' || qSec(b) !== 'rw') return 0;
+  var ix = nIndex(), k = a.id < b.id ? a.id + '|' + b.id : b.id + '|' + a.id; if (k in ix.pair) return ix.pair[k];
+  var va = nVec(a), vb = nVec(b), t = 0; for (var w in va) if (vb[w]) t += va[w] * vb[w];
+  return (ix.pair[k] = t);
+}
+function nTopic(q){ var ix = nIndex(); if (q.id in ix.tp) return ix.tp[q.id]; var o = {}; normQText(q.topic).split(/\s+/).forEach(function(w){ if (w.length > 3 && !NSTOP[w]) o[w] = 1; }); return (ix.tp[q.id] = o); }
+function sameTopic(a, b){
+  if (!a || !b || a.id === b.id || qSec(a) !== 'rw' || qSec(b) !== 'rw') return false;
+  if (a.topic && b.topic) { var ta = nTopic(a), tb = nTopic(b); for (var w in ta) if (tb[w]) return true; }
+  return nCos(a, b) >= NEAR_TEST;
+}
+function sameTopicIn(excl, id){
+  var q = Q[id]; if (!q || qSec(q) !== 'rw') return false;
+  for (var k in excl) { if (k === id || !excl[k]) continue; var o = Q[k]; if (o && sameTopic(q, o)) return true; }
+  return false;
+}
+function nearServed(q, info){
+  if (!q || qSec(q) !== 'rw') return false;
+  var c = NRX.nc; if (!c || c.info !== info || c.n !== nIndex().n) c = NRX.nc = {info:info, n:nIndex().n, list:Object.keys(info).map(function(id){ return Q[id]; }).filter(function(o){ return o && qSec(o) === 'rw'; }), r:{}};
+  if (q.id in c.r) return c.r[q.id];
+  for (var i = 0; i < c.list.length; i++) if (c.list[i].id !== q.id && nCos(q, c.list[i]) >= NEAR_SERVED) return (c.r[q.id] = true);
+  return (c.r[q.id] = false);
+}
+/* Last line of defence for any built session: no question id twice, and no two questions on the same subject. */
+function dedupeSession(s){
+  if (!s || !Array.isArray(s.modules)) return 0;
+  var fixed = 0, info = seenInfo(), R = s.routes || {};
+  var check = function(m, keep){ for (var p = 0; p < m.length; p++) { var id = m[p];
+    if (blk(keep, id)) { var q = Q[id], px = {}; for (var z0 in keep) px[z0] = 1; for (var z1 in every) px[z1] = 1; var alt = q ? pickForConcept(q.concept, 1, px, info, q.difficulty, {strict:true, noOriginal:true}) : [];
+      if (alt.length && !(q.format && Q[alt[0]].format !== q.format)) { m[p] = alt[0]; fixed++; id = alt[0]; every[id] = 1; } else if (keep[id]) continue; }
+    keep[id] = 1; } };
+  var keep = {}, every = {}; s.modules.forEach(function(m){ (m || []).forEach(function(x){ every[x] = 1; }); }); Object.keys(R).forEach(function(k){ (R[k].harder || []).concat(R[k].easier || []).forEach(function(x){ every[x] = 1; }); });
+  s.modules.forEach(function(m, i){ if (!R[i] && Array.isArray(m)) check(m, keep); });
+  Object.keys(R).forEach(function(k){ ['harder', 'easier'].forEach(function(x){ if (!Array.isArray(R[k][x])) return; var kk = {}; for (var z in keep) kk[z] = 1; check(R[k][x], kk); }); });
+  return fixed;
+}
 function noteShort(cid, diff, n){ if (!NRX.dry || n <= 0) return; var k = cid + '|' + (/^(easy|medium|hard)$/.test(diff) ? diff : 'medium'); NRX.short[k] = (NRX.short[k] || 0) + n; }
 /* Run a session builder so that it never needs a repeat: dry-run it (nothing saved/shown), collect every
    skill/difficulty that would have run out of unserved questions, fetch that many fresh AI questions, then build. */
@@ -2190,7 +2253,8 @@ function sessionResults(s){
 function bankFor(cid){ return cSec(cid) === 'math' ? MATH.bank : DATA.bank; }
 function pickForConcept(cid, n, exclude, info, prefDiff, opts){
   opts = opts || {};
-  var all = bankFor(cid).concat(aiList()).filter(function(q){ return q.concept === cid && !blk(exclude, q.id) && !isReported(q.id); });
+  var all0 = bankFor(cid).concat(aiList()).filter(function(q){ return q.concept === cid && !blkId(exclude, q.id) && !isReported(q.id); });
+  var all = all0.filter(function(q){ return !sameTopicIn(exclude, q.id); });
   var cmp = function(a,b){
     var sa = info[a.id] ? info[a.id].n : 0, sb = info[b.id] ? info[b.id].n : 0;
     if (opts.noAI && !!a.ai !== !!b.ai) return a.ai ? 1 : -1;   // "noAI" = built-in first; unserved AI still beats any repeat
@@ -2206,7 +2270,10 @@ function pickForConcept(cid, n, exclude, info, prefDiff, opts){
   // The original 54-question practice test (DATA.test) is never used to build tests; practice sets may use unserved ones last.
   if (out.length < n && cSec(cid) === 'rw' && !opts.noOriginal) take(shuffle(DATA.test.filter(function(q){ return q.concept === cid && !blk(exclude, q.id) && !isReported(q.id) && !isServed(q, info); })));
   noteShort(cid, prefDiff, n - out.length);   // unserved pool ran out: freshRun asks AI for this many at this difficulty
-  if (out.length < n && !opts.strict) take(shuffle(all.filter(function(q){ return isServed(q, info); })).sort(cmp));   // AI unavailable: least-recently-seen
+  // AI unavailable: never-shown look-alikes first (same subject as something seen / in this test, but not the same question), then least-recently-seen
+  var exactSeen = function(q){ return !!(info[q.id] || servedHashes(info)[qPrint(q).h]); };
+  if (out.length < n && !opts.strict) take(shuffle(all0.filter(function(q){ return !exactSeen(q) && out.indexOf(q) < 0; })).sort(cmp));
+  if (out.length < n && !opts.strict) take(shuffle(all0.filter(function(q){ return exactSeen(q); })).sort(cmp));
   return out.map(function(q){ return q.id; });
 }
 function newSession(kind, title, modules, extra){
@@ -2214,6 +2281,7 @@ function newSession(kind, title, modules, extra){
            timed: kind === 'test', timeLeft: modules.map(function(m, i){ return (extra && extra.secs && +extra.secs[i]) || MODULE_SECONDS; }), timerHidden:false,
            mod:0, idx:0, stage:'q', answers:{}, marked:{}, unsure:{}};
   if (extra) for (var k in extra) s[k] = extra[k];
+  try { if (!(extra && extra.keepIds)) s.dedupFixed = dedupeSession(s); } catch (e) {}
   if (kind === 'test' && prefs().instant) s.instant = true;            // exam with instant feedback (start picker toggle)
   if (kind === 'practice' && (prefs().coachAll || prefs().coach)) s.coachAll = true; // practice: Coach open on every question (picker / Settings default)
   S.sessions[s.id] = s; S.openIds.push(s.id); save(); syncSoon(4000);
@@ -2258,7 +2326,8 @@ function buildRWSection(opts){
    Only new builds are affected (Module 2s are stored with the test when it starts). If a tiny bank truly has no harder or
    easier questions left, the best reachable gap is kept and noted on the session (m2gap). */
 /* Seen-before questions a student could meet in this section (Module 1 + whichever Module 2 is longer on repeats). */
-function countRepeats(m1, h, e, info){ var f = function(L){ return L.filter(function(id){ return Q[id] && isServed(Q[id], info); }).length; }; return f(m1) + Math.max(f(h), f(e)); }
+function exactServed(q, info){ return !!(info[q.id] || servedHashes(info)[qPrint(q).h]); }
+function countRepeats(m1, h, e, info){ var f = function(L){ return L.filter(function(id){ return Q[id] && exactServed(Q[id], info); }).length; }; return f(m1) + Math.max(f(h), f(e)); }
 var M2_GAP = 0.2;
 function modAvgDiff(ids){ if (!ids.length) return 0; var t = 0; ids.forEach(function(id){ t += dRank(Q[id] && Q[id].difficulty); }); return t / ids.length; }
 function enforceM2Gap(sec, m1, h, e, info, mixes){
@@ -2314,9 +2383,9 @@ function enforceM2Gap(sec, m1, h, e, info, mixes){
   // 3) no-repeat pass: a seen question left in any module (e.g. after a Module 1/Module 2 swap) is traded for an unused
   //    unseen one of the same skill/format when that keeps the gap shortfall from growing (same difficulty preferred).
   [1, 2, 0].forEach(function(mi){
-    mods[mi].forEach(function(id, pos){ if (!info[id]) return;
+    mods[mi].forEach(function(id, pos){ if (!info[id] && !isServed(Q[id], info)) return;
       var inS = mods.map(function(m){ var o = {}; m.forEach(function(x){ o[x] = 1; }); return o; }), od = dRank(Q[id].difficulty);
-      var c = (byKey[keyOf(id)] || []).filter(function(y){ if (info[y] || y === id) return false; var t = {}; for (var k in inS[mi]) if (k !== id) t[k] = 1;
+      var c = (byKey[keyOf(id)] || []).filter(function(y){ if (info[y] || y === id || isServed(Q[y], info)) return false; var t = {}; for (var k in inS[mi]) if (k !== id) t[k] = 1;
         if (blk(t, y)) return false; return mi === 0 ? !(blk(inS[1], y) || blk(inS[2], y)) : !blk(inS[0], y); });
       c.sort(function(x, y){ return Math.abs(dRank(Q[x].difficulty) - od) - Math.abs(dRank(Q[y].difficulty) - od); });
       for (var i = 0; i < c.length; i++) { var nd = dRank(Q[c[i]].difficulty), sm = sums.slice(); sm[mi] += nd - od;
@@ -3524,7 +3593,7 @@ function missedFiltered(all, M){ M = M || MQ; return all.filter(function(e){ ret
 function startRetry(ids){
   ids = (ids || []).filter(function(id){ return Q[id]; }).slice(0, 30); if (!ids.length) return;
   S.counters.retry = (S.counters.retry || 0) + 1; var sec = practiceSection(ids);
-  var s = newSession('practice', 'Retry Missed #' + S.counters.retry, [ids], {source:'practice', mode:'retry', section:sec, modSec:[sec], targets:[]});
+  var s = newSession('practice', 'Retry Missed #' + S.counters.retry, [ids], {source:'practice', mode:'retry', section:sec, modSec:[sec], targets:[], keepIds:true});
   s.coachAll = false; go('run', s.id);
 }
 function practiceMissed(entries, label){
@@ -3927,12 +3996,13 @@ function poolTake(tasks, job, result){
   var t0 = now(), body = {profile:ACTIVE, reqs:tasks.map(function(t){ return {concept:t.concept, difficulty:/^(easy|medium|hard)$/.test(t.difficulty) ? t.difficulty : 'medium', need:t.count}; })}, pid = ACTIVE;
   return relayFetch('/pool/take', {method:'POST', body:JSON.stringify(body)}, 15000, job).then(function(data){
     if (ACTIVE !== pid || !S) return;
-    var items = data && data.items && typeof data.items === 'object' ? data.items : {}, dups = [], got = 0;
+    var items = data && data.items && typeof data.items === 'object' ? data.items : {}, dups = [], got = 0, pinfo = seenInfo();
     tasks.forEach(function(t){ var k = t.concept + '|' + (/^(easy|medium|hard)$/.test(t.difficulty) ? t.difficulty : 'medium');
       (Array.isArray(items[k]) ? items[k] : []).forEach(function(raw){ if (t.count <= 0 || !raw || raw.concept !== t.concept) return;
         var q = cleanAIQuestion(raw); if (!q) return;
         if (S.aiBank[q.id] || Q[q.id] && !Q[q.id].ai) return;
         if (aiDuplicate(q)) { dups.push(q.id); return; }
+        if (nearServed(q, pinfo)) { POOLST.near = (POOLST.near || 0) + 1; return; }   // paraphrase of something this profile saw: skip (already marked taken for this profile; not a global reject)
         q.addedAt = now(); q.pool = 1; S.aiBank[q.id] = q; Q[q.id] = q; result.ids[t.concept].push(q.id); result.fetched++; t.count--; got++; }); });
     if (dups.length) relayFetch('/pool/reject', {method:'POST', body:JSON.stringify({ids:dups})}, 15000).catch(function(){});
     POOLST.last = {at:now(), ms:now() - t0, got:got, dups:dups.length}; if (got) { save(); syncSoon(5000); }
